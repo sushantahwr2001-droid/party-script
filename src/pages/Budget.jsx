@@ -16,6 +16,7 @@ import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import DonutLargeRoundedIcon from "@mui/icons-material/DonutLargeRounded";
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
 import { useVendors } from "../hooks/useVendors";
@@ -31,6 +32,7 @@ const BudgetDonutChart = lazy(() =>
 );
 
 export default function Budget() {
+  const navigate = useNavigate();
   const { events } = useEvents();
   const [selectedEvent, setSelectedEvent] = useState("");
 
@@ -39,6 +41,14 @@ export default function Budget() {
   const { tasks } = useTasks(currentEvent?.id);
   const { vendors } = useVendors(currentEvent?.id);
   const { activities, error: activitiesError } = useActivities(currentEvent?.id);
+
+  const recentBudgetActivity = useMemo(
+    () =>
+      activities.filter((activity) =>
+        ["VENDOR_CREATED", "VENDOR_UPDATED", "VENDOR_STATUS_UPDATED", "EVENT_CREATED"].includes(activity.type)
+      ),
+    [activities]
+  );
 
   if (!currentEvent) {
     return null;
@@ -59,14 +69,6 @@ export default function Budget() {
     { name: "Spent", value: Math.max(summary.spent, 0), fill: "#6d6bff" },
     { name: "Remaining", value: Math.max(summary.remaining, 0), fill: "#232d45" },
   ];
-
-  const recentBudgetActivity = useMemo(
-    () =>
-      activities.filter((activity) =>
-        ["VENDOR_CREATED", "VENDOR_UPDATED", "VENDOR_STATUS_UPDATED", "EVENT_CREATED"].includes(activity.type)
-      ),
-    [activities]
-  );
 
   const exportBudget = () => {
     const lines = [
@@ -184,7 +186,7 @@ export default function Budget() {
               <Typography sx={sectionTitle}>Vendor split</Typography>
               <Typography sx={sectionSubtitle}>Spend distribution across vendors</Typography>
             </Box>
-            <Button variant="text" sx={linkButton}>
+            <Button variant="text" sx={linkButton} onClick={() => navigate("/vendors")}>
               View vendors
             </Button>
           </Stack>
@@ -201,7 +203,11 @@ export default function Budget() {
             <Typography sx={sectionTitle}>Recent budget activity</Typography>
             <Typography sx={sectionSubtitle}>Latest updates and changes</Typography>
           </Box>
-          <Button variant="text" sx={linkButton}>
+          <Button
+            variant="text"
+            sx={linkButton}
+            onClick={() => navigate(currentEvent ? `/events/${currentEvent.id}` : "/events")}
+          >
             View all activity
           </Button>
         </Stack>
