@@ -35,18 +35,15 @@ import {
 } from "../lib/eventData";
 
 const STATUS_OPTIONS = ["Quoted", "Confirmed", "Paid"];
-const CATEGORY_OPTIONS = ["Catering", "Decor", "Venue", "DJ", "Photography", "Logistics", "General"];
 
 const initialForm = {
   eventId: "",
   name: "",
   category: "",
-  contactName: "",
   email: "",
   phone: "",
   cost: "",
   status: "Quoted",
-  notes: "",
 };
 
 export default function Vendors() {
@@ -135,12 +132,10 @@ export default function Vendors() {
       eventId: vendor.eventId,
       name: vendor.name,
       category: vendor.category,
-      contactName: vendor.contactName,
       email: vendor.email,
       phone: vendor.phone,
       cost: String(vendor.cost || ""),
       status: vendor.status,
-      notes: vendor.notes,
     });
     setDialogOpen(true);
   };
@@ -199,12 +194,12 @@ export default function Vendors() {
     const payload = {
       name: form.name.trim(),
       category: form.category.trim() || "General",
-      contactName: form.contactName.trim(),
+      contactName: "",
       email: form.email.trim(),
       phone: form.phone.trim(),
       cost: Number(form.cost) || 0,
       status: form.status,
-      notes: form.notes.trim(),
+      notes: "",
     };
 
     if (dialogMode === "edit" && editingVendor) {
@@ -468,43 +463,10 @@ export default function Vendors() {
           ) : null}
 
           <TextField label="Vendor name" size="small" value={form.name} onChange={handleFormChange("name")} />
-          <TextField
-            select
-            label="Category"
-            size="small"
-            value={form.category}
-            onChange={handleFormChange("category")}
-          >
-            {CATEGORY_OPTIONS.map((category) => (
-              <MenuItem key={category} value={category}>
-                {category}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="Contact person"
-            size="small"
-            value={form.contactName}
-            onChange={handleFormChange("contactName")}
-          />
+          <TextField label="Category" size="small" value={form.category} onChange={handleFormChange("category")} />
           <TextField label="Email" size="small" value={form.email} onChange={handleFormChange("email")} />
-          <TextField label="Phone" size="small" value={form.phone} onChange={handleFormChange("phone")} />
-          <TextField label="Cost" size="small" value={form.cost} onChange={handleFormChange("cost")} />
-          <TextField select label="Status" size="small" value={form.status} onChange={handleFormChange("status")}>
-            {STATUS_OPTIONS.map((status) => (
-              <MenuItem key={status} value={status}>
-                {status}
-              </MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            label="Notes"
-            size="small"
-            multiline
-            minRows={3}
-            value={form.notes}
-            onChange={handleFormChange("notes")}
-          />
+          <TextField label="Mobile number" size="small" value={form.phone} onChange={handleFormChange("phone")} />
+          <TextField label="Budget" size="small" value={form.cost} onChange={handleFormChange("cost")} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.4 }}>
           <Button variant="outlined" onClick={closeDialog}>
