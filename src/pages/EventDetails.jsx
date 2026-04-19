@@ -1524,8 +1524,9 @@ const itemMetaActions = {
   alignItems: "center",
   justifyContent: "flex-end",
   gap: 0.55,
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
   minWidth: 120,
+  flexShrink: 0,
 };
 
 const actionIconGroup = {

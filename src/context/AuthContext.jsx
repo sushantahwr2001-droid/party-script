@@ -88,6 +88,7 @@ export function AuthProvider({ children }) {
   const [authError, setAuthError] = useState("");
   const [authDebug, setAuthDebug] = useState("");
   const hydratedUserIdRef = useRef(null);
+  const hydratingUserIdRef = useRef(null);
 
   const hydrateUser = async (authUser) => {
     const profile = await getProfileForUser(authUser);
@@ -105,6 +106,61 @@ export function AuthProvider({ children }) {
     }
 
     let active = true;
+
+    const clearAuthState = () => {
+      hydratedUserIdRef.current = null;
+      hydratingUserIdRef.current = null;
+      setUser(null);
+      setAuthError("");
+      setAuthDebug("");
+    };
+
+    const syncAuthUser = async (authUser) => {
+      if (!active) {
+        return;
+      }
+
+      if (!authUser) {
+        clearAuthState();
+        setLoading(false);
+        return;
+      }
+
+      if (
+        hydratedUserIdRef.current === authUser.id ||
+        hydratingUserIdRef.current === authUser.id
+      ) {
+        setLoading(false);
+        return;
+      }
+
+      hydratingUserIdRef.current = authUser.id;
+      setLoading(true);
+
+      try {
+        await withTimeout(
+          hydrateUser(authUser),
+          "Profile loading timed out. Please try signing in again."
+        );
+      } catch (profileError) {
+        if (!active) {
+          return;
+        }
+
+        hydratedUserIdRef.current = null;
+        setUser(null);
+        setAuthError(profileError.message);
+        setAuthDebug(formatAuthError(profileError));
+      } finally {
+        if (hydratingUserIdRef.current === authUser.id) {
+          hydratingUserIdRef.current = null;
+        }
+
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
 
     const bootstrapSession = async () => {
       try {
@@ -124,47 +180,15 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        const sessionUser = data.session?.user ?? null;
-
-        if (!sessionUser) {
-          setUser(null);
-          hydratedUserIdRef.current = null;
-          setAuthError("");
-          setAuthDebug("");
-          return;
-        }
-
-        try {
-          if (!active) {
-            return;
-          }
-
-          await withTimeout(
-            hydrateUser(sessionUser),
-            "Profile loading timed out. Please try signing in again."
-          );
-        } catch (profileError) {
-          if (!active) {
-            return;
-          }
-
-          setUser(null);
-          setAuthError(profileError.message);
-          setAuthDebug(formatAuthError(profileError));
-        }
+        await syncAuthUser(data.session?.user ?? null);
       } catch (sessionError) {
         if (!active) {
           return;
         }
 
-        setUser(null);
-        hydratedUserIdRef.current = null;
+        clearAuthState();
         setAuthError(sessionError.message);
         setAuthDebug(formatAuthError(sessionError));
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
       }
     };
 
@@ -172,47 +196,12 @@ export function AuthProvider({ children }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) {
         return;
       }
 
-      if (!session?.user) {
-        setUser(null);
-        hydratedUserIdRef.current = null;
-        setAuthError("");
-        setAuthDebug("");
-        setLoading(false);
-        return;
-      }
-
-      if (hydratedUserIdRef.current === session.user.id) {
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      try {
-        if (!active) {
-          return;
-        }
-
-        await withTimeout(
-          hydrateUser(session.user),
-          "Profile loading timed out. Please try signing in again."
-        );
-      } catch (profileError) {
-        if (!active) {
-          return;
-        }
-
-        setUser(null);
-        setAuthError(profileError.message);
-        setAuthDebug(formatAuthError(profileError));
-      }
-
-      setLoading(false);
+      void syncAuthUser(session?.user ?? null);
     });
 
     return () => {
