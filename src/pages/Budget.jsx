@@ -1,26 +1,44 @@
-import { Suspense, lazy, useEffect, useState } from "react";
-import { Box, Card, LinearProgress, MenuItem, TextField, Typography } from "@mui/material";
+import { Suspense, lazy, useMemo, useState } from "react";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Chip,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
+import DonutLargeRoundedIcon from "@mui/icons-material/DonutLargeRounded";
+import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
+import dayjs from "dayjs";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
 import { useVendors } from "../hooks/useVendors";
+import { useActivities } from "../hooks/useActivities";
 import { buildEventSummary, formatCurrency } from "../utils/eventSelectors";
 import ChartFallback from "../components/ChartFallback";
 
 const BudgetVendorChart = lazy(() => import("../components/BudgetVendorChart"));
+const BudgetDonutChart = lazy(() =>
+  import("../components/DashboardCharts").then((module) => ({
+    default: module.BudgetDonutChart,
+  }))
+);
 
 export default function Budget() {
   const { events } = useEvents();
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState("");
 
-  useEffect(() => {
-    if (events.length > 0) {
-      setSelectedEvent(events[0].id);
-    }
-  }, [events]);
-
-  const currentEvent = events.find((event) => String(event.id) === String(selectedEvent)) || null;
+  const activeEventId = selectedEvent || events[0]?.id || "";
+  const currentEvent = events.find((event) => String(event.id) === String(activeEventId)) || null;
   const { tasks } = useTasks(currentEvent?.id);
   const { vendors } = useVendors(currentEvent?.id);
+  const { activities, error: activitiesError } = useActivities(currentEvent?.id);
 
   if (!currentEvent) {
     return null;
@@ -30,81 +48,485 @@ export default function Budget() {
     tasksByEventId: { [currentEvent.id]: tasks },
     vendorsByEventId: { [currentEvent.id]: vendors },
   });
-  const chartData = vendors.map((vendor) => ({
-    name: vendor.category,
+
+  const committedPercent = currentEvent.budget > 0 ? Math.round((summary.spent / currentEvent.budget) * 100) : 0;
+  const vendorChartData = vendors.map((vendor) => ({
+    name: vendor.name,
     cost: vendor.cost,
   }));
 
+  const donutData = [
+    { name: "Spent", value: Math.max(summary.spent, 0), fill: "#6d6bff" },
+    { name: "Remaining", value: Math.max(summary.remaining, 0), fill: "#232d45" },
+  ];
+
+  const recentBudgetActivity = useMemo(
+    () =>
+      activities.filter((activity) =>
+        ["VENDOR_CREATED", "VENDOR_UPDATED", "VENDOR_STATUS_UPDATED", "EVENT_CREATED"].includes(activity.type)
+      ),
+    [activities]
+  );
+
+  const exportBudget = () => {
+    const lines = [
+      ["Budget Report"],
+      [`Event,${escapeCsv(currentEvent.name)}`],
+      [`Allocated,${currentEvent.budget}`],
+      [`Spent,${summary.spent}`],
+      [`Remaining,${summary.remaining}`],
+      [""],
+      ["Vendor,Category,Status,Cost,Email,Phone"],
+      ...vendors.map((vendor) => [
+        escapeCsv(vendor.name),
+        escapeCsv(vendor.category),
+        escapeCsv(vendor.status),
+        vendor.cost,
+        escapeCsv(vendor.email || ""),
+        escapeCsv(vendor.phone || ""),
+      ]),
+    ]
+      .map((row) => row.join(","))
+      .join("\n");
+
+    const blob = new Blob([lines], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${currentEvent.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-budget.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box sx={pageShell}>
-      <Typography sx={pageTitle}>Budget clarity</Typography>
-      <Typography sx={pageSubtitle}>Compact spend visibility for the selected event.</Typography>
+      <Stack direction="row" sx={{ alignItems: "flex-start", justifyContent: "space-between", mb: 1.4 }}>
+        <Box>
+          <Typography sx={pageTitle}>Budget</Typography>
+          <Typography sx={pageSubtitle}>Track spend, compare with plan and stay in control.</Typography>
+        </Box>
 
-      <TextField
-        select
-        size="small"
-        label="Select Event"
-        value={selectedEvent || ""}
-        onChange={(event) => setSelectedEvent(event.target.value)}
-        sx={{ mt: 1, mb: 1, width: 240 }}
-      >
-        {events.map((event) => (
-          <MenuItem key={event.id} value={event.id}>
-            {event.name}
-          </MenuItem>
-        ))}
-      </TextField>
+        <Button variant="outlined" startIcon={<FileDownloadOutlinedIcon />} sx={exportButton} onClick={exportBudget}>
+          Export
+        </Button>
+      </Stack>
 
-      <Box sx={statsGrid}>
-        <MetricCard title="Allocated" value={formatCurrency(currentEvent.budget)} />
-        <MetricCard title="Spent" value={formatCurrency(summary.spent)} />
-        <MetricCard title="Remaining" value={formatCurrency(summary.remaining)} color={summary.remaining >= 0 ? "#4ade80" : "#f87171"} />
-      </Box>
+      {activitiesError ? (
+        <Alert severity="error" sx={{ mb: 1.2 }}>
+          Unable to load budget activity: {activitiesError}
+        </Alert>
+      ) : null}
 
-      <Box sx={contentGrid}>
-        <Card sx={card}>
-          <Typography sx={sectionTitle}>Usage</Typography>
-          <LinearProgress variant="determinate" value={Math.min(100, (summary.spent / currentEvent.budget) * 100)} sx={{ mt: 1, height: 6 }} />
-          <Typography sx={captionText} mt={0.6}>
-            {Math.round((summary.spent / currentEvent.budget) * 100)}% committed
-          </Typography>
+      <Box sx={topGrid}>
+        <Card sx={selectorCard}>
+          <Typography sx={selectorLabel}>Select Event</Typography>
+          <TextField
+            select
+            size="small"
+            value={activeEventId}
+            onChange={(event) => setSelectedEvent(event.target.value)}
+            sx={selectorField}
+          >
+            {events.map((event) => (
+              <MenuItem key={event.id} value={event.id}>
+                {event.name}
+              </MenuItem>
+            ))}
+          </TextField>
         </Card>
 
-        <Card sx={card}>
-          <Typography sx={sectionTitle}>Vendor split</Typography>
-          <Suspense fallback={<ChartFallback height={160} />}>
-            <BudgetVendorChart data={chartData} />
+        <MetricCard
+          icon={<AccountBalanceWalletOutlinedIcon sx={{ fontSize: 20 }} />}
+          title="Allocated"
+          value={formatCurrency(currentEvent.budget)}
+        />
+        <MetricCard
+          icon={<TrendingUpRoundedIcon sx={{ fontSize: 20 }} />}
+          title="Spent"
+          value={formatCurrency(summary.spent)}
+        />
+        <MetricCard
+          icon={<DonutLargeRoundedIcon sx={{ fontSize: 20 }} />}
+          title="Remaining"
+          value={formatCurrency(summary.remaining)}
+          valueColor="#7f85ff"
+        />
+      </Box>
+
+      <Box sx={midGrid}>
+        <Card sx={panelCard}>
+          <Typography sx={sectionTitle}>Budget overview</Typography>
+          <Typography sx={sectionSubtitle}>Committed vs Remaining</Typography>
+
+          <Box sx={budgetOverviewGrid}>
+            <Box sx={donutWrap}>
+              <Suspense fallback={<ChartFallback height={180} />}>
+                <BudgetDonutChart data={donutData} />
+              </Suspense>
+              <Box sx={donutCenter}>
+                <Typography sx={donutCenterValue}>{committedPercent}%</Typography>
+                <Typography sx={donutCenterLabel}>Committed</Typography>
+              </Box>
+            </Box>
+
+            <Stack spacing={1.15}>
+              <LegendRow label="Spent" value={formatCurrency(summary.spent)} color="#6d6bff" />
+              <LegendRow label="Remaining" value={formatCurrency(summary.remaining)} color="#232d45" />
+              <MetricStrip label="Budget Used" value={formatCurrency(summary.spent)} />
+              <MetricStrip label="Budget Left" value={formatCurrency(summary.remaining)} tone="success" />
+            </Stack>
+          </Box>
+        </Card>
+
+        <Card sx={panelCard}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+            <Box>
+              <Typography sx={sectionTitle}>Vendor split</Typography>
+              <Typography sx={sectionSubtitle}>Spend distribution across vendors</Typography>
+            </Box>
+            <Button variant="text" sx={linkButton}>
+              View vendors
+            </Button>
+          </Stack>
+
+          <Suspense fallback={<ChartFallback height={260} />}>
+            <BudgetVendorChart data={vendorChartData} />
           </Suspense>
         </Card>
       </Box>
+
+      <Card sx={activityCard}>
+        <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}>
+          <Box>
+            <Typography sx={sectionTitle}>Recent budget activity</Typography>
+            <Typography sx={sectionSubtitle}>Latest updates and changes</Typography>
+          </Box>
+          <Button variant="text" sx={linkButton}>
+            View all activity
+          </Button>
+        </Stack>
+
+        <Stack spacing={0.85}>
+          {recentBudgetActivity.length > 0 ? (
+            recentBudgetActivity.slice(0, 4).map((activity) => (
+              <Box key={activity.id} sx={activityRow}>
+                <Box sx={activityIconWrap}>
+                  <ReceiptLongRoundedIcon sx={{ fontSize: 18, color: "#7f85ff" }} />
+                </Box>
+
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography sx={activityTitle}>{buildActivityCopy(activity)}</Typography>
+                </Box>
+
+                <Typography sx={activityTime}>{formatRelativeTime(activity.createdAt)}</Typography>
+              </Box>
+            ))
+          ) : (
+            <Typography sx={emptyText}>No recent budget activity yet.</Typography>
+          )}
+        </Stack>
+      </Card>
     </Box>
   );
 }
 
-function MetricCard({ title, value, color }) {
+function MetricCard({ icon, title, value, valueColor }) {
   return (
-    <Card sx={card}>
-      <Typography sx={labelText}>{title}</Typography>
-      <Typography sx={{ ...valueText, color: color || "#f8fafc" }}>{value}</Typography>
+    <Card sx={metricCard}>
+      <Box sx={metricIcon}>{icon}</Box>
+      <Box>
+        <Typography sx={metricLabel}>{title}</Typography>
+        <Typography sx={{ ...metricValue, color: valueColor || "#f5f7ff" }}>{value}</Typography>
+      </Box>
     </Card>
   );
 }
 
+function LegendRow({ label, value, color }) {
+  return (
+    <Box sx={legendRow}>
+      <Stack direction="row" spacing={0.8} sx={{ alignItems: "center" }}>
+        <Box sx={{ width: 12, height: 12, borderRadius: 999, bgcolor: color }} />
+        <Typography sx={legendLabel}>{label}</Typography>
+      </Stack>
+      <Typography sx={legendValue}>{value}</Typography>
+    </Box>
+  );
+}
+
+function MetricStrip({ label, value, tone }) {
+  return (
+    <Box sx={metricStrip}>
+      <Typography sx={metricStripLabel}>{label}</Typography>
+      <Typography sx={{ ...metricStripValue, color: tone === "success" ? "#74e4b0" : "#f4f7ff" }}>
+        {value}
+      </Typography>
+    </Box>
+  );
+}
+
+function buildActivityCopy(activity) {
+  const name = activity.metadata?.name || activity.metadata?.title || activity.metadata?.eventName || "Vendor";
+
+  switch (activity.type) {
+    case "VENDOR_STATUS_UPDATED":
+      return `Payment or status update recorded for ${name}`;
+    case "VENDOR_UPDATED":
+      return `${name} vendor details were updated`;
+    case "VENDOR_CREATED":
+      return `${name} was added to the event budget`;
+    case "EVENT_CREATED":
+      return `Budget created for ${name}`;
+    default:
+      return activity.message;
+  }
+}
+
+function formatRelativeTime(timestamp) {
+  const date = dayjs(timestamp);
+  const now = dayjs();
+  const hours = now.diff(date, "hour");
+  const days = now.diff(date, "day");
+
+  if (hours < 1) {
+    return "just now";
+  }
+
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  if (days < 7) {
+    return `${days}d ago`;
+  }
+
+  return date.format("DD MMM");
+}
+
+function escapeCsv(value) {
+  return `"${String(value).replaceAll('"', '""')}"`;
+}
+
 const pageShell = {
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  maxWidth: 1100,
+  maxWidth: 1180,
   marginInline: "auto",
+  height: "100%",
+  overflowY: "auto",
+  pb: 2.5,
 };
 
-const pageTitle = { fontSize: 12.5, fontWeight: 600 };
-const pageSubtitle = { fontSize: 11, color: "text.secondary", mt: 0.25 };
-const statsGrid = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 1, marginBottom: 1 };
-const contentGrid = { display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 1, flex: 1, overflow: "hidden" };
-const card = { p: 1.1, borderRadius: 2.5 };
-const sectionTitle = { fontSize: 11.5, fontWeight: 600 };
-const labelText = { fontSize: 10, color: "text.secondary", textTransform: "uppercase" };
-const valueText = { fontSize: 13, fontWeight: 650, mt: 0.35 };
-const captionText = { fontSize: 11, color: "text.secondary" };
+const pageTitle = {
+  fontSize: 22,
+  fontWeight: 700,
+  color: "#f7f9ff",
+};
+
+const pageSubtitle = {
+  mt: 0.35,
+  fontSize: 13,
+  color: "text.secondary",
+};
+
+const exportButton = {
+  minHeight: 44,
+  px: 1.6,
+};
+
+const topGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "1.2fr repeat(3, minmax(0, 1fr))" },
+  gap: 1.15,
+  mb: 1.2,
+};
+
+const selectorCard = {
+  p: 1.25,
+  borderRadius: 3,
+  border: "1px solid rgba(127,133,255,0.4)",
+  boxShadow: "0 0 0 2px rgba(109,107,255,0.18), 0 10px 26px rgba(50, 57, 102, 0.22)",
+};
+
+const selectorLabel = {
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "text.secondary",
+  mb: 0.9,
+};
+
+const selectorField = {
+  width: "100%",
+};
+
+const metricCard = {
+  p: 1.35,
+  borderRadius: 2.8,
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+};
+
+const metricIcon = {
+  width: 50,
+  height: 50,
+  borderRadius: 2,
+  display: "grid",
+  placeItems: "center",
+  background: "#171f31",
+  color: "#7f85ff",
+  flexShrink: 0,
+};
+
+const metricLabel = {
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "text.secondary",
+};
+
+const metricValue = {
+  mt: 0.4,
+  fontSize: 18,
+  fontWeight: 700,
+  letterSpacing: "-0.03em",
+};
+
+const midGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "0.9fr 1.6fr" },
+  gap: 1.2,
+  mb: 1.2,
+};
+
+const panelCard = {
+  p: 1.35,
+  borderRadius: 3,
+};
+
+const sectionTitle = {
+  fontSize: 14,
+  fontWeight: 700,
+};
+
+const sectionSubtitle = {
+  mt: 0.35,
+  fontSize: 12,
+  color: "text.secondary",
+};
+
+const budgetOverviewGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", md: "220px 1fr" },
+  gap: 1.1,
+  alignItems: "center",
+  mt: 1.2,
+};
+
+const donutWrap = {
+  width: 220,
+  height: 220,
+  position: "relative",
+  display: "grid",
+  placeItems: "center",
+};
+
+const donutCenter = {
+  position: "absolute",
+  inset: 0,
+  display: "grid",
+  placeItems: "center",
+  textAlign: "center",
+  pointerEvents: "none",
+};
+
+const donutCenterValue = {
+  fontSize: 22,
+  fontWeight: 700,
+};
+
+const donutCenterLabel = {
+  fontSize: 12,
+  color: "text.secondary",
+};
+
+const legendRow = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 1,
+};
+
+const legendLabel = {
+  fontSize: 13,
+  color: "#d5dced",
+};
+
+const legendValue = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: "#f4f7ff",
+};
+
+const metricStrip = {
+  p: 1,
+  borderRadius: 2.2,
+  background: "#0c1421",
+  border: "1px solid rgba(95,113,165,0.12)",
+};
+
+const metricStripLabel = {
+  fontSize: 11.5,
+  color: "text.secondary",
+};
+
+const metricStripValue = {
+  mt: 0.35,
+  fontSize: 18,
+  fontWeight: 700,
+};
+
+const linkButton = {
+  color: "#8e92ff",
+  fontWeight: 600,
+};
+
+const activityCard = {
+  p: 1.35,
+  borderRadius: 3,
+};
+
+const activityRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  p: 0.95,
+  borderRadius: 2.2,
+  background: "#0c1421",
+  border: "1px solid rgba(95,113,165,0.12)",
+};
+
+const activityIconWrap = {
+  width: 44,
+  height: 44,
+  borderRadius: 2,
+  display: "grid",
+  placeItems: "center",
+  background: "#171f31",
+  flexShrink: 0,
+};
+
+const activityTitle = {
+  fontSize: 13,
+  color: "#e9eefb",
+};
+
+const activityTime = {
+  fontSize: 12,
+  color: "text.secondary",
+  flexShrink: 0,
+};
+
+const emptyText = {
+  fontSize: 12,
+  color: "text.secondary",
+};
