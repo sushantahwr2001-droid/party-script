@@ -8,29 +8,38 @@ import {
   YAxis,
   Bar,
   BarChart,
+  CartesianGrid,
 } from "recharts";
 
 const tooltipStyle = {
-  background: "#0f172a",
-  border: "1px solid rgba(148,163,184,0.12)",
-  borderRadius: 12,
+  background: "#1e1c23",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 14,
+  color: "#f5f7ff",
 };
 
 export function BudgetTrendChart({ data }) {
   return (
-    <Box sx={{ height: 160, mt: 1 }}>
+    <Box sx={{ height: 220 }}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data}>
           <defs>
             <linearGradient id="spendGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#7c83ff" stopOpacity={0.45} />
-              <stop offset="100%" stopColor="#7c83ff" stopOpacity={0.02} />
+              <stop offset="0%" stopColor="#6f72ff" stopOpacity={0.42} />
+              <stop offset="100%" stopColor="#6f72ff" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="name" stroke="#64748b" />
-          <YAxis stroke="#64748b" />
+          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <XAxis dataKey="name" stroke="#7c7f8c" tickLine={false} axisLine={false} />
+          <YAxis stroke="#7c7f8c" tickLine={false} axisLine={false} />
           <Tooltip contentStyle={tooltipStyle} />
-          <Area type="monotone" dataKey="spend" stroke="#7c83ff" fill="url(#spendGradient)" />
+          <Area
+            type="monotone"
+            dataKey="spend"
+            stroke="#6f72ff"
+            strokeWidth={2}
+            fill="url(#spendGradient)"
+          />
         </AreaChart>
       </ResponsiveContainer>
     </Box>
@@ -39,14 +48,15 @@ export function BudgetTrendChart({ data }) {
 
 export function BudgetComparisonChart({ data }) {
   return (
-    <Box sx={{ height: 160, mt: 0.5 }}>
+    <Box sx={{ height: 220 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
-          <XAxis dataKey="name" stroke="#64748b" />
-          <YAxis stroke="#64748b" />
+          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+          <XAxis dataKey="name" stroke="#7c7f8c" tickLine={false} axisLine={false} />
+          <YAxis stroke="#7c7f8c" tickLine={false} axisLine={false} />
           <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="budget" fill="#1d4ed8" radius={[5, 5, 0, 0]} />
-          <Bar dataKey="spend" fill="#7c83ff" radius={[5, 5, 0, 0]} />
+          <Bar dataKey="budget" fill="#2d6bff" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="spend" fill="#6f72ff" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Box>

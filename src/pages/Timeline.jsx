@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Box, Button, Card, Chip, Typography } from "@mui/material";
+import { Box, Button, Card, Chip, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
@@ -13,15 +13,9 @@ export default function Timeline() {
   const navigate = useNavigate();
   const [monthOffset, setMonthOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(dayjs().format("YYYY-MM-DD"));
-  const calendarItems = useMemo(
-    () => buildCalendarItems(events, groupByEventId(tasks)),
-    [events, tasks]
-  );
+  const calendarItems = useMemo(() => buildCalendarItems(events, groupByEventId(tasks)), [events, tasks]);
 
-  const monthStart = useMemo(
-    () => dayjs().startOf("month").add(monthOffset, "month"),
-    [monthOffset]
-  );
+  const monthStart = useMemo(() => dayjs().startOf("month").add(monthOffset, "month"), [monthOffset]);
   const monthEnd = monthStart.endOf("month");
   const startWeek = monthStart.startOf("week");
   const endWeek = monthEnd.endOf("week");
@@ -44,21 +38,17 @@ export default function Timeline() {
 
   return (
     <Box sx={pageShell}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 1,
-          mb: 1,
-        }}
+      <Stack
+        direction={{ xs: "column", lg: "row" }}
+        spacing={1}
+        sx={{ alignItems: { xs: "flex-start", lg: "center" }, justifyContent: "space-between", mb: 1.25 }}
       >
         <Box>
-          <Typography sx={pageTitle}>Calendar</Typography>
-          <Typography sx={pageSubtitle}>Monthly event and deadline visibility.</Typography>
+          <Typography sx={eyebrow}>Calendar</Typography>
+          <Typography sx={pageTitle}>Track event dates and task deadlines across the month.</Typography>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 0.5 }}>
+        <Stack direction="row" spacing={1}>
           <Button size="small" variant="outlined" onClick={() => setMonthOffset((value) => value - 1)}>
             Previous
           </Button>
@@ -68,12 +58,12 @@ export default function Timeline() {
           <Button size="small" variant="outlined" onClick={() => setMonthOffset((value) => value + 1)}>
             Next
           </Button>
-        </Box>
-      </Box>
+        </Stack>
+      </Stack>
 
       <Box sx={calendarLayout}>
         <Card sx={calendarCard}>
-          <Typography sx={sectionTitle}>{monthStart.format("MMMM YYYY")}</Typography>
+          <Typography sx={panelTitle}>{monthStart.format("MMMM YYYY")}</Typography>
 
           <Box sx={weekHeader}>
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
@@ -96,11 +86,7 @@ export default function Timeline() {
                   <Typography sx={dayLabel(isCurrentMonth, isToday)}>{day.format("D")}</Typography>
                   <Box sx={{ display: "flex", gap: 0.35, flexWrap: "wrap" }}>
                     {dayItems.slice(0, 4).map((item) => (
-                      <Box
-                        key={item.id}
-                        sx={dot(item.type)}
-                        title={item.title}
-                      />
+                      <Box key={item.id} sx={dot(item.type)} title={item.title} />
                     ))}
                   </Box>
                 </Box>
@@ -110,26 +96,30 @@ export default function Timeline() {
         </Card>
 
         <Card sx={calendarCard}>
-          <Typography sx={sectionTitle}>Upcoming schedule</Typography>
-          <Box mt={0.8}>
+          <Typography sx={panelTitle}>Upcoming schedule</Typography>
+          <Stack spacing={0.85} mt={1.2}>
             {upcoming.map((item) => (
               <Box key={item.id} sx={upcomingRow} onClick={() => navigate(`/events/${item.eventId}`)}>
                 <Box>
-                  <Typography fontWeight={700}>{item.title}</Typography>
+                  <Typography fontWeight={700} fontSize={13}>
+                    {item.title}
+                  </Typography>
                   <Typography sx={captionText}>{dayjs(item.date).format("DD MMM YYYY")}</Typography>
                 </Box>
                 <Chip label={item.type === "event" ? "Event" : "Task"} size="small" />
               </Box>
             ))}
-          </Box>
+          </Stack>
 
-          <Typography sx={{ ...sectionTitle, mt: 1.2 }}>Selected day</Typography>
-          <Box mt={0.8}>
+          <Typography sx={{ ...panelTitle, mt: 2 }}>Selected day</Typography>
+          <Stack spacing={0.85} mt={1.2}>
             {selectedItems.length > 0 ? (
               selectedItems.map((item) => (
                 <Box key={item.id} sx={upcomingRow} onClick={() => navigate(`/events/${item.eventId}`)}>
                   <Box>
-                    <Typography fontWeight={700}>{item.title}</Typography>
+                    <Typography fontWeight={700} fontSize={13}>
+                      {item.title}
+                    </Typography>
                     <Typography sx={captionText}>
                       {item.type === "event" ? "Event date" : item.stage || "Task"}
                     </Typography>
@@ -140,7 +130,7 @@ export default function Timeline() {
             ) : (
               <Typography sx={captionText}>No items on this day.</Typography>
             )}
-          </Box>
+          </Stack>
         </Card>
       </Box>
     </Box>
@@ -148,115 +138,106 @@ export default function Timeline() {
 }
 
 const pageShell = {
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  maxWidth: 1260,
+  maxWidth: 1240,
   marginInline: "auto",
+  pb: 3,
+};
+
+const eyebrow = {
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.16em",
+  color: "text.secondary",
+  mb: 0.7,
 };
 
 const pageTitle = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  letterSpacing: "-0.02em",
-};
-
-const pageSubtitle = {
-  color: "text.secondary",
-  fontSize: 11,
-  mt: 0.25,
+  maxWidth: 680,
+  fontSize: { xs: 24, md: 30 },
+  lineHeight: 1.04,
+  letterSpacing: "-0.05em",
+  fontWeight: 800,
 };
 
 const calendarLayout = {
   display: "grid",
-  gridTemplateColumns: {
-    xs: "1fr",
-    xl: "2fr 0.95fr",
-  },
-  gap: 1,
-  flex: 1,
-  overflow: "hidden",
+  gridTemplateColumns: { xs: "1fr", xl: "1.5fr 0.9fr" },
+  gap: 1.25,
 };
 
 const calendarCard = {
-  p: 1,
-  borderRadius: 2.5,
-  overflow: "hidden",
+  p: 1.35,
+  borderRadius: 4,
 };
 
-const sectionTitle = {
-  fontSize: 11.5,
-  fontWeight: 600,
+const panelTitle = {
+  fontSize: 14,
+  fontWeight: 700,
 };
 
 const weekHeader = {
-  mt: 0.8,
+  mt: 1.1,
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: 0.5,
-  mb: 0.5,
+  gap: 0.6,
+  mb: 0.6,
 };
 
 const weekLabel = {
   color: "text.secondary",
-  fontSize: 10,
+  fontSize: 10.5,
   textTransform: "uppercase",
   textAlign: "center",
+  letterSpacing: "0.08em",
 };
 
 const calendarGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: 0.45,
-  flex: 1,
+  gap: 0.6,
 };
 
 const dayCell = (isCurrentMonth, isToday, isSelected) => ({
-  minHeight: 0,
   aspectRatio: "1 / 1",
-  padding: 6,
-  borderRadius: 1.5,
+  p: 0.8,
+  borderRadius: 2.5,
   border: isSelected
-    ? "1px solid rgba(109,107,255,0.5)"
-    : "1px solid rgba(148,163,184,0.08)",
-  background: isCurrentMonth ? "rgba(8,15,30,0.58)" : "rgba(8,15,30,0.24)",
+    ? "1px solid rgba(95,111,255,0.32)"
+    : "1px solid rgba(255,255,255,0.04)",
+  background: isCurrentMonth ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.015)",
+  boxShadow: isToday ? "inset 0 0 0 1px rgba(85,183,255,0.28)" : "none",
   cursor: "pointer",
-  boxShadow: isToday ? "inset 0 0 0 1px rgba(56,189,248,0.28)" : "none",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
-  overflow: "hidden",
 });
 
 const dayLabel = (isCurrentMonth, isToday) => ({
-  fontSize: 11,
+  fontSize: 11.5,
   fontWeight: 700,
-  marginBottom: 4,
-  color: isToday ? "#7dd3fc" : isCurrentMonth ? "#f8fafc" : "#64748b",
+  color: isToday ? "#8fd4ff" : isCurrentMonth ? "#f5f7ff" : "#6f7280",
 });
 
 const dot = (type) => ({
   width: 8,
   height: 8,
   borderRadius: 999,
-  background: type === "event" ? "#60a5fa" : "#22c55e",
+  background: type === "event" ? "#5f6fff" : "#2ec27e",
 });
 
 const upcomingRow = {
-  p: 0.8,
-  mb: 0.55,
-  borderRadius: 2,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 1,
-  background: "rgba(8,15,30,0.58)",
-  border: "1px solid rgba(148,163,184,0.08)",
+  p: 1,
+  borderRadius: 3,
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.05)",
   cursor: "pointer",
 };
 
 const captionText = {
+  fontSize: 11.5,
   color: "text.secondary",
-  fontSize: 11,
 };

@@ -10,6 +10,7 @@ import {
   DialogTitle,
   LinearProgress,
   Snackbar,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
@@ -22,13 +23,7 @@ import { groupByEventId } from "../lib/eventData";
 import { buildEventSummary } from "../utils/eventSelectors";
 
 export default function Events() {
-  const {
-    events,
-    loading: eventsLoading,
-    error: eventsError,
-    createEvent,
-    deleteEvent,
-  } = useEvents();
+  const { events, loading: eventsLoading, error: eventsError, createEvent, deleteEvent } = useEvents();
   const { tasks, loading: tasksLoading, error: tasksError } = useTasks();
   const { vendors, loading: vendorsLoading, error: vendorsError } = useVendors();
   const { user } = useAuth();
@@ -59,11 +54,13 @@ export default function Events() {
       ),
     [events, tasksByEventId, vendorsByEventId]
   );
+
   const loading = eventsLoading || tasksLoading || vendorsLoading;
   const error = eventsError || tasksError || vendorsError;
 
   const stats = useMemo(
     () => ({
+      total: events.length,
       live: events.filter((event) => event.status === "Live").length,
       planning: events.filter((event) => event.status === "Planning").length,
       avgProgress:
@@ -76,6 +73,7 @@ export default function Events() {
     }),
     [events, eventSummaries]
   );
+
   const handleChange = (field) => (event) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
   };
@@ -97,6 +95,7 @@ export default function Events() {
         budget: "",
       });
       setShowForm(false);
+      setFeedback("Event workspace created");
     } catch (nextError) {
       setFormError(nextError.message);
     }
@@ -119,42 +118,34 @@ export default function Events() {
 
   return (
     <Box sx={pageShell}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: { xs: "flex-start", md: "center" },
-          flexDirection: { xs: "column", md: "row" },
-          gap: 1,
-          mb: 1,
-        }}
+      <Stack
+        direction={{ xs: "column", xl: "row" }}
+        spacing={1.25}
+        sx={{ alignItems: { xs: "flex-start", xl: "center" }, justifyContent: "space-between", mb: 1.25 }}
       >
         <Box>
-          <Typography sx={pageTitle}>Event Station</Typography>
-          <Typography sx={pageSubtitle}>
-            {user?.role === "admin" ? "Admin workspace" : "Manager workspace"} / all accessible event operations in one place
-          </Typography>
+          <Typography sx={eyebrow}>Event control</Typography>
+          <Typography sx={pageTitle}>See every event workspace, status, progress, and budget in one place.</Typography>
         </Box>
-
-        <Button size="small" variant="contained" onClick={() => setShowForm(true)}>
-          + Event
+        <Button variant="contained" onClick={() => setShowForm(true)}>
+          New event
         </Button>
-      </Box>
+      </Stack>
 
       <Box sx={summaryGrid}>
-        <SummaryCard title="Total events" value={events.length} caption="Accessible workspaces" />
-        <SummaryCard title="Live" value={stats.live} caption="Active execution" />
+        <SummaryCard title="Total workspaces" value={stats.total} caption="Accessible event environments" />
+        <SummaryCard title="Live events" value={stats.live} caption="Execution in progress" />
         <SummaryCard title="Planning" value={stats.planning} caption="Upcoming builds" />
-        <SummaryCard title="Avg progress" value={`${stats.avgProgress}%`} caption="Readiness across events" />
+        <SummaryCard title="Average progress" value={`${stats.avgProgress}%`} caption="Readiness across all events" />
       </Box>
 
       {error ? (
-        <Alert severity="error" sx={{ mb: 1 }}>
+        <Alert severity="error" sx={{ mb: 1.25 }}>
           Unable to load events from Supabase: {error}
         </Alert>
       ) : null}
 
-      {loading ? <LinearProgress sx={{ mb: 1 }} /> : null}
+      {loading ? <LinearProgress sx={{ mb: 1.25 }} /> : null}
 
       <Box sx={grid}>
         {events.map((event) => (
@@ -169,7 +160,7 @@ export default function Events() {
       </Box>
 
       <Dialog open={showForm} onClose={() => setShowForm(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Quick create event</DialogTitle>
+        <DialogTitle>Create event</DialogTitle>
         <DialogContent sx={{ display: "grid", gap: 1, pt: "10px !important" }}>
           <TextField autoFocus size="small" label="Event name" value={form.name} onChange={handleChange("name")} />
           <TextField
@@ -191,7 +182,9 @@ export default function Events() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setShowForm(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit}>Create</Button>
+          <Button variant="contained" onClick={handleSubmit}>
+            Create
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -199,12 +192,15 @@ export default function Events() {
         <DialogTitle>Delete event</DialogTitle>
         <DialogContent>
           <Typography fontSize={13} color="text.secondary">
-            Delete {deleteTarget?.name}? This removes the event workspace and its related tasks, vendors, documents, and activity log.
+            Delete {deleteTarget?.name}? This removes the event workspace and its related tasks,
+            vendors, documents, and activity log.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
-          <Button color="error" variant="contained" onClick={handleDeleteEvent}>Delete</Button>
+          <Button color="error" variant="contained" onClick={handleDeleteEvent}>
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -233,64 +229,60 @@ function SummaryCard({ title, value, caption }) {
 }
 
 const pageShell = {
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  maxWidth: 1180,
+  maxWidth: 1240,
   marginInline: "auto",
+  pb: 3,
+};
+
+const eyebrow = {
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.16em",
+  color: "text.secondary",
+  mb: 0.7,
 };
 
 const pageTitle = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  letterSpacing: "-0.02em",
-};
-
-const pageSubtitle = {
-  color: "text.secondary",
-  fontSize: 11,
-  mt: 0.25,
+  maxWidth: 780,
+  fontSize: { xs: 24, md: 32 },
+  lineHeight: 1.04,
+  letterSpacing: "-0.05em",
+  fontWeight: 800,
 };
 
 const summaryGrid = {
   display: "grid",
-  gridTemplateColumns: {
-    xs: "repeat(2, minmax(0, 1fr))",
-    lg: "repeat(4, minmax(0, 1fr))",
-  },
-  gap: 1,
-  marginBottom: 1,
-};
-
-const grid = {
-  display: "grid",
-  gridTemplateColumns: {
-    xs: "1fr",
-    xl: "repeat(2, minmax(0, 1fr))",
-  },
-  gap: 1,
-  overflow: "hidden",
+  gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", lg: "repeat(4, minmax(0, 1fr))" },
+  gap: 1.25,
+  mb: 1.25,
 };
 
 const summaryCard = {
-  p: 1,
-  borderRadius: 2.5,
+  p: 1.35,
+  borderRadius: 4,
 };
 
 const summaryLabel = {
   color: "text.secondary",
-  fontSize: 10,
-  textTransform: "uppercase",
+  fontSize: 11,
 };
 
 const summaryValue = {
-  mt: 0.4,
-  fontSize: 13,
-  fontWeight: 650,
+  mt: 0.85,
+  fontSize: 30,
+  lineHeight: 1,
+  letterSpacing: "-0.05em",
+  fontWeight: 800,
 };
 
 const summaryCaption = {
   color: "text.secondary",
   fontSize: 11,
+  mt: 0.7,
+};
+
+const grid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "repeat(2, minmax(0, 1fr))" },
+  gap: 1.25,
 };
