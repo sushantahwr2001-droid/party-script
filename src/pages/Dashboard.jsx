@@ -220,6 +220,7 @@ export default function Dashboard() {
               value={form.date}
               onChange={handleChange("date")}
               InputLabelProps={{ shrink: true }}
+              inputProps={{ placeholder: "" }}
             />
             <TextField size="small" label="Venue" value={form.venue} onChange={handleChange("venue")} />
             <TextField size="small" label="Notes" value={form.notes} onChange={handleChange("notes")} />
@@ -504,10 +505,10 @@ const eyebrowMuted = {
 
 const heroTitle = {
   maxWidth: 760,
-  fontSize: { xs: 24, md: 32 },
-  lineHeight: 1.04,
-  letterSpacing: "-0.05em",
-  fontWeight: 800,
+  fontSize: { xs: 22, md: 28 },
+  lineHeight: 1.08,
+  letterSpacing: "-0.04em",
+  fontWeight: 700,
 };
 
 const searchField = {
@@ -564,10 +565,10 @@ const welcomeCard = {
 
 const welcomeTitle = {
   mt: 0.8,
-  fontSize: { xs: 22, md: 28 },
-  lineHeight: 1.06,
-  letterSpacing: "-0.05em",
-  fontWeight: 800,
+  fontSize: { xs: 20, md: 24 },
+  lineHeight: 1.12,
+  letterSpacing: "-0.04em",
+  fontWeight: 700,
 };
 
 const welcomeText = {
@@ -596,10 +597,10 @@ const metricLabel = {
 
 const metricValue = {
   mt: 0.9,
-  fontSize: 29,
+  fontSize: 24,
   lineHeight: 1,
-  letterSpacing: "-0.06em",
-  fontWeight: 800,
+  letterSpacing: "-0.04em",
+  fontWeight: 700,
 };
 
 const metricMeta = {
@@ -689,8 +690,8 @@ const metricPillLabel = {
 
 const metricPillValue = {
   mt: 0.55,
-  fontSize: 17,
-  fontWeight: 800,
+  fontSize: 16,
+  fontWeight: 700,
   letterSpacing: "-0.04em",
 };
 
