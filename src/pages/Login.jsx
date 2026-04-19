@@ -4,48 +4,38 @@ import {
   Box,
   Button,
   Card,
-  Chip,
   Divider,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import heroGraphic from "../assets/hero.png";
 import { useAuth } from "../context/auth-context";
 
 const AUTH_COPY = {
   signin: {
-    eyebrow: "Event operations, unified",
+    badge: "Party Script",
     title: "Run every celebration from one calm command center.",
     body: "Sign in to manage timelines, vendors, budgets, documents, and the moving parts that make events feel effortless.",
+    eyebrow: "Event operations, unified",
+    formTitle: "Welcome back",
+    formBody: "Sign in to return to your live dashboards, event workspaces, and execution tools.",
     cta: "Login",
     footerPrompt: "Need an account?",
     footerAction: "Create account",
-    panelBadge: "Live workspace",
-    panelTitle: "Stay ahead of event-day chaos.",
-    panelBody:
-      "Keep every brief, payment, vendor handoff, and task update visible before small misses turn into expensive surprises.",
   },
   signup: {
+    badge: "Party Script",
+    title: "Create your event workspace with a cleaner operating system.",
+    body: "Start a secure workspace for planning, approvals, documents, budgets, vendors, and event-day execution in one place.",
     eyebrow: "Build your event OS",
-    title: "Create your Party Script workspace.",
-    body: "Start a secure operations hub for events, teams, vendors, and guests with a setup that takes only a minute.",
+    formTitle: "Create account",
+    formBody: "Set up your Party Script workspace and start organizing events with better visibility.",
     cta: "Create account",
     footerPrompt: "Already have an account?",
     footerAction: "Back to sign in",
-    panelBadge: "Faster launches",
-    panelTitle: "Bring every event thread into one system.",
-    panelBody:
-      "From first enquiry to final payout, Party Script gives your team one place to plan, approve, track, and deliver with confidence.",
   },
 };
-
-const HIGHLIGHTS = [
-  "Track tasks, budgets, vendors, and documents in one place",
-  "Keep your team aligned with a live event-by-event workspace",
-  "Reduce last-minute follow-up and missed approvals",
-];
 
 export default function Login() {
   const { login, signup, isConfigured, authError, authDebug } = useAuth();
@@ -93,7 +83,7 @@ export default function Login() {
       sx={{
         minHeight: "100vh",
         background:
-          "radial-gradient(circle at top left, rgba(56,189,248,0.14), transparent 22%), radial-gradient(circle at 85% 15%, rgba(109,107,255,0.28), transparent 30%), linear-gradient(180deg, #060d18 0%, #08111f 45%, #07101d 100%)",
+          "linear-gradient(135deg, #07111f 0%, #0a1630 42%, #121b3d 100%)",
         p: { xs: 2, md: 3 },
       }}
     >
@@ -101,196 +91,73 @@ export default function Login() {
         sx={{
           minHeight: "calc(100vh - 32px)",
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "1.12fr 0.88fr" },
-          gap: { xs: 2, lg: 0 },
+          gridTemplateColumns: { xs: "1fr", lg: "1.15fr 0.85fr" },
+          borderRadius: { xs: 4, lg: 5 },
           overflow: "hidden",
-          borderRadius: { xs: 4, lg: 6 },
-          border: "1px solid rgba(125, 146, 189, 0.18)",
-          background:
-            "linear-gradient(180deg, rgba(8, 16, 30, 0.98), rgba(7, 14, 26, 0.96))",
-          boxShadow: "0 28px 80px rgba(2, 6, 23, 0.42)",
+          boxShadow: "0 28px 70px rgba(2, 6, 23, 0.45)",
+          border: "1px solid rgba(129, 140, 248, 0.12)",
+          background: "rgba(255,255,255,0.02)",
         }}
       >
         <Box
           sx={{
             position: "relative",
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            p: { xs: 3, md: 5, lg: 6 },
-            overflow: "hidden",
+            alignItems: "center",
+            px: { xs: 3, md: 5, lg: 7 },
+            py: { xs: 5, md: 6 },
             background:
-              "radial-gradient(circle at 25% 20%, rgba(56,189,248,0.16), transparent 20%), radial-gradient(circle at 75% 24%, rgba(109,107,255,0.22), transparent 26%), linear-gradient(135deg, rgba(11, 19, 35, 0.95) 0%, rgba(17, 28, 50, 0.98) 52%, rgba(28, 24, 68, 0.98) 100%)",
-            minHeight: { xs: 360, lg: "100%" },
-          }}
-        >
-          <Box
-            sx={{
+              "linear-gradient(135deg, rgba(8, 16, 30, 0.98) 0%, rgba(12, 20, 44, 0.98) 52%, rgba(20, 30, 72, 0.98) 100%)",
+            "&::before": {
+              content: '""',
               position: "absolute",
               inset: 0,
-              opacity: 0.75,
               background:
-                "linear-gradient(135deg, transparent 0%, transparent 58%, rgba(255,255,255,0.05) 58%, rgba(255,255,255,0.05) 60%, transparent 60%), linear-gradient(315deg, transparent 0%, transparent 73%, rgba(109,107,255,0.12) 73%, rgba(109,107,255,0.12) 75%, transparent 75%)",
+                "linear-gradient(135deg, transparent 0%, transparent 35%, rgba(109,107,255,0.12) 35%, rgba(109,107,255,0.12) 39%, transparent 39%), linear-gradient(135deg, transparent 0%, transparent 72%, rgba(255,255,255,0.05) 72%, rgba(255,255,255,0.05) 74%, transparent 74%)",
               pointerEvents: "none",
-            }}
-          />
-
-          <Stack spacing={2} sx={{ position: "relative", zIndex: 1, maxWidth: 560 }}>
-            <Chip
-              label="Party Script"
+            },
+          }}
+        >
+          <Stack spacing={3} sx={{ position: "relative", zIndex: 1, maxWidth: 620 }}>
+            <Box
               sx={{
+                display: "inline-flex",
                 alignSelf: "flex-start",
-                bgcolor: "rgba(255,255,255,0.08)",
-                color: "#f8fbff",
+                px: 2,
+                py: 0.9,
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.08)",
                 border: "1px solid rgba(255,255,255,0.12)",
-                fontWeight: 700,
               }}
-            />
+            >
+              <Typography fontSize={15} fontWeight={700}>
+                {copy.badge}
+              </Typography>
+            </Box>
+
             <Typography
               sx={{
-                fontSize: { xs: 32, md: 44, lg: 52 },
-                lineHeight: 1.02,
-                letterSpacing: "-0.05em",
+                fontSize: { xs: 52, md: 72, lg: 82 },
+                lineHeight: { xs: 0.98, md: 0.94 },
+                letterSpacing: "-0.07em",
                 fontWeight: 800,
-                maxWidth: 620,
+                maxWidth: 760,
               }}
             >
               {copy.title}
             </Typography>
+
             <Typography
               sx={{
-                maxWidth: 520,
-                fontSize: { xs: 14, md: 16 },
-                color: "rgba(226, 232, 240, 0.82)",
-                lineHeight: 1.7,
+                maxWidth: 620,
+                fontSize: { xs: 18, md: 22 },
+                lineHeight: 1.65,
+                color: "rgba(226, 232, 240, 0.86)",
               }}
             >
               {copy.body}
             </Typography>
           </Stack>
-
-          <Box
-            sx={{
-              position: "relative",
-              zIndex: 1,
-              mt: { xs: 4, lg: 5 },
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1.08fr 0.92fr" },
-              gap: 3,
-              alignItems: "end",
-            }}
-          >
-            <Box
-              sx={{
-                borderRadius: 5,
-                border: "1px solid rgba(255,255,255,0.1)",
-                bgcolor: "rgba(255,255,255,0.05)",
-                backdropFilter: "blur(12px)",
-                px: { xs: 2.5, md: 3 },
-                py: { xs: 2.5, md: 3 },
-              }}
-            >
-              <Chip
-                label={copy.panelBadge}
-                size="small"
-                sx={{
-                  mb: 2,
-                  bgcolor: "rgba(109,107,255,0.18)",
-                  color: "#dfe5ff",
-                  border: "1px solid rgba(129,140,248,0.28)",
-                }}
-              />
-              <Typography fontSize={{ xs: 22, md: 26 }} fontWeight={700} letterSpacing="-0.04em">
-                {copy.panelTitle}
-              </Typography>
-              <Typography
-                mt={1.25}
-                color="rgba(226, 232, 240, 0.78)"
-                fontSize={{ xs: 13, md: 14 }}
-                lineHeight={1.7}
-              >
-                {copy.panelBody}
-              </Typography>
-
-              <Stack spacing={1.4} mt={3}>
-                {HIGHLIGHTS.map((item) => (
-                  <Stack key={item} direction="row" spacing={1.2} sx={{ alignItems: "flex-start" }}>
-                    <Box
-                      sx={{
-                        mt: "6px",
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: "linear-gradient(135deg, #6d6bff, #38bdf8)",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography fontSize={13} color="rgba(226, 232, 240, 0.8)">
-                      {item}
-                    </Typography>
-                  </Stack>
-                ))}
-              </Stack>
-            </Box>
-
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: { xs: "center", md: "flex-end" },
-                alignItems: "flex-end",
-              }}
-            >
-              <Box
-                sx={{
-                  position: "relative",
-                  width: "100%",
-                  maxWidth: 340,
-                  borderRadius: 6,
-                  px: { xs: 2, md: 2.5 },
-                  py: { xs: 2.5, md: 3 },
-                  background:
-                    "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  boxShadow: "0 22px 45px rgba(2, 6, 23, 0.34)",
-                }}
-              >
-                <Box
-                  component="img"
-                  src={heroGraphic}
-                  alt="Party Script event operations graphic"
-                  sx={{
-                    width: "100%",
-                    display: "block",
-                    objectFit: "contain",
-                    filter: "drop-shadow(0 18px 28px rgba(91,82,240,0.3))",
-                  }}
-                />
-                <Card
-                  sx={{
-                    position: "absolute",
-                    right: -10,
-                    bottom: 18,
-                    px: 1.5,
-                    py: 1.25,
-                    borderRadius: 3,
-                    minWidth: 124,
-                    background:
-                      "linear-gradient(180deg, rgba(17, 27, 50, 0.96), rgba(10, 17, 34, 0.96))",
-                  }}
-                >
-                  <Typography fontSize={11} color="text.secondary">
-                    Live control
-                  </Typography>
-                  <Typography fontSize={22} fontWeight={800} letterSpacing="-0.05em">
-                    24/7
-                  </Typography>
-                  <Typography fontSize={12} color="text.secondary">
-                    Event operations visibility
-                  </Typography>
-                </Card>
-              </Box>
-            </Box>
-          </Box>
         </Box>
 
         <Box
@@ -298,56 +165,62 @@ export default function Login() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            p: { xs: 2.5, md: 4, lg: 5 },
+            px: { xs: 2.5, md: 4 },
+            py: { xs: 4, md: 5 },
             background:
-              "linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(239, 244, 255, 0.96))",
+              "linear-gradient(180deg, rgba(247, 249, 253, 0.98), rgba(236, 241, 251, 0.96))",
           }}
         >
           <Card
             sx={{
               width: "100%",
-              maxWidth: 470,
-              p: { xs: 3, md: 4 },
-              borderRadius: 6,
-              bgcolor: "rgba(255,255,255,0.88)",
-              color: "#091120",
-              border: "1px solid rgba(157, 173, 202, 0.32)",
-              boxShadow: "0 28px 50px rgba(15, 23, 42, 0.14)",
+              maxWidth: 560,
+              p: { xs: 3, md: 4.5 },
+              borderRadius: 5,
+              background:
+                "linear-gradient(180deg, rgba(20, 29, 52, 0.98), rgba(26, 34, 57, 0.98))",
+              border: "1px solid rgba(99, 102, 241, 0.12)",
+              boxShadow: "0 24px 60px rgba(15, 23, 42, 0.24)",
             }}
           >
-            <Stack spacing={1}>
+            <Stack spacing={1.25}>
               <Typography
                 sx={{
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 700,
-                  letterSpacing: "0.12em",
+                  letterSpacing: "0.14em",
                   textTransform: "uppercase",
-                  color: "#5b52f0",
+                  color: "#6963ff",
                 }}
               >
                 {copy.eyebrow}
               </Typography>
               <Typography
                 sx={{
-                  fontSize: { xs: 28, md: 34 },
-                  lineHeight: 1.04,
-                  letterSpacing: "-0.05em",
+                  fontSize: { xs: 42, md: 50 },
+                  lineHeight: 0.98,
+                  letterSpacing: "-0.06em",
                   fontWeight: 800,
-                  color: "#0f172a",
+                  color: "#0b1220",
                 }}
               >
-                {mode === "signup" ? "Sign up" : "Welcome back"}
+                {copy.formTitle}
               </Typography>
-              <Typography sx={{ color: "rgba(15, 23, 42, 0.68)", fontSize: 14, lineHeight: 1.7 }}>
-                {mode === "signup"
-                  ? "Launch your workspace and start organizing events with better clarity."
-                  : "Sign in to return to your live dashboards, event workspaces, and execution tools."}
+              <Typography
+                sx={{
+                  fontSize: 15,
+                  lineHeight: 1.7,
+                  color: "rgba(10, 18, 32, 0.62)",
+                  maxWidth: 420,
+                }}
+              >
+                {copy.formBody}
               </Typography>
             </Stack>
 
-            <Divider sx={{ my: 3, borderColor: "rgba(148, 163, 184, 0.24)" }} />
+            <Divider sx={{ my: 3.5, borderColor: "rgba(148, 163, 184, 0.16)" }} />
 
-            <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: 1.5 }}>
+            <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: 1.75 }}>
               {!isConfigured ? (
                 <Alert severity="warning">
                   Supabase isn&apos;t configured yet. Add `VITE_SUPABASE_URL` and
@@ -360,43 +233,48 @@ export default function Login() {
                 value={form.email}
                 onChange={handleChange("email")}
                 fullWidth
-                InputLabelProps={{ sx: { color: "rgba(15, 23, 42, 0.68)" } }}
+                InputLabelProps={{ sx: { color: "rgba(89, 111, 151, 0.7)" } }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    bgcolor: "rgba(248, 250, 252, 0.92)",
+                    minHeight: 68,
+                    borderRadius: 1.75,
+                    bgcolor: "#f6f8fc",
                     color: "#0f172a",
                   },
                 }}
               />
+
               <TextField
                 label="Password"
                 type="password"
                 value={form.password}
                 onChange={handleChange("password")}
                 fullWidth
-                InputLabelProps={{ sx: { color: "rgba(15, 23, 42, 0.68)" } }}
+                InputLabelProps={{ sx: { color: "rgba(89, 111, 151, 0.7)" } }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
-                    bgcolor: "rgba(248, 250, 252, 0.92)",
+                    minHeight: 68,
+                    borderRadius: 1.75,
+                    bgcolor: "#f6f8fc",
                     color: "#0f172a",
                   },
                 }}
               />
 
               {error ? (
-                <Typography fontSize={12} color="#dc2626">
+                <Typography fontSize={12} color="#fca5a5">
                   {error}
                 </Typography>
               ) : null}
 
               {!error && notice ? (
-                <Typography fontSize={12} color="#1d4ed8">
+                <Typography fontSize={12} color="#93c5fd">
                   {notice}
                 </Typography>
               ) : null}
 
               {!error && authError ? (
-                <Typography fontSize={12} color="#dc2626">
+                <Typography fontSize={12} color="#fca5a5">
                   {authError}
                 </Typography>
               ) : null}
@@ -413,9 +291,9 @@ export default function Login() {
                 disabled={submitting || !isConfigured}
                 sx={{
                   mt: 1,
-                  minHeight: 52,
+                  minHeight: 64,
                   borderRadius: 999,
-                  fontSize: 15,
+                  fontSize: 18,
                   fontWeight: 700,
                 }}
               >
@@ -430,10 +308,10 @@ export default function Login() {
             <Stack
               direction="row"
               spacing={1}
-              mt={2.5}
+              mt={1.75}
               sx={{ alignItems: "center", justifyContent: "space-between" }}
             >
-              <Typography fontSize={12} color="rgba(15, 23, 42, 0.6)">
+              <Typography fontSize={13} color="rgba(10, 18, 32, 0.6)">
                 {copy.footerPrompt}
               </Typography>
               <Button
