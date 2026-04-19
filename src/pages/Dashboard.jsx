@@ -20,7 +20,7 @@ import { useTasks } from "../hooks/useTasks";
 import { useVendors } from "../hooks/useVendors";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { groupByEventId } from "../lib/eventData";
-import { buildEventSummary, formatCurrency } from "../utils/eventSelectors";
+import { buildCalendarItems, buildEventSummary, formatCurrency } from "../utils/eventSelectors";
 import ChartFallback from "../components/ChartFallback";
 import EmptyState from "../components/EmptyState";
 
@@ -77,6 +77,19 @@ export default function Dashboard() {
       ),
     [events, tasksByEventId, vendorsByEventId]
   );
+
+  const calendarItems = useMemo(() => buildCalendarItems(events, tasksByEventId), [events, tasksByEventId]);
+  const monthStart = useMemo(() => dayjs().startOf("month"), []);
+  const monthEnd = monthStart.endOf("month");
+  const startWeek = monthStart.startOf("week");
+  const endWeek = monthEnd.endOf("week");
+
+  const calendarDays = [];
+  let cursor = startWeek;
+  while (cursor.isBefore(endWeek) || cursor.isSame(endWeek, "day")) {
+    calendarDays.push(cursor);
+    cursor = cursor.add(1, "day");
+  }
 
   const filteredEvents = events;
 
@@ -278,32 +291,51 @@ export default function Dashboard() {
         </Card>
 
         <Card sx={panelCard}>
-          <Typography sx={panelTitle}>Top vendors</Typography>
-          <Typography sx={panelSubtitle}>Highest-value vendors connected to your live events.</Typography>
-          <Stack spacing={0.9} mt={1.2}>
-            {topVendors.map((vendor, index) => (
-              <Box key={vendor.id} sx={rankRow}>
-                <Box sx={rankBadge}>{index + 1}</Box>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography fontWeight={700} fontSize={13}>
-                    {vendor.name}
-                  </Typography>
-                  <Typography sx={helperText} noWrap>
-                    {vendor.eventName} / {vendor.category}
-                  </Typography>
-                </Box>
-                <Box textAlign="right">
-                  <Typography fontWeight={700} fontSize={13}>
-                    {formatCurrency(vendor.cost)}
-                  </Typography>
-                  <Chip label={vendor.status} size="small" sx={vendorStatusChip(vendor.status)} />
-                </Box>
-              </Box>
-            ))}
-            {topVendors.length === 0 ? (
-              <Typography sx={helperText}>No vendors yet.</Typography>
-            ) : null}
-          </Stack>
+          <Typography sx={panelTitle}>Event calendar</Typography>
+          <Typography sx={panelSubtitle}>This month at a glance with event and task markers.</Typography>
+          <Box sx={calendarShell}>
+            <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
+              <Typography sx={calendarMonthLabel}>{monthStart.format("MMMM YYYY")}</Typography>
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                <LegendDot color="#6f72ff" label="Events" />
+                <LegendDot color="#ffad57" label="Tasks" />
+              </Stack>
+            </Stack>
+
+            <Box sx={calendarWeekHeader}>
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
+                <Typography key={label} sx={calendarWeekLabel}>
+                  {label}
+                </Typography>
+              ))}
+            </Box>
+
+            <Box sx={calendarGrid}>
+              {calendarDays.map((day) => {
+                const dayKey = day.format("YYYY-MM-DD");
+                const dayItems = calendarItems.filter((item) => dayjs(item.date).format("YYYY-MM-DD") === dayKey);
+                const isCurrentMonth = day.isSame(monthStart, "month");
+                const isToday = day.isSame(dayjs(), "day");
+
+                return (
+                  <Box key={dayKey} sx={calendarDayCell(isCurrentMonth, isToday)}>
+                    <Typography sx={calendarDayLabel(isCurrentMonth, isToday)}>
+                      {day.format("D")}
+                    </Typography>
+                    <Box sx={calendarDotsRow}>
+                      {dayItems.slice(0, 3).map((item) => (
+                        <Box
+                          key={item.id}
+                          sx={calendarDot(item.type)}
+                          title={`${item.title} - ${day.format("DD MMM")}`}
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          </Box>
         </Card>
       </Box>
 
@@ -413,6 +445,15 @@ function MetricPill({ label, value }) {
       <Typography sx={metricPillLabel}>{label}</Typography>
       <Typography sx={metricPillValue}>{value}</Typography>
     </Box>
+  );
+}
+
+function LegendDot({ color, label }) {
+  return (
+    <Stack direction="row" spacing={0.45} sx={{ alignItems: "center" }}>
+      <Box sx={{ width: 7, height: 7, borderRadius: 999, bgcolor: color }} />
+      <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>{label}</Typography>
+    </Stack>
   );
 }
 
@@ -597,28 +638,74 @@ const metricPillValue = {
   letterSpacing: "-0.04em",
 };
 
-const rankRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: 0.9,
-  p: 0.9,
-  borderRadius: 2.6,
+const calendarShell = {
+  mt: 1.15,
+  p: 1.05,
+  borderRadius: 3,
   background: "rgba(255,255,255,0.03)",
   border: "1px solid rgba(255,255,255,0.05)",
 };
 
-const rankBadge = {
-  width: 28,
-  height: 28,
-  borderRadius: 999,
-  display: "grid",
-  placeItems: "center",
-  background: "rgba(95,111,255,0.14)",
-  color: "#dce3ff",
-  fontSize: 12,
+const calendarMonthLabel = {
+  fontSize: 14,
   fontWeight: 700,
-  flexShrink: 0,
+  letterSpacing: "-0.02em",
 };
+
+const calendarWeekHeader = {
+  display: "grid",
+  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+  gap: 0.45,
+  mb: 0.5,
+};
+
+const calendarWeekLabel = {
+  color: "text.secondary",
+  fontSize: 10,
+  textAlign: "center",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const calendarGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+  gap: 0.45,
+};
+
+const calendarDayCell = (isCurrentMonth, isToday) => ({
+  aspectRatio: "1 / 1",
+  minHeight: 44,
+  p: 0.45,
+  borderRadius: 2,
+  border: isToday ? "1px solid rgba(111,114,255,0.28)" : "1px solid transparent",
+  background: isCurrentMonth ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.01)",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between",
+});
+
+const calendarDayLabel = (isCurrentMonth, isToday) => ({
+  fontSize: 11.5,
+  fontWeight: isToday ? 700 : 600,
+  color: isToday ? "#dce3ff" : isCurrentMonth ? "#f1f4ff" : "#707483",
+  textAlign: "center",
+});
+
+const calendarDotsRow = {
+  display: "flex",
+  justifyContent: "center",
+  gap: 0.28,
+  minHeight: 8,
+  alignItems: "center",
+};
+
+const calendarDot = (type) => ({
+  width: 5,
+  height: 5,
+  borderRadius: 999,
+  background: type === "event" ? "#6f72ff" : "#ffad57",
+});
 
 const tableShell = {
   borderRadius: 3.2,
@@ -708,22 +795,6 @@ const statusChip = (status) => ({
       : status === "Planning"
         ? "#fde68a"
         : "#bfdbfe",
-});
-
-const vendorStatusChip = (status) => ({
-  mt: 0.45,
-  background:
-    status === "Paid"
-      ? "rgba(34,197,94,0.16)"
-      : status === "Confirmed"
-        ? "rgba(96,165,250,0.16)"
-        : "rgba(251,191,36,0.16)",
-  color:
-    status === "Paid"
-      ? "#bbf7d0"
-      : status === "Confirmed"
-        ? "#bfdbfe"
-        : "#fde68a",
 });
 
 const priorityChip = (priority) => ({
