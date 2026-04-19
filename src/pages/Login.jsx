@@ -80,8 +80,7 @@ export default function Login() {
         placeItems: "center",
         px: 2,
         py: 3,
-        background:
-          "radial-gradient(circle at top, rgba(109, 107, 255, 0.2), transparent 28%), radial-gradient(circle at bottom left, rgba(56, 189, 248, 0.12), transparent 24%), linear-gradient(180deg, #07111f 0%, #0a1430 100%)",
+        background: "#0a0f18",
       }}
     >
       <Card
@@ -90,10 +89,9 @@ export default function Login() {
           maxWidth: 540,
           p: { xs: 3, md: 4.5 },
           borderRadius: 6,
-          background:
-            "linear-gradient(180deg, rgba(18, 27, 49, 0.98), rgba(14, 23, 42, 0.98))",
+          background: "#101826",
           border: "1px solid rgba(109, 107, 255, 0.18)",
-          boxShadow: "0 30px 70px rgba(2, 6, 23, 0.45)",
+          boxShadow: "0 18px 40px rgba(2, 6, 23, 0.32)",
         }}
       >
         <Stack spacing={1.25} sx={{ textAlign: "center", alignItems: "center" }}>

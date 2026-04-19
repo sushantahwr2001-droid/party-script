@@ -248,12 +248,10 @@ const headerShell = {
   mb: 1,
   borderRadius: 3.2,
   border: "1px solid rgba(95,113,165,0.22)",
-  background:
-    "linear-gradient(180deg, rgba(18, 29, 52, 0.98), rgba(11, 18, 33, 0.94))",
-  backdropFilter: "blur(18px)",
+  background: "#101826",
   px: 1.5,
   py: 1.2,
-  boxShadow: "0 20px 40px rgba(2, 6, 23, 0.22)",
+  boxShadow: "0 12px 28px rgba(2, 6, 23, 0.18)",
 };
 
 const statsGrid = {
@@ -269,9 +267,9 @@ const statsGrid = {
 const statCard = {
   p: 1,
   borderRadius: 2,
-  background: "rgba(9, 16, 31, 0.82)",
+  background: "#0c1421",
   border: "1px solid rgba(95,113,165,0.12)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+  boxShadow: "none",
 };
 
 const titleText = {
@@ -308,12 +306,12 @@ const statCaption = {
 };
 
 const statusChip = (status) => ({
-  background:
+  backgroundColor:
     status === "Live"
-      ? "rgba(34,197,94,0.18)"
+      ? "#133222"
       : status === "Planning"
-      ? "rgba(251,191,36,0.18)"
-      : "rgba(96,165,250,0.18)",
+      ? "#33280f"
+      : "#16263f",
   color:
     status === "Live"
       ? "#bbf7d0"

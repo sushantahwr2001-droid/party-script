@@ -67,7 +67,7 @@ export default function MainLayout() {
           display: { xs: "none", md: "block" },
           "& .MuiDrawer-paper": {
             width: 264,
-            background: "linear-gradient(180deg, #0b0b0f 0%, #0d0d12 100%)",
+            background: "#0b0f16",
             borderRight: "1px solid rgba(255,255,255,0.06)",
             px: 1.5,
             py: 1.6,
@@ -93,7 +93,7 @@ export default function MainLayout() {
               borderRadius: 999,
               display: "grid",
               placeItems: "center",
-              background: "rgba(103, 92, 255, 0.14)",
+              background: "#171f31",
               color: "#8a7fff",
             }}
           >
@@ -112,7 +112,7 @@ export default function MainLayout() {
             height: 42,
             px: 1.2,
             borderRadius: 2.5,
-            background: "rgba(255,255,255,0.04)",
+            background: "#121722",
             border: "1px solid rgba(255,255,255,0.04)",
             mb: 1.8,
           }}
@@ -159,12 +159,12 @@ export default function MainLayout() {
                         minHeight: 42,
                         px: 1.15,
                         borderRadius: 2.5,
-                        background: active ? "rgba(255,255,255,0.1)" : "transparent",
+                        background: active ? "#1a2232" : "transparent",
                         border: active
                           ? "1px solid rgba(142, 127, 255, 0.22)"
                           : "1px solid transparent",
                         "&:hover": {
-                          background: active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
+                          background: active ? "#1d2638" : "#121722",
                         },
                       }}
                     >
@@ -209,7 +209,7 @@ export default function MainLayout() {
                   px: 1,
                   borderRadius: 2.5,
                   "&:hover": {
-                    background: "rgba(255,255,255,0.05)",
+                    background: "#121722",
                   },
                 }}
               >
@@ -229,7 +229,7 @@ export default function MainLayout() {
             sx={{
               p: 1.1,
               borderRadius: 3,
-              background: "rgba(255,255,255,0.03)",
+              background: "#0f1520",
               border: "1px solid rgba(255,255,255,0.05)",
             }}
           >
@@ -240,7 +240,7 @@ export default function MainLayout() {
                   height: 36,
                   fontSize: 12,
                   fontWeight: 800,
-                  background: "linear-gradient(135deg, #625dff, #8b7cff)",
+                  background: "#5f65f6",
                 }}
               >
                 {(user?.name || "PS")
@@ -275,8 +275,7 @@ export default function MainLayout() {
           overflow: "hidden",
           px: 1.5,
           py: 1.5,
-          background:
-            "radial-gradient(circle at top center, rgba(47,95,143,0.16), transparent 26%), radial-gradient(circle at top left, rgba(101,90,255,0.12), transparent 18%), linear-gradient(180deg, #08101d 0%, #091120 100%)",
+          background: "#0a0f18",
         }}
       >
         <motion.div

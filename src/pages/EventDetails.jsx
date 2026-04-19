@@ -557,8 +557,7 @@ export default function EventDetails() {
           sx: {
             width: 360,
             p: 2,
-            background:
-              "linear-gradient(180deg, rgba(17, 28, 49, 0.98), rgba(12, 20, 36, 0.96))",
+            background: "#101826",
           },
         }}
       >
@@ -1393,10 +1392,9 @@ const contentGrid = {
 const panelCard = {
   p: 1.2,
   borderRadius: 3,
-  background:
-    "linear-gradient(180deg, rgba(17, 28, 49, 0.9), rgba(12, 20, 36, 0.8))",
+  background: "#101826",
   border: "1px solid rgba(95,113,165,0.16)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+  boxShadow: "0 10px 24px rgba(2, 6, 23, 0.14)",
   overflow: "hidden",
   minHeight: 0,
 };
@@ -1414,7 +1412,7 @@ const compactStatsGrid = {
 const miniCard = {
   p: 1,
   borderRadius: 2,
-  background: "rgba(9, 16, 31, 0.82)",
+  background: "#0c1421",
   border: "1px solid rgba(95,113,165,0.12)",
 };
 
@@ -1425,12 +1423,12 @@ const listRow = {
   gap: 1,
   p: 0.85,
   borderRadius: 2,
-  background: "rgba(8, 15, 30, 0.66)",
+  background: "#0c1421",
   border: "1px solid rgba(148,163,184,0.08)",
   cursor: "pointer",
   transition: "background 0.18s ease, border-color 0.18s ease",
   "&:hover": {
-    background: "rgba(12, 20, 36, 0.9)",
+    background: "#111b2a",
     borderColor: "rgba(129,140,248,0.18)",
   },
 };
@@ -1541,8 +1539,7 @@ const taskStageCard = {
   display: "flex",
   flexDirection: "column",
   minHeight: 0,
-  background:
-    "linear-gradient(180deg, rgba(18, 29, 52, 0.96), rgba(11, 18, 33, 0.92))",
+  background: "#101826",
 };
 
 const taskStageProgress = {
@@ -1558,11 +1555,11 @@ const taskRowCard = {
   gap: 1,
   p: 0.8,
   borderRadius: 2,
-  background: "rgba(10, 18, 34, 0.8)",
+  background: "#0c1421",
   border: "1px solid rgba(95,113,165,0.12)",
   transition: "all 0.18s ease",
   "&:hover": {
-    background: "rgba(12, 20, 38, 0.96)",
+    background: "#111b2a",
     borderColor: "rgba(109,123,255,0.22)",
     transform: "translateY(-1px)",
   },
