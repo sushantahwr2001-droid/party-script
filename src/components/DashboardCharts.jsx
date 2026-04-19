@@ -2,18 +2,22 @@ import { Box } from "@mui/material";
 import {
   Area,
   AreaChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  Bar,
-  BarChart,
 } from "recharts";
 
 const tooltipStyle = {
-  background: "#0f172a",
+  background: "#101826",
   border: "1px solid rgba(148,163,184,0.12)",
   borderRadius: 12,
+  color: "#eef2ff",
 };
 
 export function BudgetTrendChart({ data }) {
@@ -27,10 +31,10 @@ export function BudgetTrendChart({ data }) {
               <stop offset="100%" stopColor="#7c83ff" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="name" stroke="#64748b" />
-          <YAxis stroke="#64748b" />
+          <XAxis dataKey="name" stroke="#64748b" tickLine={false} axisLine={false} />
+          <YAxis stroke="#64748b" tickLine={false} axisLine={false} />
           <Tooltip contentStyle={tooltipStyle} />
-          <Area type="monotone" dataKey="spend" stroke="#7c83ff" fill="url(#spendGradient)" />
+          <Area type="monotone" dataKey="spend" stroke="#7c83ff" fill="url(#spendGradient)" strokeWidth={2} />
         </AreaChart>
       </ResponsiveContainer>
     </Box>
@@ -39,15 +43,38 @@ export function BudgetTrendChart({ data }) {
 
 export function BudgetComparisonChart({ data }) {
   return (
-    <Box sx={{ height: 160, mt: 0.5 }}>
+    <Box sx={{ height: 220, mt: 0.5 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <XAxis dataKey="name" stroke="#64748b" />
-          <YAxis stroke="#64748b" />
+        <LineChart data={data}>
+          <CartesianGrid stroke="rgba(148,163,184,0.08)" vertical={false} />
+          <XAxis dataKey="name" stroke="#64748b" tickLine={false} axisLine={false} />
+          <YAxis stroke="#64748b" tickLine={false} axisLine={false} />
           <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="budget" fill="#1d4ed8" radius={[5, 5, 0, 0]} />
-          <Bar dataKey="spend" fill="#7c83ff" radius={[5, 5, 0, 0]} />
-        </BarChart>
+          <Line type="monotone" dataKey="revenue" stroke="#8a8eff" strokeWidth={2.2} dot={false} />
+          <Line type="monotone" dataKey="expense" stroke="#727b92" strokeWidth={1.8} dot={false} />
+          <Line type="monotone" dataKey="profit" stroke="#d8dde9" strokeWidth={1.8} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </Box>
+  );
+}
+
+export function BudgetDonutChart({ data }) {
+  return (
+    <Box sx={{ width: 170, height: 170 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            innerRadius={48}
+            outerRadius={70}
+            paddingAngle={3}
+            stroke="none"
+          />
+          <Tooltip contentStyle={tooltipStyle} />
+        </PieChart>
       </ResponsiveContainer>
     </Box>
   );

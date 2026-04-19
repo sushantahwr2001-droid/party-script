@@ -13,7 +13,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import EventRoundedIcon from "@mui/icons-material/EventRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
@@ -42,11 +42,12 @@ const menuGroups = [
 
 const utilityItems = [
   { label: "Support", icon: <HelpOutlineRoundedIcon fontSize="small" /> },
-  { label: "Settings", icon: <SettingsRoundedIcon fontSize="small" /> },
+  { label: "Settings", icon: <SettingsRoundedIcon fontSize="small" />, path: "/settings" },
 ];
 
 export default function MainLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
 
   const isActive = (path) => {
@@ -204,19 +205,34 @@ export default function MainLayout() {
             {utilityItems.map((item) => (
               <ListItemButton
                 key={item.label}
+                onClick={item.path ? () => navigate(item.path) : undefined}
                 sx={{
                   minHeight: 38,
                   px: 1,
                   borderRadius: 2.5,
+                  background: item.path && isActive(item.path) ? "#1a2232" : "transparent",
                   "&:hover": {
                     background: "#121722",
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 30, color: "#8d93a0" }}>{item.icon}</ListItemIcon>
+                <ListItemIcon
+                  sx={{
+                    minWidth: 30,
+                    color: item.path && isActive(item.path) ? "#f5f7ff" : "#8d93a0",
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography sx={{ fontSize: 12.5, color: "#bcc1ce" }}>
+                    <Typography
+                      sx={{
+                        fontSize: 12.5,
+                        color: item.path && isActive(item.path) ? "#f7f8ff" : "#bcc1ce",
+                        fontWeight: item.path && isActive(item.path) ? 700 : 500,
+                      }}
+                    >
                       {item.label}
                     </Typography>
                   }

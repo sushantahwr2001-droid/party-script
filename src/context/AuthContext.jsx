@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AuthContext } from "./auth-context";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
@@ -300,6 +300,42 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateProfileName = useCallback(async (fullName) => {
+    if (!user || !supabase) {
+      throw new Error("You must be signed in to update your profile.");
+    }
+
+    const trimmed = fullName?.trim();
+
+    if (!trimmed) {
+      throw new Error("Name is required.");
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ full_name: trimmed })
+      .eq("id", user.id)
+      .select("id, full_name, role, organization_id")
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    setUser((current) =>
+      current
+        ? {
+            ...current,
+            name: data.full_name || current.name,
+            role: data.role,
+            organizationId: data.organization_id,
+          }
+        : current
+    );
+
+    return data;
+  }, [user]);
+
   const permissions = useMemo(
     () => ({
       canEditAll: !!user,
@@ -319,12 +355,13 @@ export function AuthProvider({ children }) {
       login,
       signup,
       logout,
+      updateProfileName,
       authError,
       authDebug,
       permissions,
       isConfigured: isSupabaseConfigured,
     }),
-    [user, loading, authError, authDebug, permissions]
+    [user, loading, authError, authDebug, permissions, updateProfileName]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

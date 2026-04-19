@@ -12,6 +12,7 @@ const Vendors = lazy(() => import("../pages/Vendors"));
 const Budget = lazy(() => import("../pages/Budget"));
 const Timeline = lazy(() => import("../pages/Timeline"));
 const Login = lazy(() => import("../pages/Login"));
+const Settings = lazy(() => import("../pages/Settings"));
 
 export default function AppRouter() {
   return (
@@ -33,6 +34,7 @@ export default function AppRouter() {
           <Route path="vendors" element={<Vendors />} />
           <Route path="budget" element={<Budget />} />
           <Route path="calendar" element={<Timeline />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </Suspense>
