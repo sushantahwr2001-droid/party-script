@@ -2,21 +2,15 @@ import { Suspense, lazy, useMemo, useState } from "react";
 import {
   Alert,
   Box,
-  Button,
   Card,
   Chip,
   Collapse,
   LinearProgress,
-  MenuItem,
   Snackbar,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
@@ -55,8 +49,6 @@ export default function Dashboard() {
   const [showCreate, setShowCreate] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [createError, setCreateError] = useState("");
-  const [search, setSearch] = useState("");
-  const [windowLabel, setWindowLabel] = useState("30d");
   const [form, setForm] = useState({
     name: "",
     date: "",
@@ -85,15 +77,7 @@ export default function Dashboard() {
     [events, tasksByEventId, vendorsByEventId]
   );
 
-  const filteredEvents = useMemo(
-    () =>
-      events.filter((event) =>
-        `${event.name} ${event.venue} ${event.notes || ""}`
-          .toLowerCase()
-          .includes(search.toLowerCase())
-      ),
-    [events, search]
-  );
+  const filteredEvents = events;
 
   const comparisonData = useMemo(
     () =>
@@ -160,49 +144,6 @@ export default function Dashboard() {
 
   return (
     <Box sx={pageShell}>
-      <Stack
-        direction={{ xs: "column", xl: "row" }}
-        spacing={1.25}
-        sx={{ alignItems: { xs: "stretch", xl: "center" }, justifyContent: "flex-end", mb: 1.25 }}
-      >
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-          <Box sx={searchField}>
-            <SearchRoundedIcon sx={{ fontSize: 17, color: "text.secondary" }} />
-            <TextField
-              size="small"
-              placeholder="Search events..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              variant="standard"
-              fullWidth
-              slotProps={{ input: { disableUnderline: true } }}
-            />
-          </Box>
-
-          <TextField
-            select
-            size="small"
-            value={windowLabel}
-            onChange={(event) => setWindowLabel(event.target.value)}
-            sx={{ minWidth: 128 }}
-          >
-            <MenuItem value="30d">30 Days</MenuItem>
-            <MenuItem value="90d">3 Months</MenuItem>
-            <MenuItem value="365d">1 Year</MenuItem>
-          </TextField>
-
-          <Button size="small" variant="outlined" startIcon={<CalendarTodayRoundedIcon />}>
-            Select Date
-          </Button>
-          <Button size="small" variant="outlined" startIcon={<FileDownloadOutlinedIcon />}>
-            Export
-          </Button>
-          <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setShowCreate((current) => !current)}>
-            New
-          </Button>
-        </Stack>
-      </Stack>
-
       <Collapse in={showCreate}>
         <Card sx={createCard}>
           <Typography sx={panelTitle}>Create event workspace</Typography>
@@ -488,25 +429,6 @@ const eyebrowMuted = {
   textTransform: "uppercase",
   letterSpacing: "0.14em",
   color: "#9ca3b7",
-};
-
-const searchField = {
-  minWidth: { xs: 0, md: 220 },
-  flex: { xs: 1, md: "none" },
-  display: "flex",
-  alignItems: "center",
-  gap: 0.8,
-  px: 1.2,
-  borderRadius: 999,
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
-  "& .MuiInput-root": {
-    color: "inherit",
-  },
-  "& .MuiInputBase-input": {
-    py: 0.8,
-    fontSize: 13,
-  },
 };
 
 const createCard = {
