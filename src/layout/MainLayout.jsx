@@ -3,7 +3,9 @@ import {
   Avatar,
   Box,
   Button,
+  Divider,
   Drawer,
+  InputBase,
   List,
   ListItemButton,
   ListItemIcon,
@@ -12,24 +14,35 @@ import {
   Typography,
 } from "@mui/material";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import EventIcon from "@mui/icons-material/Event";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import ChecklistIcon from "@mui/icons-material/Checklist";
-import PeopleIcon from "@mui/icons-material/People";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+import EventRoundedIcon from "@mui/icons-material/EventRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import ChecklistRoundedIcon from "@mui/icons-material/ChecklistRounded";
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
+import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
+import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import { useAuth } from "../context/auth-context";
 
-const primaryMenu = [
-  { label: "Dashboard", path: "/", icon: <DashboardIcon /> },
-  { label: "Events", path: "/events", icon: <EventIcon /> },
-  { label: "Calendar", path: "/calendar", icon: <CalendarMonthIcon /> },
+const menuGroups = [
+  {
+    title: "Main menu",
+    items: [
+      { label: "Dashboard", path: "/", icon: <DashboardRoundedIcon fontSize="small" /> },
+      { label: "Events", path: "/events", icon: <EventRoundedIcon fontSize="small" /> },
+      { label: "Calendar", path: "/calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
+      { label: "Tasks", path: "/tasks", icon: <ChecklistRoundedIcon fontSize="small" /> },
+      { label: "Vendors", path: "/vendors", icon: <GroupsRoundedIcon fontSize="small" /> },
+      { label: "Budget", path: "/budget", icon: <AccountBalanceWalletRoundedIcon fontSize="small" /> },
+    ],
+  },
 ];
 
-const secondaryMenu = [
-  { label: "Tasks", path: "/tasks", icon: <ChecklistIcon /> },
-  { label: "Vendors", path: "/vendors", icon: <PeopleIcon /> },
-  { label: "Budget", path: "/budget", icon: <AccountBalanceWalletIcon /> },
+const utilityItems = [
+  { label: "Support", icon: <HelpOutlineRoundedIcon fontSize="small" /> },
+  { label: "Settings", icon: <SettingsRoundedIcon fontSize="small" /> },
 ];
 
 export default function MainLayout() {
@@ -49,137 +62,208 @@ export default function MainLayout() {
       <Drawer
         variant="permanent"
         sx={{
-          width: 248,
+          width: 264,
           flexShrink: 0,
           display: { xs: "none", md: "block" },
           "& .MuiDrawer-paper": {
-            width: 248,
-            background:
-              "linear-gradient(180deg, rgba(8,12,26,0.99), rgba(10,15,30,0.98))",
-            borderRight: "1px solid rgba(92,108,154,0.18)",
-            padding: 2,
+            width: 264,
+            background: "linear-gradient(180deg, #0b0b0f 0%, #0d0d12 100%)",
+            borderRight: "1px solid rgba(255,255,255,0.06)",
+            px: 1.5,
+            py: 1.6,
             display: "flex",
             flexDirection: "column",
             boxShadow: "inset -1px 0 0 rgba(255,255,255,0.02)",
           },
         }}
       >
-        <Box px={1} mb={2.5}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.1, mb: 0.75 }}>
-            <Avatar
-              sx={{
-                width: 32,
-                height: 32,
-                fontSize: 13,
-                fontWeight: 800,
-                background: "#5b6cff",
-              }}
-            >
-              PS
-            </Avatar>
-            <Box>
-              <Typography fontWeight={600} fontSize={13.5} letterSpacing="-0.01em">
-                Party Script
-              </Typography>
-              <Typography fontSize={11} color="text.secondary">
-                Event operations
-              </Typography>
-            </Box>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: 1,
+            mb: 1.6,
+          }}
+        >
+          <Box
+            sx={{
+              width: 26,
+              height: 26,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              background: "rgba(103, 92, 255, 0.14)",
+              color: "#8a7fff",
+            }}
+          >
+            <BoltRoundedIcon sx={{ fontSize: 15 }} />
           </Box>
+          <Typography fontWeight={700} fontSize={14.5} letterSpacing="-0.02em">
+            Party Script
+          </Typography>
         </Box>
 
-        <List sx={{ pb: 0, flex: 1 }}>
-          {primaryMenu.map((item) => {
-            const active = isActive(item.path);
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.9,
+            height: 42,
+            px: 1.2,
+            borderRadius: 2.5,
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.04)",
+            mb: 1.8,
+          }}
+        >
+          <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
+          <InputBase
+            placeholder="Search"
+            sx={{
+              flex: 1,
+              color: "text.primary",
+              fontSize: 13,
+              "& input::placeholder": {
+                color: "#7f8491",
+                opacity: 1,
+              },
+            }}
+          />
+        </Box>
 
-            return (
-              <ListItemButton
-                key={item.path}
-                component={Link}
-                to={item.path}
+        <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.4 }}>
+          {menuGroups.map((group) => (
+            <Box key={group.title} sx={{ mb: 1.6 }}>
+              <Typography
                 sx={{
-                  borderRadius: 2,
-                  mb: 0.35,
-                  px: 1.3,
-                  py: 0.85,
-                  background: active
-                    ? "linear-gradient(135deg, rgba(77,88,172,0.34), rgba(63,76,158,0.18))"
-                    : "transparent",
-                  border: active
-                    ? "1px solid rgba(104,119,255,0.3)"
-                    : "1px solid transparent",
+                  px: 1,
+                  mb: 0.7,
+                  color: "text.secondary",
+                  fontSize: 11,
+                }}
+              >
+                {group.title}
+              </Typography>
+
+              <List disablePadding sx={{ display: "grid", gap: 0.35 }}>
+                {group.items.map((item) => {
+                  const active = isActive(item.path);
+
+                  return (
+                    <ListItemButton
+                      key={item.path}
+                      component={Link}
+                      to={item.path}
+                      sx={{
+                        minHeight: 42,
+                        px: 1.15,
+                        borderRadius: 2.5,
+                        background: active ? "rgba(255,255,255,0.1)" : "transparent",
+                        border: active
+                          ? "1px solid rgba(142, 127, 255, 0.22)"
+                          : "1px solid transparent",
+                        "&:hover": {
+                          background: active ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          minWidth: 30,
+                          color: active ? "#f5f7ff" : "#8d93a0",
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Typography
+                            sx={{
+                              fontSize: 13,
+                              fontWeight: active ? 700 : 500,
+                              color: active ? "#f7f8ff" : "#c0c4d2",
+                            }}
+                          >
+                            {item.label}
+                          </Typography>
+                        }
+                      />
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            </Box>
+          ))}
+        </Box>
+
+        <Box sx={{ pt: 1.2 }}>
+          <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 1.2 }} />
+
+          <List disablePadding sx={{ display: "grid", gap: 0.2, mb: 1.3 }}>
+            {utilityItems.map((item) => (
+              <ListItemButton
+                key={item.label}
+                sx={{
+                  minHeight: 38,
+                  px: 1,
+                  borderRadius: 2.5,
                   "&:hover": {
-                    background: active
-                      ? "linear-gradient(135deg, rgba(77,88,172,0.4), rgba(63,76,158,0.22))"
-                      : "rgba(148,163,184,0.08)",
+                    background: "rgba(255,255,255,0.05)",
                   },
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    color: active ? "#93c5fd" : "#94a3b8",
-                    minWidth: 34,
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-
+                <ListItemIcon sx={{ minWidth: 30, color: "#8d93a0" }}>{item.icon}</ListItemIcon>
                 <ListItemText
                   primary={
-                    <Typography
-                      sx={{
-                        fontSize: 13,
-                        fontWeight: active ? 700 : 500,
-                        color: active ? "#f8fafc" : "#cbd5e1",
-                      }}
-                    >
+                    <Typography sx={{ fontSize: 12.5, color: "#bcc1ce" }}>
                       {item.label}
                     </Typography>
                   }
                 />
               </ListItemButton>
-            );
-          })}
-        </List>
+            ))}
+          </List>
 
-        <Stack direction="row" spacing={0.6} sx={{ px: 1, pb: 1 }}>
-          {secondaryMenu.map((item) => (
-            <Button
-              key={item.path}
-              component={Link}
-              to={item.path}
-              size="small"
-              variant="text"
-              sx={{
-                minWidth: 0,
-                px: 0.8,
-                fontSize: 11,
-                color: isActive(item.path) ? "#c7d2fe" : "text.secondary",
-              }}
-            >
-              {item.label}
+          <Box
+            sx={{
+              p: 1.1,
+              borderRadius: 3,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.05)",
+            }}
+          >
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <Avatar
+                sx={{
+                  width: 36,
+                  height: 36,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  background: "linear-gradient(135deg, #625dff, #8b7cff)",
+                }}
+              >
+                {(user?.name || "PS")
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </Avatar>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography fontSize={13} fontWeight={700} noWrap>
+                  {user?.name}
+                </Typography>
+                <Typography fontSize={11} color="text.secondary" noWrap>
+                  {user?.role === "admin" ? "Admin access" : "Manager access"}
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Button size="small" variant="outlined" sx={{ mt: 1.2, width: "100%" }} onClick={logout}>
+              Logout
             </Button>
-          ))}
-        </Stack>
-
-        <Box
-          sx={{
-            mt: 1,
-            p: 0.9,
-            borderRadius: 2,
-            background: "linear-gradient(180deg, rgba(10,17,33,0.82), rgba(8,14,28,0.72))",
-            border: "1px solid rgba(94,114,165,0.12)",
-          }}
-        >
-          <Typography fontSize={13} fontWeight={700}>
-            {user?.name}
-          </Typography>
-          <Typography fontSize={11} color="text.secondary">
-            {user?.role === "admin" ? "Admin access" : "Manager access"}
-          </Typography>
-          <Button size="small" variant="outlined" sx={{ mt: 1 }} onClick={logout}>
-            Logout
-          </Button>
+          </Box>
         </Box>
       </Drawer>
 
