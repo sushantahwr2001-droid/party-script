@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import {
   Alert,
   Box,
@@ -7,32 +7,56 @@ import {
   Chip,
   Collapse,
   LinearProgress,
+  MenuItem,
   Snackbar,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import { useNavigate } from "react-router-dom";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 import { useEvents } from "../hooks/useEvents";
+import { useTasks } from "../hooks/useTasks";
+import { useVendors } from "../hooks/useVendors";
 import { useDashboardStats } from "../hooks/useDashboardStats";
-import { formatCurrency } from "../utils/eventSelectors";
+import { groupByEventId } from "../lib/eventData";
+import { buildEventSummary, formatCurrency } from "../utils/eventSelectors";
 import ChartFallback from "../components/ChartFallback";
 import EmptyState from "../components/EmptyState";
 
 const BudgetTrendChart = lazy(() =>
   import("../components/DashboardCharts").then((module) => ({ default: module.BudgetTrendChart }))
 );
+const BudgetComparisonChart = lazy(() =>
+  import("../components/DashboardCharts").then((module) => ({
+    default: module.BudgetComparisonChart,
+  }))
+);
+
+const metricCards = [
+  { key: "eventsCount", title: "Live events", accent: "#6f72ff", change: "+12.4%" },
+  { key: "openTasks", title: "Open tasks", accent: "#55b7ff", change: "-8.1%" },
+  { key: "totalVendors", title: "Active vendors", accent: "#32d08a", change: "+6.8%" },
+  { key: "budgetUsed", title: "Budget used", accent: "#ffad57", suffix: "%", change: "+3.2%" },
+];
 
 export default function Dashboard() {
-  const { loading: eventsLoading, error: eventsError, createEvent } = useEvents();
-  const { stats, loading: statsLoading, error: statsError, refresh } = useDashboardStats();
   const navigate = useNavigate();
+  const { events, loading: eventsLoading, error: eventsError, createEvent } = useEvents();
+  const { tasks, loading: tasksLoading, error: tasksError } = useTasks();
+  const { vendors, loading: vendorsLoading, error: vendorsError } = useVendors();
+  const { stats, loading: statsLoading, error: statsError, refresh } = useDashboardStats();
+
   const [showCreate, setShowCreate] = useState(false);
-  const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState("");
   const [createError, setCreateError] = useState("");
+  const [search, setSearch] = useState("");
+  const [windowLabel, setWindowLabel] = useState("30d");
   const [form, setForm] = useState({
     name: "",
     date: "",
@@ -41,10 +65,69 @@ export default function Dashboard() {
     budget: "",
   });
 
-  const loading = eventsLoading || statsLoading;
-  const error = eventsError || statsError;
-  const filteredEvents = stats.upcomingEvents.filter((event) =>
-    `${event.name} ${event.venue} ${event.notes || ""}`.toLowerCase().includes(search.toLowerCase())
+  const loading = eventsLoading || tasksLoading || vendorsLoading || statsLoading;
+  const error = eventsError || tasksError || vendorsError || statsError;
+
+  const tasksByEventId = useMemo(() => groupByEventId(tasks), [tasks]);
+  const vendorsByEventId = useMemo(() => groupByEventId(vendors), [vendors]);
+
+  const eventSummaries = useMemo(
+    () =>
+      Object.fromEntries(
+        events.map((event) => [
+          event.id,
+          buildEventSummary(event, {
+            tasksByEventId,
+            vendorsByEventId,
+          }),
+        ])
+      ),
+    [events, tasksByEventId, vendorsByEventId]
+  );
+
+  const filteredEvents = useMemo(
+    () =>
+      events.filter((event) =>
+        `${event.name} ${event.venue} ${event.notes || ""}`
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      ),
+    [events, search]
+  );
+
+  const comparisonData = useMemo(
+    () =>
+      filteredEvents.slice(0, 6).map((event) => ({
+        name: event.name.length > 10 ? `${event.name.slice(0, 10)}…` : event.name,
+        budget: event.budget,
+        spend: eventSummaries[event.id]?.spent || 0,
+      })),
+    [filteredEvents, eventSummaries]
+  );
+
+  const topVendors = useMemo(
+    () =>
+      [...vendors]
+        .sort((a, b) => (b.cost || 0) - (a.cost || 0))
+        .slice(0, 4)
+        .map((vendor) => ({
+          ...vendor,
+          eventName: events.find((event) => event.id === vendor.eventId)?.name || "Unknown event",
+        })),
+    [vendors, events]
+  );
+
+  const urgentTasks = useMemo(
+    () =>
+      tasks
+        .filter((task) => !task.done)
+        .sort((a, b) => dayjs(a.dueDate).valueOf() - dayjs(b.dueDate).valueOf())
+        .slice(0, 6)
+        .map((task) => ({
+          ...task,
+          eventName: events.find((event) => event.id === task.eventId)?.name || "Unknown event",
+        })),
+    [tasks, events]
   );
 
   const handleChange = (field) => (event) => {
@@ -61,7 +144,7 @@ export default function Dashboard() {
     try {
       await createEvent(form);
       await refresh();
-      setFeedback("Event workspace created successfully");
+      setFeedback("Event workspace created");
       setForm({
         name: "",
         date: "",
@@ -77,38 +160,57 @@ export default function Dashboard() {
 
   return (
     <Box sx={pageShell}>
-      <Card sx={heroShell}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
-          <Box>
-            <Typography sx={pageTitle}>Operations overview</Typography>
-            <Typography sx={pageSubtitle}>
-              {stats.eventsCount} events / {stats.totalVendors} vendors / {stats.totalContacts} contacts
-            </Typography>
+      <Stack
+        direction={{ xs: "column", xl: "row" }}
+        spacing={1.25}
+        sx={{ alignItems: { xs: "stretch", xl: "center" }, justifyContent: "space-between", mb: 1.25 }}
+      >
+        <Box>
+          <Typography sx={eyebrow}>Operations dashboard</Typography>
+          <Typography sx={heroTitle}>A premium live view of events, vendors, spend, and execution health.</Typography>
+        </Box>
+
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Box sx={searchField}>
+            <SearchRoundedIcon sx={{ fontSize: 17, color: "text.secondary" }} />
+            <TextField
+              size="small"
+              placeholder="Search events..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              variant="standard"
+              fullWidth
+              slotProps={{ input: { disableUnderline: true } }}
+            />
           </Box>
 
-          <Box sx={{ display: "flex", gap: 0.6, alignItems: "center" }}>
-            <Box sx={searchField}>
-              <SearchIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-              <TextField
-                size="small"
-                placeholder="Search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                variant="standard"
-                fullWidth
-                slotProps={{ input: { disableUnderline: true } }}
-              />
-            </Box>
-            <Button variant="outlined" size="small" sx={iconButton}>
-              <NotificationsNoneIcon sx={{ fontSize: 16 }} />
-            </Button>
-          </Box>
-        </Box>
-      </Card>
+          <TextField
+            select
+            size="small"
+            value={windowLabel}
+            onChange={(event) => setWindowLabel(event.target.value)}
+            sx={{ minWidth: 128 }}
+          >
+            <MenuItem value="30d">30 Days</MenuItem>
+            <MenuItem value="90d">3 Months</MenuItem>
+            <MenuItem value="365d">1 Year</MenuItem>
+          </TextField>
+
+          <Button size="small" variant="outlined" startIcon={<CalendarTodayRoundedIcon />}>
+            Select Date
+          </Button>
+          <Button size="small" variant="outlined" startIcon={<FileDownloadOutlinedIcon />}>
+            Export
+          </Button>
+          <Button size="small" variant="contained" startIcon={<AddRoundedIcon />} onClick={() => setShowCreate((current) => !current)}>
+            New
+          </Button>
+        </Stack>
+      </Stack>
 
       <Collapse in={showCreate}>
         <Card sx={createCard}>
-          <Typography sx={sectionTitle}>Create event workspace</Typography>
+          <Typography sx={panelTitle}>Create event workspace</Typography>
           <Box sx={createGrid}>
             <TextField size="small" label="Event name" value={form.name} onChange={handleChange("name")} />
             <TextField
@@ -122,142 +224,224 @@ export default function Dashboard() {
             <TextField size="small" label="Venue" value={form.venue} onChange={handleChange("venue")} />
             <TextField size="small" label="Notes" value={form.notes} onChange={handleChange("notes")} />
             <TextField size="small" label="Budget" type="number" value={form.budget} onChange={handleChange("budget")} />
-            <Button size="small" variant="contained" onClick={handleCreate}>
+            <Button variant="contained" onClick={handleCreate}>
               Create
             </Button>
           </Box>
           {createError ? (
-            <Typography sx={{ ...captionText, color: "#fca5a5", mt: 0.8 }}>
-              {createError}
-            </Typography>
+            <Typography sx={{ ...helperText, color: "#fca5a5", mt: 0.9 }}>{createError}</Typography>
           ) : null}
         </Card>
       </Collapse>
 
       {error ? (
-        <Alert severity="error" sx={{ mb: 1 }}>
+        <Alert severity="error" sx={{ mb: 1.25 }}>
           Unable to load dashboard data from Supabase: {error}
         </Alert>
       ) : null}
 
-      {!loading && stats.upcomingEvents.length === 0 ? (
-        <Card sx={onboardingCard}>
-          <Typography sx={sectionTitle}>Create your first event to get started</Typography>
-          <Typography sx={captionText}>
-            Build the first workspace so your team can track tasks, vendors, documents, and budget in one place.
+      <Box sx={topRowGrid}>
+        <Card sx={welcomeCard}>
+          <Typography sx={eyebrowMuted}>Today&apos;s control room</Typography>
+          <Typography sx={welcomeTitle}>Good evening. Your event operations are live and ready.</Typography>
+          <Typography sx={welcomeText}>
+            Track budget movement, vendor progress, task pressure, and workspace activity from one
+            premium dashboard.
           </Typography>
-          <Box mt={1}>
+          <Stack direction="row" spacing={1} mt={2}>
             <Button size="small" variant="contained" onClick={() => setShowCreate(true)}>
-              + Create Event
+              Create Event
             </Button>
-          </Box>
+            <Button size="small" variant="outlined" onClick={() => navigate("/events")}>
+              Open Events
+            </Button>
+          </Stack>
         </Card>
-      ) : null}
 
-      <Box sx={statsGrid}>
-        <Stat title="Active events" value={stats.eventsCount} detail="Live workspaces ready" />
-        <Stat title="Open tasks" value={stats.openTasks} detail="Awaiting action" accent="#60a5fa" />
-        <Stat title="Total vendors" value={stats.totalVendors} detail="Across all events" accent="#34d399" />
-        <Stat title="Budget used" value={`${Math.round(stats.budgetUsed)}%`} detail="Committed spend" accent="#f59e0b" />
+        <Box sx={statsGrid}>
+          {metricCards.map((item) => (
+            <StatCard
+              key={item.key}
+              title={item.title}
+              value={
+                item.key === "budgetUsed"
+                  ? `${Math.round(stats[item.key])}${item.suffix || ""}`
+                  : stats[item.key]
+              }
+              accent={item.accent}
+              change={item.change}
+            />
+          ))}
+        </Box>
       </Box>
 
       {loading ? (
-        <Card sx={onboardingCard}>
-          <Typography sx={sectionTitle}>Loading events</Typography>
-          <LinearProgress sx={{ mt: 1 }} />
+        <Card sx={loadingCard}>
+          <Typography sx={panelTitle}>Loading dashboard</Typography>
+          <LinearProgress sx={{ mt: 1.2 }} />
         </Card>
       ) : null}
 
-      <Box sx={mainGrid}>
-        <Card sx={{ ...featureCard, gridRow: { xl: "span 2" } }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.8 }}>
-            <Typography sx={sectionTitle}>Upcoming events</Typography>
-            <Button size="small" variant="text" onClick={() => setShowCreate(true)}>
-              + Event
-            </Button>
-          </Box>
-
-          {filteredEvents.slice(0, 4).map((event) => (
-            <Box key={event.id} sx={rowCard} onClick={() => navigate(`/events/${event.id}`)}>
-              <Box>
-                <Typography fontWeight={700}>{event.name}</Typography>
-                <Typography sx={captionText}>
-                  {dayjs(event.date).format("DD MMM")} / {event.venue}
-                </Typography>
-              </Box>
-              <Chip label={event.status} size="small" sx={statusChip(event.status)} />
-            </Box>
-          ))}
-
-          {filteredEvents.length === 0 ? (
-            <EmptyState
-              title="No events match this search"
-              subtitle="Try another keyword or create a new event workspace."
-              actionLabel="+ Create Event"
-              onAction={() => setShowCreate(true)}
-            />
-          ) : null}
-        </Card>
-
-        <Card sx={featureCard}>
-          <Typography sx={sectionTitle}>Budget summary</Typography>
-          <Box mt={0.8} display="grid" gap={0.8}>
+      <Box sx={analyticsGrid}>
+        <Card sx={{ ...panelCard, gridColumn: { xs: "1 / -1", xl: "span 2" } }}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.2 }}>
             <Box>
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.35 }}>
-                <Typography sx={captionText}>Committed spend</Typography>
-                <Typography sx={captionText}>{formatCurrency(stats.totalSpent)}</Typography>
-              </Box>
-              <LinearProgress variant="determinate" value={stats.budgetUsed} sx={{ height: 6 }} />
+              <Typography sx={panelTitle}>Revenue report</Typography>
+              <Typography sx={panelSubtitle}>Budget vs committed spend across active event workspaces.</Typography>
             </Box>
-            {stats.vendorCategoryData.slice(0, 3).map((item) => (
-              <Box key={item.name}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.35 }}>
-                  <Typography fontWeight={700}>{item.name}</Typography>
-                  <Typography sx={captionText}>{formatCurrency(item.value)}</Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={stats.totalSpent ? (item.value / stats.totalSpent) * 100 : 0}
-                  sx={{ height: 6 }}
-                />
-              </Box>
-            ))}
-          </Box>
+            <Button size="small" variant="text" endIcon={<OpenInNewRoundedIcon />}>
+              Details
+            </Button>
+          </Stack>
+
+          <Suspense fallback={<ChartFallback height={260} />}>
+            <BudgetComparisonChart data={comparisonData} />
+          </Suspense>
         </Card>
 
-        <Card sx={featureCard}>
-          <Typography sx={sectionTitle}>Needs attention</Typography>
-          <Box mt={0.8}>
+        <Card sx={panelCard}>
+          <Typography sx={panelTitle}>Needs attention</Typography>
+          <Typography sx={panelSubtitle}>Important issues surfaced from your event workspaces.</Typography>
+          <Box mt={1.2}>
             {stats.needsAttention.length > 0 ? (
-              stats.needsAttention.map((item) => (
-                <Box key={item.id} sx={attentionRow(item.tone)} onClick={() => navigate(`/events/${item.eventId}`)}>
-                  <Typography fontWeight={700}>{item.title}</Typography>
-                  <Typography sx={captionText}>{item.subtitle}</Typography>
-                </Box>
-              ))
+              <Stack spacing={0.8}>
+                {stats.needsAttention.slice(0, 4).map((item) => (
+                  <Box key={item.id} sx={attentionRow(item.tone)} onClick={() => navigate(`/events/${item.eventId}`)}>
+                    <Typography fontWeight={700} fontSize={13}>
+                      {item.title}
+                    </Typography>
+                    <Typography sx={helperText}>{item.subtitle}</Typography>
+                  </Box>
+                ))}
+              </Stack>
             ) : (
               <EmptyState
-                title="No urgent issues detected"
-                subtitle="Deadlines, vendor confirmations, and budget levels look healthy."
+                title="No urgent issues"
+                subtitle="Deadlines, vendors, and budgets look healthy right now."
                 actionLabel="Open Events"
                 onAction={() => navigate("/events")}
               />
             )}
           </Box>
         </Card>
+      </Box>
 
-        <Card sx={{ ...featureCard, gridColumn: { xl: "span 2" } }}>
-          <Typography sx={sectionTitle}>Budget trend</Typography>
-          <Box mt={1}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-              <Typography sx={captionText}>Committed spend</Typography>
-              <Typography sx={captionText}>{formatCurrency(stats.totalSpent)}</Typography>
-            </Box>
-            <LinearProgress variant="determinate" value={stats.budgetUsed} sx={{ height: 6 }} />
+      <Box sx={midGrid}>
+        <Card sx={panelCard}>
+          <Typography sx={panelTitle}>Budget flow</Typography>
+          <Typography sx={panelSubtitle}>Committed spend movement and vendor category intensity.</Typography>
+          <Box sx={trendSummaryRow}>
+            <MetricPill label="Total spend" value={formatCurrency(stats.totalSpent)} />
+            <MetricPill label="Budget left" value={formatCurrency(stats.totalBudget - stats.totalSpent)} />
           </Box>
-          <Suspense fallback={<ChartFallback height={160} />}>
+          <Suspense fallback={<ChartFallback height={220} />}>
             <BudgetTrendChart data={stats.spendTrend} />
           </Suspense>
+        </Card>
+
+        <Card sx={panelCard}>
+          <Typography sx={panelTitle}>Top vendors</Typography>
+          <Typography sx={panelSubtitle}>Highest-value vendors connected to your live events.</Typography>
+          <Stack spacing={0.9} mt={1.2}>
+            {topVendors.map((vendor, index) => (
+              <Box key={vendor.id} sx={rankRow}>
+                <Box sx={rankBadge}>{index + 1}</Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography fontWeight={700} fontSize={13}>
+                    {vendor.name}
+                  </Typography>
+                  <Typography sx={helperText} noWrap>
+                    {vendor.eventName} / {vendor.category}
+                  </Typography>
+                </Box>
+                <Box textAlign="right">
+                  <Typography fontWeight={700} fontSize={13}>
+                    {formatCurrency(vendor.cost)}
+                  </Typography>
+                  <Chip label={vendor.status} size="small" sx={vendorStatusChip(vendor.status)} />
+                </Box>
+              </Box>
+            ))}
+            {topVendors.length === 0 ? (
+              <Typography sx={helperText}>No vendors yet.</Typography>
+            ) : null}
+          </Stack>
+        </Card>
+      </Box>
+
+      <Box sx={bottomGrid}>
+        <Card sx={panelCard}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.2 }}>
+            <Box>
+              <Typography sx={panelTitle}>Event pipeline</Typography>
+              <Typography sx={panelSubtitle}>Upcoming event workspaces with progress and budget context.</Typography>
+            </Box>
+            <Button size="small" variant="text" onClick={() => navigate("/events")}>
+              View all
+            </Button>
+          </Stack>
+
+          <Box sx={tableShell}>
+            <Box sx={tableHeader}>
+              <Typography sx={headerCell}>Event</Typography>
+              <Typography sx={headerCell}>Date</Typography>
+              <Typography sx={headerCell}>Venue</Typography>
+              <Typography sx={headerCell}>Progress</Typography>
+              <Typography sx={headerCell}>Status</Typography>
+            </Box>
+            {filteredEvents.slice(0, 6).map((event) => (
+              <Box key={event.id} sx={tableRow} onClick={() => navigate(`/events/${event.id}`)}>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={rowTitle}>{event.name}</Typography>
+                  <Typography sx={rowMeta} noWrap>
+                    {event.notes || "No notes"}
+                  </Typography>
+                </Box>
+                <Typography sx={rowText}>{dayjs(event.date).format("DD MMM YYYY")}</Typography>
+                <Typography sx={rowText}>{event.venue}</Typography>
+                <Typography sx={rowText}>{eventSummaries[event.id]?.overallProgress || 0}%</Typography>
+                <Chip label={event.status} size="small" sx={statusChip(event.status)} />
+              </Box>
+            ))}
+            {filteredEvents.length === 0 ? (
+              <Box sx={{ p: 1.4 }}>
+                <EmptyState
+                  title="No events found"
+                  subtitle="Try another search or create a new workspace."
+                  actionLabel="Create Event"
+                  onAction={() => setShowCreate(true)}
+                />
+              </Box>
+            ) : null}
+          </Box>
+        </Card>
+
+        <Card sx={panelCard}>
+          <Typography sx={panelTitle}>Recent task pressure</Typography>
+          <Typography sx={panelSubtitle}>Open tasks sorted by nearest due date across your console.</Typography>
+          <Stack spacing={0.85} mt={1.2}>
+            {urgentTasks.map((task) => (
+              <Box key={task.id} sx={taskRow}>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography fontWeight={700} fontSize={13}>
+                    {task.title}
+                  </Typography>
+                  <Typography sx={helperText} noWrap>
+                    {task.eventName} / {task.stage} / {task.assignee || "Unassigned"}
+                  </Typography>
+                </Box>
+                <Box textAlign="right">
+                  <Typography fontWeight={700} fontSize={12}>
+                    {dayjs(task.dueDate).format("DD MMM")}
+                  </Typography>
+                  <Chip label={task.priority} size="small" sx={priorityChip(task.priority)} />
+                </Box>
+              </Box>
+            ))}
+            {urgentTasks.length === 0 ? (
+              <Typography sx={helperText}>No open tasks right now.</Typography>
+            ) : null}
+          </Stack>
         </Card>
       </Box>
 
@@ -275,200 +459,382 @@ export default function Dashboard() {
   );
 }
 
-function Stat({ title, value, detail, accent }) {
+function StatCard({ title, value, accent, change }) {
   return (
-    <Card sx={statCard}>
-      <Typography sx={labelText}>{title}</Typography>
-      <Typography sx={{ ...statValue, color: accent || "#f8fafc" }}>{value}</Typography>
-      <Typography sx={captionText}>{detail}</Typography>
+    <Card sx={metricCard}>
+      <Typography sx={metricLabel}>{title}</Typography>
+      <Typography sx={{ ...metricValue, color: accent }}>{value}</Typography>
+      <Typography sx={metricMeta}>{change} from last 30 days</Typography>
     </Card>
   );
 }
 
+function MetricPill({ label, value }) {
+  return (
+    <Box sx={metricPill}>
+      <Typography sx={metricPillLabel}>{label}</Typography>
+      <Typography sx={metricPillValue}>{value}</Typography>
+    </Box>
+  );
+}
+
 const pageShell = {
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
   maxWidth: 1260,
   marginInline: "auto",
+  height: "100%",
+  overflowY: "auto",
+  pr: 0.25,
+  pb: 2.5,
 };
 
-const heroShell = {
-  p: 1.35,
-  borderRadius: 3.2,
-  marginBottom: 1,
-  background:
-    "linear-gradient(180deg, rgba(18, 29, 52, 0.96), rgba(11, 19, 35, 0.92))",
-  border: "1px solid rgba(95, 113, 165, 0.22)",
-};
-
-const pageTitle = {
-  fontSize: 12.5,
-  fontWeight: 600,
-  letterSpacing: "-0.02em",
-};
-
-const pageSubtitle = {
-  color: "text.secondary",
+const eyebrow = {
   fontSize: 11,
-  mt: 0.25,
+  textTransform: "uppercase",
+  letterSpacing: "0.16em",
+  color: "#8f95a8",
+  mb: 0.7,
 };
 
-const statsGrid = {
-  display: "grid",
-  gridTemplateColumns: {
-    xs: "repeat(2, minmax(0, 1fr))",
-    lg: "repeat(4, minmax(0, 1fr))",
+const eyebrowMuted = {
+  fontSize: 10.5,
+  textTransform: "uppercase",
+  letterSpacing: "0.14em",
+  color: "#9ca3b7",
+};
+
+const heroTitle = {
+  maxWidth: 760,
+  fontSize: { xs: 24, md: 32 },
+  lineHeight: 1.04,
+  letterSpacing: "-0.05em",
+  fontWeight: 800,
+};
+
+const searchField = {
+  minWidth: { xs: 0, md: 220 },
+  flex: { xs: 1, md: "none" },
+  display: "flex",
+  alignItems: "center",
+  gap: 0.8,
+  px: 1.2,
+  borderRadius: 999,
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.06)",
+  "& .MuiInput-root": {
+    color: "inherit",
   },
-  gap: 1,
-  marginBottom: 1,
-};
-
-const mainGrid = {
-  display: "grid",
-  gridTemplateColumns: {
-    xs: "1fr",
-    xl: "1.25fr 0.95fr",
+  "& .MuiInputBase-input": {
+    py: 0.8,
+    fontSize: 13,
   },
-  gap: 1,
-  flex: 1,
-  overflow: "hidden",
-};
-
-const statCard = {
-  p: 1.05,
-  borderRadius: 2.4,
-  background:
-    "linear-gradient(180deg, rgba(15, 24, 43, 0.96), rgba(10, 17, 32, 0.92))",
-  border: "1px solid rgba(95,113,165,0.16)",
-};
-
-const featureCard = {
-  p: 1.1,
-  borderRadius: 2.8,
-  overflow: "hidden",
-  background:
-    "linear-gradient(180deg, rgba(16, 27, 48, 0.96), rgba(10, 17, 32, 0.94))",
-  border: "1px solid rgba(95,113,165,0.16)",
 };
 
 const createCard = {
-  p: 1.1,
-  borderRadius: 2.5,
-  marginBottom: 1,
+  p: 1.2,
+  borderRadius: 3.4,
+  mb: 1.25,
 };
 
 const createGrid = {
-  marginTop: 0.8,
+  mt: 1,
   display: "grid",
   gridTemplateColumns: {
     xs: "1fr",
     md: "repeat(3, minmax(0, 1fr))",
     xl: "repeat(6, minmax(0, 1fr))",
   },
-  gap: 0.7,
+  gap: 0.8,
   alignItems: "center",
 };
 
-const onboardingCard = {
-  p: 1.1,
-  borderRadius: 2.5,
-  marginBottom: 1,
+const topRowGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "1.05fr 1.45fr" },
+  gap: 1.25,
+  mb: 1.25,
 };
 
-const rowCard = {
-  p: 0.95,
-  mb: 0.6,
-  borderRadius: 2,
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 1,
-  alignItems: "center",
-  background: "rgba(10, 18, 34, 0.82)",
-  border: "1px solid rgba(95,113,165,0.14)",
-  cursor: "pointer",
-  transition: "all 0.18s ease",
-  "&:hover": {
-    transform: "translateY(-1px)",
-    borderColor: "rgba(109,123,255,0.24)",
-    background: "rgba(12, 20, 38, 0.94)",
-  },
-};
-
-const attentionRow = (tone) => ({
-  p: 0.85,
-  mb: 0.6,
-  borderRadius: 2,
-  cursor: "pointer",
+const welcomeCard = {
+  p: 1.5,
+  borderRadius: 4,
   background:
-    tone === "critical"
-      ? "rgba(248,113,113,0.12)"
-      : tone === "warning"
-        ? "rgba(251,191,36,0.16)"
-        : "rgba(96,165,250,0.14)",
-  border: "1px solid rgba(95,113,165,0.12)",
-});
-
-const sectionTitle = {
-  fontSize: 11.5,
-  fontWeight: 600,
+    "linear-gradient(135deg, rgba(20,49,122,0.98), rgba(23,68,185,0.95) 48%, rgba(68,119,255,0.78) 100%)",
+  border: "1px solid rgba(112,140,255,0.22)",
 };
 
-const labelText = {
-  color: "text.secondary",
-  fontSize: 10,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
+const welcomeTitle = {
+  mt: 0.8,
+  fontSize: { xs: 22, md: 28 },
+  lineHeight: 1.06,
+  letterSpacing: "-0.05em",
+  fontWeight: 800,
 };
 
-const statValue = {
+const welcomeText = {
+  mt: 1,
+  maxWidth: 430,
   fontSize: 13,
-  fontWeight: 650,
-  mt: 0.35,
+  color: "rgba(244,247,255,0.8)",
+  lineHeight: 1.7,
 };
 
-const captionText = {
+const statsGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" },
+  gap: 1.1,
+};
+
+const metricCard = {
+  p: 1.3,
+  borderRadius: 3.4,
+};
+
+const metricLabel = {
   color: "text.secondary",
   fontSize: 11,
 };
 
-const searchField = {
-  minWidth: 180,
+const metricValue = {
+  mt: 0.9,
+  fontSize: 29,
+  lineHeight: 1,
+  letterSpacing: "-0.06em",
+  fontWeight: 800,
+};
+
+const metricMeta = {
+  mt: 0.7,
+  color: "text.secondary",
+  fontSize: 11,
+};
+
+const loadingCard = {
+  p: 1.25,
+  borderRadius: 3.4,
+  mb: 1.25,
+};
+
+const analyticsGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "1.55fr 0.85fr" },
+  gap: 1.25,
+  mb: 1.25,
+};
+
+const midGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "1.15fr 0.85fr" },
+  gap: 1.25,
+  mb: 1.25,
+};
+
+const bottomGrid = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", xl: "1.5fr 0.9fr" },
+  gap: 1.25,
+};
+
+const panelCard = {
+  p: 1.35,
+  borderRadius: 3.6,
+  minHeight: 0,
+};
+
+const panelTitle = {
+  fontSize: 14,
+  fontWeight: 700,
+  letterSpacing: "-0.02em",
+};
+
+const panelSubtitle = {
+  mt: 0.45,
+  color: "text.secondary",
+  fontSize: 11.5,
+};
+
+const attentionRow = (tone) => ({
+  p: 0.95,
+  borderRadius: 2.6,
+  background:
+    tone === "critical"
+      ? "rgba(239,106,106,0.1)"
+      : tone === "warning"
+        ? "rgba(255,173,87,0.1)"
+        : "rgba(95,111,255,0.1)",
+  border: "1px solid rgba(255,255,255,0.05)",
+  cursor: "pointer",
+});
+
+const trendSummaryRow = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 0.9,
+  mt: 1.2,
+  mb: 1.1,
+};
+
+const metricPill = {
+  p: 1,
+  borderRadius: 2.8,
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.05)",
+};
+
+const metricPillLabel = {
+  color: "text.secondary",
+  fontSize: 10.5,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const metricPillValue = {
+  mt: 0.55,
+  fontSize: 17,
+  fontWeight: 800,
+  letterSpacing: "-0.04em",
+};
+
+const rankRow = {
   display: "flex",
   alignItems: "center",
-  gap: 0.6,
-  px: 1.1,
+  gap: 0.9,
+  p: 0.9,
+  borderRadius: 2.6,
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.05)",
+};
+
+const rankBadge = {
+  width: 28,
+  height: 28,
   borderRadius: 999,
-  background: "rgba(8, 15, 30, 0.9)",
-  border: "1px solid rgba(95,113,165,0.14)",
-  "& .MuiInput-root": {
-    color: "inherit",
+  display: "grid",
+  placeItems: "center",
+  background: "rgba(95,111,255,0.14)",
+  color: "#dce3ff",
+  fontSize: 12,
+  fontWeight: 700,
+  flexShrink: 0,
+};
+
+const tableShell = {
+  borderRadius: 3.2,
+  overflow: "hidden",
+  border: "1px solid rgba(255,255,255,0.05)",
+  background: "rgba(255,255,255,0.02)",
+};
+
+const tableHeader = {
+  display: "grid",
+  gridTemplateColumns: "1.4fr 0.85fr 1fr 0.75fr 0.7fr",
+  gap: 1,
+  px: 1.1,
+  py: 0.95,
+  borderBottom: "1px solid rgba(255,255,255,0.05)",
+};
+
+const tableRow = {
+  display: "grid",
+  gridTemplateColumns: "1.4fr 0.85fr 1fr 0.75fr 0.7fr",
+  gap: 1,
+  alignItems: "center",
+  px: 1.1,
+  py: 1,
+  borderBottom: "1px solid rgba(255,255,255,0.04)",
+  cursor: "pointer",
+  "&:last-of-type": {
+    borderBottom: "none",
   },
-  "& .MuiInputBase-input": {
-    py: 0.8,
+  "&:hover": {
+    background: "rgba(255,255,255,0.03)",
   },
 };
 
-const iconButton = {
-  minWidth: 0,
-  width: 34,
-  height: 34,
-  borderRadius: 999,
-  px: 0,
+const headerCell = {
+  color: "text.secondary",
+  fontSize: 10.5,
+  textTransform: "uppercase",
+  letterSpacing: "0.1em",
+};
+
+const rowTitle = {
+  fontSize: 13,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const rowMeta = {
+  mt: 0.35,
+  fontSize: 11.2,
+  color: "text.secondary",
+};
+
+const rowText = {
+  fontSize: 12.5,
+  color: "#d7dcec",
+};
+
+const taskRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 1,
+  p: 0.95,
+  borderRadius: 2.6,
+  background: "rgba(255,255,255,0.03)",
+  border: "1px solid rgba(255,255,255,0.05)",
+};
+
+const helperText = {
+  fontSize: 11.5,
+  color: "text.secondary",
 };
 
 const statusChip = (status) => ({
   background:
     status === "Live"
-      ? "rgba(34,197,94,0.18)"
+      ? "rgba(34,197,94,0.16)"
       : status === "Planning"
-        ? "rgba(251,191,36,0.18)"
-        : "rgba(96,165,250,0.18)",
+        ? "rgba(251,191,36,0.16)"
+        : "rgba(96,165,250,0.16)",
   color:
     status === "Live"
       ? "#bbf7d0"
       : status === "Planning"
+        ? "#fde68a"
+        : "#bfdbfe",
+});
+
+const vendorStatusChip = (status) => ({
+  mt: 0.45,
+  background:
+    status === "Paid"
+      ? "rgba(34,197,94,0.16)"
+      : status === "Confirmed"
+        ? "rgba(96,165,250,0.16)"
+        : "rgba(251,191,36,0.16)",
+  color:
+    status === "Paid"
+      ? "#bbf7d0"
+      : status === "Confirmed"
+        ? "#bfdbfe"
+        : "#fde68a",
+});
+
+const priorityChip = (priority) => ({
+  mt: 0.45,
+  background:
+    priority === "High"
+      ? "rgba(239,106,106,0.16)"
+      : priority === "Medium"
+        ? "rgba(251,191,36,0.16)"
+        : "rgba(96,165,250,0.16)",
+  color:
+    priority === "High"
+      ? "#fecaca"
+      : priority === "Medium"
         ? "#fde68a"
         : "#bfdbfe",
 });
