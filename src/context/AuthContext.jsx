@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AuthContext } from "./auth-context";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
+const AUTH_REQUEST_TIMEOUT_MS = 10000;
+
 function formatAuthError(error) {
   if (!error) {
     return "";
@@ -65,6 +67,21 @@ async function getProfileForUser(authUser) {
   throw new Error("Your account is missing a profile row. Contact an admin to finish setup.");
 }
 
+async function withTimeout(promise, message) {
+  let timerId;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timerId = window.setTimeout(() => reject(new Error(message)), AUTH_REQUEST_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timerId);
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
@@ -90,17 +107,23 @@ export function AuthProvider({ children }) {
     let active = true;
 
     const bootstrapSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
+      try {
+        const { data, error } = await withTimeout(
+          supabase.auth.getSession(),
+          "Session restore timed out. Please sign in again."
+        );
 
-      if (!active) {
-        return;
-      }
+        if (!active) {
+          return;
+        }
 
-      if (error) {
-        setUser(null);
-        setAuthError(error.message);
-        setAuthDebug(formatAuthError(error));
-      } else {
+        if (error) {
+          setUser(null);
+          setAuthError(error.message);
+          setAuthDebug(formatAuthError(error));
+          return;
+        }
+
         const sessionUser = data.session?.user ?? null;
 
         if (!sessionUser) {
@@ -108,26 +131,41 @@ export function AuthProvider({ children }) {
           hydratedUserIdRef.current = null;
           setAuthError("");
           setAuthDebug("");
-        } else {
-          try {
-            if (!active) {
-              return;
-            }
+          return;
+        }
 
-            await hydrateUser(sessionUser);
-          } catch (profileError) {
-            if (!active) {
-              return;
-            }
-
-            setUser(null);
-            setAuthError(profileError.message);
-            setAuthDebug(formatAuthError(profileError));
+        try {
+          if (!active) {
+            return;
           }
+
+          await withTimeout(
+            hydrateUser(sessionUser),
+            "Profile loading timed out. Please try signing in again."
+          );
+        } catch (profileError) {
+          if (!active) {
+            return;
+          }
+
+          setUser(null);
+          setAuthError(profileError.message);
+          setAuthDebug(formatAuthError(profileError));
+        }
+      } catch (sessionError) {
+        if (!active) {
+          return;
+        }
+
+        setUser(null);
+        hydratedUserIdRef.current = null;
+        setAuthError(sessionError.message);
+        setAuthDebug(formatAuthError(sessionError));
+      } finally {
+        if (active) {
+          setLoading(false);
         }
       }
-
-      setLoading(false);
     };
 
     bootstrapSession();
@@ -160,7 +198,10 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        await hydrateUser(session.user);
+        await withTimeout(
+          hydrateUser(session.user),
+          "Profile loading timed out. Please try signing in again."
+        );
       } catch (profileError) {
         if (!active) {
           return;
@@ -272,8 +313,8 @@ export function AuthProvider({ children }) {
 
   const permissions = useMemo(
     () => ({
-      canEditAll: user?.role === "admin",
-      canManageVendors: user?.role === "admin",
+      canEditAll: !!user,
+      canManageVendors: !!user,
       canManageBudget: user?.role === "admin",
       canManageContacts: !!user,
       canManageTasks: !!user,

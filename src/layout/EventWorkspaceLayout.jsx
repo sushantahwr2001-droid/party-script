@@ -17,15 +17,17 @@ export default function EventWorkspaceLayout({
   children,
   tabs = [],
   overallProgress = 0,
+  summary = null,
+  vendorCount = 0,
   onQuickAction,
   quickActionPermissions = {},
 }) {
   const [value, setValue] = useState(0);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const totalSpent = event?.vendors?.reduce((sum, vendor) => sum + vendor.cost, 0) || 0;
-  const completedTasks = event?.tasks?.filter((task) => task.done).length || 0;
-  const totalTasks = event?.tasks?.length || 0;
+  const totalSpent = summary?.spent || 0;
+  const completedTasks = summary?.completedTasks || 0;
+  const totalTasks = summary?.taskCount || 0;
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -94,7 +96,7 @@ export default function EventWorkspaceLayout({
     },
     {
       label: "Vendors",
-      value: event?.vendors?.length || 0,
+      value: vendorCount,
       caption: "Active relationships",
     },
     {

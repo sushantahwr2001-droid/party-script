@@ -1,5 +1,18 @@
 import { useMemo, useState } from "react";
-import { Alert, Box, Button, Card, Dialog, DialogActions, DialogContent, DialogTitle, LinearProgress, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
+  Snackbar,
+  TextField,
+  Typography,
+} from "@mui/material";
 import EventCard from "../components/EventCard";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
@@ -9,12 +22,20 @@ import { groupByEventId } from "../lib/eventData";
 import { buildEventSummary } from "../utils/eventSelectors";
 
 export default function Events() {
-  const { events, loading: eventsLoading, error: eventsError, createEvent } = useEvents();
+  const {
+    events,
+    loading: eventsLoading,
+    error: eventsError,
+    createEvent,
+    deleteEvent,
+  } = useEvents();
   const { tasks, loading: tasksLoading, error: tasksError } = useTasks();
   const { vendors, loading: vendorsLoading, error: vendorsError } = useVendors();
   const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState("");
+  const [feedback, setFeedback] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState({
     name: "",
     date: "",
@@ -81,6 +102,21 @@ export default function Events() {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    try {
+      await deleteEvent(deleteTarget.id);
+      setFeedback("Event deleted successfully");
+    } catch (nextError) {
+      setFeedback(nextError.message || "Event delete failed");
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <Box sx={pageShell}>
       <Box
@@ -127,6 +163,7 @@ export default function Events() {
             event={event}
             summary={eventSummaries[event.id]}
             vendorCount={(vendorsByEventId[event.id] || []).length}
+            onDelete={user ? setDeleteTarget : null}
           />
         ))}
       </Box>
@@ -157,6 +194,30 @@ export default function Events() {
           <Button variant="contained" onClick={handleSubmit}>Create</Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Delete event</DialogTitle>
+        <DialogContent>
+          <Typography fontSize={13} color="text.secondary">
+            Delete {deleteTarget?.name}? This removes the event workspace and its related tasks, vendors, documents, and activity log.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleDeleteEvent}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={Boolean(feedback)}
+        autoHideDuration={2600}
+        onClose={() => setFeedback("")}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={() => setFeedback("")} severity="info" variant="filled" sx={{ width: "100%" }}>
+          {feedback}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

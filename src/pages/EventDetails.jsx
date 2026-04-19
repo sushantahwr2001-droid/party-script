@@ -22,9 +22,10 @@ import {
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import dayjs from "dayjs";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import EventWorkspaceLayout from "../layout/EventWorkspaceLayout";
 import EmptyState from "../components/EmptyState";
+import RouteFallback from "../components/RouteFallback";
 import { useAuth } from "../context/auth-context";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
@@ -38,14 +39,18 @@ const VISIBLE_LIMIT = 4;
 
 export default function EventDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const {
     events,
+    loading: eventsLoading,
     addContact,
+    deleteEvent,
     error: eventsError,
   } = useEvents();
   const event = events.find((item) => String(item.id) === String(id));
   const {
     tasks: eventTasks,
+    loading: tasksLoading,
     createTask,
     toggleTask,
     updateTask,
@@ -54,6 +59,7 @@ export default function EventDetails() {
   } = useTasks(event?.id, event);
   const {
     vendors: eventVendors,
+    loading: vendorsLoading,
     createVendor,
     updateVendor,
     updateVendorStatus,
@@ -62,30 +68,29 @@ export default function EventDetails() {
   } = useVendors(event?.id, event);
   const {
     documents: eventDocuments,
+    loading: documentsLoading,
     upload,
     rename,
     replace,
     remove,
     error: documentsError,
   } = useDocuments(event?.id, event);
-  const { activities: eventActivities, error: activitiesError } = useActivities(event?.id);
+  const {
+    activities: eventActivities,
+    loading: activitiesLoading,
+    error: activitiesError,
+  } = useActivities(event?.id);
   const { permissions } = useAuth();
   const error = eventsError || tasksError || vendorsError || documentsError || activitiesError;
+  const pageLoading =
+    eventsLoading ||
+    (Boolean(event?.id) && (tasksLoading || vendorsLoading || documentsLoading || activitiesLoading));
   const summary = event
     ? buildEventSummary(event, {
         tasksByEventId: { [event.id]: eventTasks },
         vendorsByEventId: { [event.id]: eventVendors },
       })
     : null;
-
-  if (error) {
-    return (
-      <EmptyState
-        title="Unable to load this event"
-        subtitle={`Supabase returned an error: ${error}`}
-      />
-    );
-  }
 
   const [expanded, setExpanded] = useState({});
   const [drawerState, setDrawerState] = useState(null);
@@ -125,6 +130,19 @@ export default function EventDetails() {
   const [taskEditTarget, setTaskEditTarget] = useState(null);
   const [vendorEditTarget, setVendorEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  if (pageLoading) {
+    return <RouteFallback />;
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        title="Unable to load this event"
+        subtitle={`Supabase returned an error: ${error}`}
+      />
+    );
+  }
 
   if (!event || !summary) {
     return (
@@ -462,6 +480,17 @@ export default function EventDetails() {
       }
     }
 
+    if (deleteTarget.type === "event") {
+      try {
+        await deleteEvent(deleteTarget.item.id);
+        setDeleteTarget(null);
+        navigate("/events", { replace: true });
+        return;
+      } catch {
+        setFeedback("Event delete failed");
+      }
+    }
+
     setDeleteTarget(null);
   };
 
@@ -471,6 +500,8 @@ export default function EventDetails() {
         event={event}
         tabs={tabs}
         overallProgress={summary.overallProgress}
+        summary={summary}
+        vendorCount={eventVendors.length}
         onQuickAction={openQuickAction}
         quickActionPermissions={{
           contacts: permissions.canManageContacts,
@@ -485,6 +516,8 @@ export default function EventDetails() {
           vendorCount={eventVendors.length}
           activities={eventActivities}
           onQuickAction={openQuickAction}
+          canDeleteEvent={permissions.canEditAll}
+          onDeleteEvent={() => requestDelete("event", event)}
         />
         <ContactsTab event={event} expanded={expanded} onToggle={toggleExpanded} onQuickAction={openQuickAction} />
         <VendorsTab
@@ -926,7 +959,15 @@ export default function EventDetails() {
   );
 }
 
-function OverviewTab({ event, summary, vendorCount, activities, onQuickAction }) {
+function OverviewTab({
+  event,
+  summary,
+  vendorCount,
+  activities,
+  onQuickAction,
+  canDeleteEvent,
+  onDeleteEvent,
+}) {
   const attentionItems = [
     ...summary.overdueTasks.map((task) => ({
       title: task.title,
@@ -952,7 +993,14 @@ function OverviewTab({ event, summary, vendorCount, activities, onQuickAction })
   return (
     <Box sx={contentGrid}>
       <Card sx={{ ...panelCard, gridColumn: { lg: "span 2" } }}>
-        <Typography sx={sectionTitle}>Workspace snapshot</Typography>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, mb: 1 }}>
+          <Typography sx={sectionTitle}>Workspace snapshot</Typography>
+          {canDeleteEvent ? (
+            <Button size="small" color="error" variant="outlined" onClick={onDeleteEvent}>
+              Delete event
+            </Button>
+          ) : null}
+        </Box>
         <Box sx={compactStatsGrid}>
           <MetricCard label="Progress" value={`${summary.overallProgress}%`} caption="Event readiness" />
           <MetricCard label="Remaining" value={formatCurrency(summary.remaining)} caption="Budget available" />
@@ -1049,10 +1097,10 @@ function VendorsTab({ vendors, expanded, onToggle, onQuickAction, onVendorEdit, 
             <Typography fontWeight={600}>{vendor.name}</Typography>
             <Typography sx={captionText}>{vendor.category || "Custom vendor"}</Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+          <Box sx={itemMetaActions}>
             <Chip label={vendor.status} size="small" sx={statusChip(vendor.status)} onClick={() => onVendorStatusCycle(vendor)} />
-            <Typography sx={{ ...captionText, mt: 0.35 }}>{formatCurrency(vendor.cost)}</Typography>
-            <Box sx={rowActions}>
+            <Typography sx={captionText}>{formatCurrency(vendor.cost)}</Typography>
+            <Box sx={actionIconGroup}>
               <IconButton size="small" onClick={() => onVendorEdit(vendor)}>
                 <EditOutlinedIcon sx={{ fontSize: 16 }} />
               </IconButton>
@@ -1138,18 +1186,15 @@ function TasksTab({ tasks, expanded, onToggle, onQuickAction, onTaskToggle, onTa
                         {dayjs(task.dueDate).format("DD MMM")} / {task.priority || "Medium"} / {task.assignee || "Unassigned"}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <Box sx={itemMetaActions}>
                       <Chip label={task.done ? "Done" : "Open"} size="small" sx={task.done ? taskDoneChip : taskOpenChip} />
-                      <Box sx={actionSection}>
-                        <Typography sx={actionLabel}>Actions</Typography>
-                        <Box sx={rowActions}>
-                          <IconButton size="small" onClick={() => onTaskEdit(task)}>
-                            <EditOutlinedIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => onTaskDelete(task)}>
-                            <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Box>
+                      <Box sx={actionIconGroup}>
+                        <IconButton size="small" onClick={() => onTaskEdit(task)}>
+                          <EditOutlinedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => onTaskDelete(task)}>
+                          <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
                       </Box>
                     </Box>
                   </Box>
@@ -1229,19 +1274,15 @@ function DocumentsTab({ documents, expanded, onToggle, onQuickAction, onDocument
             <Typography sx={captionText}>{document.category} / {document.notes || "No notes"}</Typography>
           </Box>
           <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.4,
-              flexWrap: "wrap",
-              justifyContent: "flex-end",
-            }}
+            sx={documentActionRow}
           >
             <Typography sx={captionText}>{document.sizeLabel || "File"}</Typography>
-            <Button size="small" onClick={() => onDocumentAction("preview", document)}>Preview</Button>
-            <Button size="small" onClick={() => onDocumentAction("rename", document)}>Rename</Button>
-            <Button size="small" onClick={() => onDocumentAction("replace", document)}>Replace</Button>
-            <Button size="small" color="error" onClick={() => onDocumentAction("delete", document)}>Delete</Button>
+            <Box sx={documentButtonGroup}>
+              <Button size="small" variant="outlined" onClick={() => onDocumentAction("preview", document)}>Preview</Button>
+              <Button size="small" variant="outlined" onClick={() => onDocumentAction("rename", document)}>Rename</Button>
+              <Button size="small" variant="outlined" onClick={() => onDocumentAction("replace", document)}>Replace</Button>
+              <Button size="small" color="error" variant="outlined" onClick={() => onDocumentAction("delete", document)}>Delete</Button>
+            </Box>
           </Box>
         </Box>
       )}
@@ -1478,6 +1519,22 @@ const rowActions = {
   opacity: 0.72,
 };
 
+const itemMetaActions = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 0.55,
+  flexWrap: "wrap",
+  minWidth: 120,
+};
+
+const actionIconGroup = {
+  display: "flex",
+  alignItems: "center",
+  gap: 0.2,
+  opacity: 0.82,
+};
+
 const taskStageCard = {
   ...panelCard,
   display: "flex",
@@ -1564,19 +1621,21 @@ const taskListStack = {
   pr: 0.25,
 };
 
-const actionSection = {
-  display: "grid",
-  justifyItems: "end",
-  gap: 0.08,
+const documentActionRow = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 0.6,
+  flexWrap: "wrap",
 };
 
-const actionLabel = {
-  fontSize: 9.5,
-  color: "text.secondary",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
+const documentButtonGroup = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 0.4,
+  flexWrap: "wrap",
 };
-
 
 const scrollArea = {
   flex: 1,

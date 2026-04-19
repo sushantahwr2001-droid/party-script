@@ -1,10 +1,11 @@
-import { Box, Card, Chip, LinearProgress, Typography } from "@mui/material";
+import { Box, Card, Chip, IconButton, LinearProgress, Typography } from "@mui/material";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { formatCurrency } from "../utils/eventSelectors";
 
-export default function EventCard({ event, summary, vendorCount = 0 }) {
+export default function EventCard({ event, summary, vendorCount = 0, onDelete = null }) {
   const navigate = useNavigate();
 
   return (
@@ -15,7 +16,21 @@ export default function EventCard({ event, summary, vendorCount = 0 }) {
             <Typography sx={titleText}>{event.name}</Typography>
             <Typography sx={metaText}>{event.venue}</Typography>
           </Box>
-          <Chip label={event.status} size="small" sx={statusChip(event.status)} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.45 }}>
+            <Chip label={event.status} size="small" sx={statusChip(event.status)} />
+            {onDelete ? (
+              <IconButton
+                size="small"
+                onClick={(eventObject) => {
+                  eventObject.stopPropagation();
+                  onDelete(event);
+                }}
+                sx={deleteButton}
+              >
+                <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+            ) : null}
+          </Box>
         </Box>
 
         <Typography sx={{ ...metaText, mt: 0.6 }}>
@@ -114,3 +129,12 @@ const statusChip = (status) => ({
       : "#bfdbfe",
   border: "1px solid rgba(255,255,255,0.06)",
 });
+
+const deleteButton = {
+  color: "#fda4af",
+  border: "1px solid rgba(248,113,113,0.18)",
+  background: "rgba(127,29,29,0.18)",
+  "&:hover": {
+    background: "rgba(127,29,29,0.28)",
+  },
+};
