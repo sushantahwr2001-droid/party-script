@@ -1,23 +1,21 @@
 import { Box } from "@mui/material";
-import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
+import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const tooltipStyle = {
-  background: "#1e1c23",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: 14,
-  color: "#f5f7ff",
+  background: "#0f172a",
+  border: "1px solid rgba(148,163,184,0.12)",
+  borderRadius: 12,
 };
 
 export default function BudgetVendorChart({ data }) {
   return (
-    <Box sx={{ height: 240, mt: 1.1 }}>
+    <Box sx={{ height: 160, mt: 0.6 }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
-          <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-          <XAxis dataKey="name" stroke="#7c7f8c" tickLine={false} axisLine={false} />
-          <YAxis stroke="#7c7f8c" tickLine={false} axisLine={false} />
+          <XAxis dataKey="name" stroke="#64748b" />
+          <YAxis stroke="#64748b" />
           <Tooltip contentStyle={tooltipStyle} />
-          <Bar dataKey="cost" fill="#55b7ff" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="cost" fill="#60a5fa" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </Box>

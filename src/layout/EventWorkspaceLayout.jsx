@@ -1,5 +1,14 @@
-import { Box, Button, Chip, LinearProgress, Tab, Tabs, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  LinearProgress,
+  Tab,
+  Tabs,
+  Typography,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
 
@@ -26,7 +35,10 @@ export default function EventWorkspaceLayout({
       return;
     }
 
-    const matchedIndex = tabs.findIndex((tab) => tab.toLowerCase() === tabParam.toLowerCase());
+    const matchedIndex = tabs.findIndex(
+      (tab) => tab.toLowerCase() === tabParam.toLowerCase()
+    );
+
     if (matchedIndex >= 0) {
       setValue(matchedIndex);
     }
@@ -34,10 +46,30 @@ export default function EventWorkspaceLayout({
 
   const quickActions = useMemo(
     () => [
-      { label: "Add Contact", tab: "Contacts", variant: "outlined", disabled: quickActionPermissions.contacts === false },
-      { label: "Add Vendor", tab: "Vendors", variant: "outlined", disabled: quickActionPermissions.vendors === false },
-      { label: "Add Task", tab: "Tasks", variant: "outlined", disabled: quickActionPermissions.tasks === false },
-      { label: "Add Document", tab: "Documents", variant: "contained", disabled: quickActionPermissions.documents === false },
+      {
+        label: "+ Contact",
+        tab: "Contacts",
+        variant: "outlined",
+        disabled: quickActionPermissions.contacts === false,
+      },
+      {
+        label: "+ Vendor",
+        tab: "Vendors",
+        variant: "outlined",
+        disabled: quickActionPermissions.vendors === false,
+      },
+      {
+        label: "+ Task",
+        tab: "Tasks",
+        variant: "outlined",
+        disabled: quickActionPermissions.tasks === false,
+      },
+      {
+        label: "+ Document",
+        tab: "Documents",
+        variant: "contained",
+        disabled: quickActionPermissions.documents === false,
+      },
     ],
     [quickActionPermissions]
   );
@@ -50,14 +82,41 @@ export default function EventWorkspaceLayout({
     }
   };
 
+  const triggerAction = (action) => {
+    openTab(action.tab);
+    onQuickAction?.(action.tab);
+  };
+
   const stats = [
-    { label: "Progress", value: `${Math.round(overallProgress)}%`, helper: `${completedTasks}/${totalTasks} tasks complete` },
-    { label: "Vendors", value: vendorCount, helper: "Active relationships" },
-    { label: "Remaining", value: formatCurrency(event?.budget - totalSpent), helper: "Budget available" },
+    {
+      label: "Progress",
+      value: `${Math.round(overallProgress)}%`,
+      caption: `${Math.round(overallProgress)}% complete`,
+      helper: `${completedTasks}/${totalTasks} tasks complete`,
+    },
+    {
+      label: "Vendors",
+      value: vendorCount,
+      caption: "Active relationships",
+    },
+    {
+      label: "Budget",
+      value: formatCurrency(event?.budget - totalSpent),
+      caption: "Remaining",
+    },
   ];
 
   return (
-    <Box sx={{ maxWidth: 1240, marginInline: "auto", pb: 3 }}>
+    <Box
+      sx={{
+        px: { xs: 0, md: 0.5 },
+        py: 0.5,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <Box sx={headerShell}>
         <Box
           sx={{
@@ -65,33 +124,31 @@ export default function EventWorkspaceLayout({
             justifyContent: "space-between",
             alignItems: { xs: "flex-start", xl: "center" },
             flexDirection: { xs: "column", xl: "row" },
-            gap: 1.5,
+            gap: 1.2,
           }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography sx={eyebrow}>Event workspace</Typography>
+          <Box sx={{ width: "100%" }}>
             <Typography sx={titleText}>{event?.name}</Typography>
             <Typography sx={subtitleText}>
-              {event?.notes || "A live event workspace for timelines, vendors, budget, documents, and execution details."}
+              {event?.notes ||
+                "Operations workspace for coordinating deadlines, suppliers, budgets, and documents without losing context."}
             </Typography>
-            <Box sx={{ display: "flex", gap: 0.7, mt: 1, flexWrap: "wrap" }}>
+
+            <Box sx={{ display: "flex", gap: 0.6, mt: 0.9, flexWrap: "wrap" }}>
               <Chip label={dayjs(event?.date).format("DD MMM YYYY")} size="small" />
               <Chip label={event?.venue} size="small" />
-              <Chip label={event?.status || "Planning"} size="small" sx={statusChip(event?.status)} />
+              <Chip label={event?.status || "Planned"} size="small" sx={statusChip(event?.status)} />
             </Box>
           </Box>
 
-          <Box sx={{ display: "flex", gap: 0.8, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: 0.6, flexWrap: "wrap", justifyContent: "flex-end" }}>
             {quickActions.map((action) => (
               <Button
                 key={action.label}
                 variant={action.variant}
                 size="small"
                 disabled={action.disabled}
-                onClick={() => {
-                  openTab(action.tab);
-                  onQuickAction?.(action.tab);
-                }}
+                onClick={() => triggerAction(action)}
               >
                 {action.label}
               </Button>
@@ -104,12 +161,25 @@ export default function EventWorkspaceLayout({
             <Box key={stat.label} sx={statCard}>
               <Typography sx={statLabel}>{stat.label}</Typography>
               <Typography sx={statValue}>{stat.value}</Typography>
-              <Typography sx={statCaption}>{stat.helper}</Typography>
+              <Typography sx={statCaption}>{stat.caption}</Typography>
               {stat.label === "Progress" ? (
-                <LinearProgress variant="determinate" value={overallProgress} sx={{ mt: 1, height: 7 }} />
+                <LinearProgress
+                  variant="determinate"
+                  value={overallProgress}
+                  sx={{ height: 6, mt: 0.7, mb: 0.45 }}
+                />
               ) : null}
+              {stat.helper ? <Typography sx={statCaption}>{stat.helper}</Typography> : null}
             </Box>
           ))}
+        </Box>
+
+        <Box mt={1.1}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.4 }}>
+            <Typography sx={statLabel}>Workspace completion</Typography>
+            <Typography sx={statCaption}>{Math.round(overallProgress)}% ready</Typography>
+          </Box>
+          <LinearProgress variant="determinate" value={overallProgress} sx={{ height: 6 }} />
         </Box>
 
         <Tabs
@@ -121,41 +191,42 @@ export default function EventWorkspaceLayout({
           variant="scrollable"
           allowScrollButtonsMobile
           sx={{
-            mt: 1.5,
+            mt: 1.1,
             minHeight: "auto",
-            "& .MuiTabs-flexContainer": {
-              gap: 0.55,
-            },
             "& .MuiTabs-indicator": {
-              display: "none",
+              height: 3,
+              borderRadius: 999,
             },
           }}
         >
-          {tabs.map((tab, index) => (
+          {tabs.map((tab) => (
             <Tab
               key={tab}
               label={tab}
               sx={{
                 textTransform: "none",
+                fontWeight: 600,
+                fontSize: 13,
                 minHeight: "auto",
-                px: 1.4,
-                py: 0.9,
-                borderRadius: 2.5,
-                fontSize: 12.5,
-                fontWeight: value === index ? 700 : 600,
-                color: value === index ? "#f5f7ff" : "text.secondary",
-                background: value === index ? "rgba(95,111,255,0.14)" : "rgba(255,255,255,0.02)",
-                border: value === index
-                  ? "1px solid rgba(95,111,255,0.18)"
-                  : "1px solid rgba(255,255,255,0.04)",
+                px: 1.2,
+                py: 0.55,
+                color: "text.secondary",
               }}
             />
           ))}
         </Tabs>
       </Box>
 
-      <Box sx={{ mt: 1.25 }}>
-        {children[value]}
+      <Box sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <motion.div
+          key={tabs[value]}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.16 }}
+          style={{ height: "100%" }}
+        >
+          {children[value]}
+        </motion.div>
       </Box>
     </Box>
   );
@@ -170,81 +241,84 @@ function formatCurrency(value) {
 }
 
 const headerShell = {
-  p: 1.5,
-  borderRadius: 4,
-  border: "1px solid rgba(255,255,255,0.06)",
-  background: "linear-gradient(180deg, rgba(33,31,39,0.98), rgba(29,27,34,0.98))",
-  boxShadow: "0 18px 45px rgba(0,0,0,0.16)",
-};
-
-const eyebrow = {
-  fontSize: 11,
-  textTransform: "uppercase",
-  letterSpacing: "0.16em",
-  color: "text.secondary",
-  mb: 0.7,
-};
-
-const titleText = {
-  fontSize: { xs: 24, md: 30 },
-  lineHeight: 1.02,
-  letterSpacing: "-0.05em",
-  fontWeight: 800,
-};
-
-const subtitleText = {
-  mt: 0.7,
-  maxWidth: 760,
-  fontSize: 12.5,
-  color: "text.secondary",
-  lineHeight: 1.7,
+  flexShrink: 0,
+  position: "sticky",
+  top: 0,
+  zIndex: 20,
+  mb: 1,
+  borderRadius: 3.2,
+  border: "1px solid rgba(95,113,165,0.22)",
+  background:
+    "linear-gradient(180deg, rgba(18, 29, 52, 0.98), rgba(11, 18, 33, 0.94))",
+  backdropFilter: "blur(18px)",
+  px: 1.5,
+  py: 1.2,
+  boxShadow: "0 20px 40px rgba(2, 6, 23, 0.22)",
 };
 
 const statsGrid = {
-  mt: 1.5,
+  mt: 1,
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" },
-  gap: 1,
+  gridTemplateColumns: {
+    xs: "1fr",
+    md: "repeat(3, minmax(0, 1fr))",
+  },
+  gap: 0.8,
 };
 
 const statCard = {
-  p: 1.1,
-  borderRadius: 3,
-  background: "rgba(255,255,255,0.03)",
-  border: "1px solid rgba(255,255,255,0.05)",
+  p: 1,
+  borderRadius: 2,
+  background: "rgba(9, 16, 31, 0.82)",
+  border: "1px solid rgba(95,113,165,0.12)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+};
+
+const titleText = {
+  fontSize: 12.5,
+  fontWeight: 600,
+  letterSpacing: "-0.02em",
+  color: "#f4f7ff",
+};
+
+const subtitleText = {
+  color: "text.secondary",
+  fontSize: 11,
+  mt: 0.2,
+  maxWidth: 700,
 };
 
 const statLabel = {
-  fontSize: 10.5,
   color: "text.secondary",
+  fontSize: 10,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
 
 const statValue = {
-  mt: 0.65,
-  fontSize: 22,
-  fontWeight: 800,
-  letterSpacing: "-0.05em",
+  mt: 0.35,
+  fontSize: 13,
+  fontWeight: 650,
+  color: "#f4f7ff",
 };
 
 const statCaption = {
-  mt: 0.45,
-  fontSize: 11.5,
   color: "text.secondary",
+  fontSize: 11,
 };
 
 const statusChip = (status) => ({
   background:
     status === "Live"
-      ? "rgba(46,194,126,0.14)"
+      ? "rgba(34,197,94,0.18)"
       : status === "Planning"
-        ? "rgba(245,159,76,0.14)"
-        : "rgba(85,183,255,0.14)",
+      ? "rgba(251,191,36,0.18)"
+      : "rgba(96,165,250,0.18)",
   color:
     status === "Live"
-      ? "#99efc5"
+      ? "#bbf7d0"
       : status === "Planning"
-        ? "#ffd6a0"
-        : "#b9e5ff",
+      ? "#fde68a"
+      : "#bfdbfe",
+  border: "1px solid rgba(255,255,255,0.06)",
 });
