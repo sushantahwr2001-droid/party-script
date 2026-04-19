@@ -163,13 +163,8 @@ export default function Dashboard() {
       <Stack
         direction={{ xs: "column", xl: "row" }}
         spacing={1.25}
-        sx={{ alignItems: { xs: "stretch", xl: "center" }, justifyContent: "space-between", mb: 1.25 }}
+        sx={{ alignItems: { xs: "stretch", xl: "center" }, justifyContent: "flex-end", mb: 1.25 }}
       >
-        <Box>
-          <Typography sx={eyebrow}>Operations dashboard</Typography>
-          <Typography sx={heroTitle}>A premium live view of events, vendors, spend, and execution health.</Typography>
-        </Box>
-
         <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Box sx={searchField}>
             <SearchRoundedIcon sx={{ fontSize: 17, color: "text.secondary" }} />
@@ -488,27 +483,11 @@ const pageShell = {
   pb: 2.5,
 };
 
-const eyebrow = {
-  fontSize: 11,
-  textTransform: "uppercase",
-  letterSpacing: "0.16em",
-  color: "#8f95a8",
-  mb: 0.7,
-};
-
 const eyebrowMuted = {
   fontSize: 10.5,
   textTransform: "uppercase",
   letterSpacing: "0.14em",
   color: "#9ca3b7",
-};
-
-const heroTitle = {
-  maxWidth: 760,
-  fontSize: { xs: 22, md: 28 },
-  lineHeight: 1.08,
-  letterSpacing: "-0.04em",
-  fontWeight: 700,
 };
 
 const searchField = {
