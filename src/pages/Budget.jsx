@@ -479,8 +479,14 @@ const legendLabel = {
 };
 
 const legendValue = {
+  minWidth: 88,
+  maxWidth: 124,
+  textAlign: "right",
   fontSize: 13,
+  lineHeight: 1.3,
   fontWeight: 700,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
   color: "#f4f7ff",
   flexShrink: 0,
 };
