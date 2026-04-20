@@ -59,17 +59,23 @@ export function BudgetComparisonChart({ data }) {
   );
 }
 
-export function BudgetDonutChart({ data }) {
+export function BudgetDonutChart({
+  data,
+  width = 196,
+  height = 196,
+  innerRadius = 58,
+  outerRadius = 82,
+}) {
   return (
-    <Box sx={{ width: 170, height: 170 }}>
+    <Box sx={{ width, height }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
             nameKey="name"
-            innerRadius={48}
-            outerRadius={70}
+            innerRadius={innerRadius}
+            outerRadius={outerRadius}
             paddingAngle={3}
             stroke="none"
           />

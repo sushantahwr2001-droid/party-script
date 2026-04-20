@@ -325,12 +325,12 @@ export default function Dashboard() {
           <Box sx={budgetGrid}>
             <Box sx={donutWrap}>
               <Suspense fallback={<ChartFallback height={180} />}>
-                <BudgetDonutChart data={donutData} />
+                <BudgetDonutChart data={donutData} width={208} height={208} innerRadius={64} outerRadius={92} />
               </Suspense>
               <Box sx={donutCenter}>
                 <Typography sx={donutCenterLabel}>Total Budget</Typography>
                 <Typography sx={donutCenterValue}>{formatCurrency(stats.totalBudget)}</Typography>
-                <Typography sx={subtleText}>30d used</Typography>
+                <Typography sx={donutCenterMeta}>30d used</Typography>
               </Box>
             </Box>
 
@@ -694,40 +694,53 @@ const subtleText = {
 
 const budgetGrid = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", md: "180px 1fr" },
+  gridTemplateColumns: { xs: "1fr", md: "220px 1fr" },
   gap: 1.2,
   alignItems: "center",
 };
 
 const donutWrap = {
   position: "relative",
-  width: 170,
-  height: 170,
+  width: 220,
+  height: 220,
   display: "grid",
   placeItems: "center",
+  marginInline: "auto",
 };
 
 const donutCenter = {
   position: "absolute",
   inset: 0,
-  display: "grid",
-  placeItems: "center",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 0.3,
   textAlign: "center",
   pointerEvents: "none",
+  paddingInline: 24,
 };
 
 const donutCenterLabel = {
-  fontSize: 10.5,
+  fontSize: 10,
+  lineHeight: 1.2,
   color: "text.secondary",
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
 
 const donutCenterValue = {
-  mt: 0.35,
-  fontSize: 18,
+  maxWidth: 120,
+  fontSize: 16,
+  lineHeight: 1.12,
   fontWeight: 700,
   letterSpacing: "-0.03em",
+};
+
+const donutCenterMeta = {
+  fontSize: 11,
+  lineHeight: 1.2,
+  color: "text.secondary",
 };
 
 const budgetList = {

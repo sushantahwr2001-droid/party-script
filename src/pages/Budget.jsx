@@ -163,7 +163,7 @@ export default function Budget() {
           <Box sx={budgetOverviewGrid}>
             <Box sx={donutWrap}>
               <Suspense fallback={<ChartFallback height={180} />}>
-                <BudgetDonutChart data={donutData} />
+                <BudgetDonutChart data={donutData} width={204} height={204} innerRadius={62} outerRadius={88} />
               </Suspense>
               <Box sx={donutCenter}>
                 <Typography sx={donutCenterValue}>{committedPercent}%</Typography>
@@ -429,29 +429,36 @@ const budgetOverviewGrid = {
 };
 
 const donutWrap = {
-  width: 220,
-  height: 220,
+  width: 228,
+  height: 228,
   position: "relative",
   display: "grid",
   placeItems: "center",
+  marginInline: "auto",
 };
 
 const donutCenter = {
   position: "absolute",
   inset: 0,
-  display: "grid",
-  placeItems: "center",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 0.2,
   textAlign: "center",
   pointerEvents: "none",
+  paddingInline: 24,
 };
 
 const donutCenterValue = {
   fontSize: 22,
+  lineHeight: 1.05,
   fontWeight: 700,
 };
 
 const donutCenterLabel = {
   fontSize: 12,
+  lineHeight: 1.2,
   color: "text.secondary",
 };
 
