@@ -104,12 +104,9 @@ export default function EventDetails() {
   const [vendorForm, setVendorForm] = useState({
     name: "",
     category: "",
-    contactName: "",
     email: "",
     phone: "",
     cost: "",
-    status: "Quoted",
-    notes: "",
   });
   const [contactForm, setContactForm] = useState({
     name: "",
@@ -189,12 +186,9 @@ export default function EventDetails() {
     setVendorForm({
       name: "",
       category: "",
-      contactName: "",
       email: "",
       phone: "",
       cost: "",
-      status: "Quoted",
-      notes: "",
     });
     setContactForm({
       name: "",
@@ -241,13 +235,10 @@ export default function EventDetails() {
     try {
       await createVendor({
         name: vendorForm.name.trim(),
-        category: vendorForm.category,
-        contactName: vendorForm.contactName.trim(),
+        category: vendorForm.category.trim(),
         email: vendorForm.email.trim(),
         phone: vendorForm.phone.trim(),
         cost: Number(vendorForm.cost) || 0,
-        status: vendorForm.status,
-        notes: vendorForm.notes.trim(),
       });
       setFeedback("Vendor added successfully");
       closeDrawer();
@@ -409,12 +400,9 @@ export default function EventDetails() {
     setVendorForm({
       name: vendor.name || "",
       category: vendor.category || "",
-      contactName: vendor.contactName || "",
       email: vendor.email || "",
       phone: vendor.phone || "",
       cost: vendor.cost || "",
-      status: vendor.status || "Quoted",
-      notes: vendor.notes || "",
     });
   };
 
@@ -427,12 +415,9 @@ export default function EventDetails() {
       await updateVendor(vendorEditTarget.id, {
         name: vendorForm.name.trim(),
         category: vendorForm.category.trim(),
-        contactName: vendorForm.contactName.trim(),
         email: vendorForm.email.trim(),
         phone: vendorForm.phone.trim(),
         cost: Number(vendorForm.cost) || 0,
-        status: vendorForm.status,
-        notes: vendorForm.notes.trim(),
       });
       setVendorEditTarget(null);
       closeDrawer();
@@ -667,15 +652,6 @@ export default function EventDetails() {
               disabled={!permissions.canManageVendors}
             />
             <TextField
-              label="Contact name"
-              size="small"
-              value={vendorForm.contactName}
-              onChange={(event) =>
-                setVendorForm((current) => ({ ...current, contactName: event.target.value }))
-              }
-              disabled={!permissions.canManageVendors}
-            />
-            <TextField
               label="Email"
               size="small"
               value={vendorForm.email}
@@ -685,7 +661,7 @@ export default function EventDetails() {
               disabled={!permissions.canManageVendors}
             />
             <TextField
-              label="Phone"
+              label="Mobile number"
               size="small"
               value={vendorForm.phone}
               onChange={(event) =>
@@ -694,39 +670,12 @@ export default function EventDetails() {
               disabled={!permissions.canManageVendors}
             />
             <TextField
-              label="Cost"
+              label="Budget"
               type="number"
               size="small"
               value={vendorForm.cost}
               onChange={(event) =>
                 setVendorForm((current) => ({ ...current, cost: event.target.value }))
-              }
-              disabled={!permissions.canManageVendors}
-            />
-            <TextField
-              select
-              label="Status"
-              size="small"
-              value={vendorForm.status}
-              onChange={(event) =>
-                setVendorForm((current) => ({ ...current, status: event.target.value }))
-              }
-              disabled={!permissions.canManageVendors}
-            >
-              {["Quoted", "Confirmed", "Paid"].map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label="Notes"
-              size="small"
-              multiline
-              minRows={2}
-              value={vendorForm.notes}
-              onChange={(event) =>
-                setVendorForm((current) => ({ ...current, notes: event.target.value }))
               }
               disabled={!permissions.canManageVendors}
             />
@@ -914,16 +863,9 @@ export default function EventDetails() {
         <DialogContent sx={{ display: "grid", gap: 1, pt: "10px !important" }}>
           <TextField autoFocus size="small" label="Vendor name" value={vendorForm.name} onChange={(event) => setVendorForm((current) => ({ ...current, name: event.target.value }))} />
           <TextField size="small" label="Category" value={vendorForm.category} onChange={(event) => setVendorForm((current) => ({ ...current, category: event.target.value }))} />
-          <TextField size="small" label="Contact person" value={vendorForm.contactName} onChange={(event) => setVendorForm((current) => ({ ...current, contactName: event.target.value }))} />
-          <TextField size="small" label="Phone" value={vendorForm.phone} onChange={(event) => setVendorForm((current) => ({ ...current, phone: event.target.value }))} />
           <TextField size="small" label="Email" value={vendorForm.email} onChange={(event) => setVendorForm((current) => ({ ...current, email: event.target.value }))} />
-          <TextField size="small" type="number" label="Cost" value={vendorForm.cost} onChange={(event) => setVendorForm((current) => ({ ...current, cost: event.target.value }))} />
-          <TextField select size="small" label="Status" value={vendorForm.status} onChange={(event) => setVendorForm((current) => ({ ...current, status: event.target.value }))}>
-            {["Quoted", "Confirmed", "Paid"].map((status) => (
-              <MenuItem key={status} value={status}>{status}</MenuItem>
-            ))}
-          </TextField>
-          <TextField size="small" label="Notes" multiline minRows={3} value={vendorForm.notes} onChange={(event) => setVendorForm((current) => ({ ...current, notes: event.target.value }))} />
+          <TextField size="small" label="Mobile number" value={vendorForm.phone} onChange={(event) => setVendorForm((current) => ({ ...current, phone: event.target.value }))} />
+          <TextField size="small" type="number" label="Budget" value={vendorForm.cost} onChange={(event) => setVendorForm((current) => ({ ...current, cost: event.target.value }))} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setVendorEditTarget(null)}>Cancel</Button>
