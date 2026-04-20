@@ -757,27 +757,25 @@ const budgetList = {
 };
 
 const budgetListRow = {
-  display: "flex",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
   alignItems: "center",
-  justifyContent: "space-between",
   gap: 1,
   minWidth: 0,
 };
 
 const budgetListValue = {
   minWidth: 0,
-  maxWidth: 112,
   textAlign: "right",
   fontSize: 12.5,
   lineHeight: 1.3,
-  overflowWrap: "anywhere",
-  wordBreak: "break-word",
+  whiteSpace: "nowrap",
   color: "#edf2ff",
 };
 
 const budgetFooter = {
   display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gridTemplateColumns: "1fr",
   gap: 0.8,
 };
 
@@ -790,11 +788,10 @@ const metricTile = {
 
 const tileValue = {
   mt: 0.45,
-  fontSize: 18,
+  fontSize: 16,
   lineHeight: 1.2,
   fontWeight: 700,
-  overflowWrap: "anywhere",
-  wordBreak: "break-word",
+  whiteSpace: "nowrap",
 };
 
 const calendarMonth = {
