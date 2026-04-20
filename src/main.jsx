@@ -3,12 +3,19 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import App from "./App";
-import theme from "./theme";
+import { getAppTheme } from "./theme";
 import { AuthProvider } from "./context/AuthContext";
 import AppErrorBoundary from "./components/AppErrorBoundary";
+import { AppSettingsProvider, useAppSettings } from "./context/AppSettingsContext";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <AppErrorBoundary>
+function ThemedApp() {
+  const { settings } = useAppSettings();
+  const theme = React.useMemo(
+    () => getAppTheme(settings.themeMode),
+    [settings.themeMode]
+  );
+
+  return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
@@ -17,5 +24,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <AppErrorBoundary>
+    <AppSettingsProvider>
+      <ThemedApp />
+    </AppSettingsProvider>
   </AppErrorBoundary>
 );

@@ -25,6 +25,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import { useTheme } from "@mui/material/styles";
 import { useAuth } from "../context/auth-context";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
@@ -34,7 +35,7 @@ const menuGroups = [
   {
     title: "Main menu",
     items: [
-      { label: "Dashboard", path: "/", icon: <DashboardRoundedIcon fontSize="small" /> },
+      { label: "Dashboard", path: "/dashboard", icon: <DashboardRoundedIcon fontSize="small" /> },
       { label: "Events", path: "/events", icon: <EventRoundedIcon fontSize="small" /> },
       { label: "Calendar", path: "/calendar", icon: <CalendarMonthRoundedIcon fontSize="small" /> },
       { label: "Tasks", path: "/tasks", icon: <ChecklistRoundedIcon fontSize="small" /> },
@@ -50,6 +51,8 @@ const utilityItems = [
 ];
 
 export default function MainLayout() {
+  const theme = useTheme();
+  const isLight = theme.palette.mode === "light";
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -60,8 +63,8 @@ export default function MainLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   const isActive = (path) => {
-    if (path === "/") {
-      return location.pathname === "/";
+    if (path === "/dashboard") {
+      return location.pathname === "/" || location.pathname === "/dashboard";
     }
 
     return location.pathname.startsWith(path);
@@ -156,8 +159,8 @@ export default function MainLayout() {
           display: { xs: "none", md: "block" },
           "& .MuiDrawer-paper": {
             width: 264,
-            background: "#0b0f16",
-            borderRight: "1px solid rgba(255,255,255,0.06)",
+            background: isLight ? "#f7faff" : "#0b0f16",
+            borderRight: `1px solid ${theme.palette.divider}`,
             px: 1.5,
             py: 1.6,
             display: "flex",
@@ -183,8 +186,8 @@ export default function MainLayout() {
               borderRadius: 999,
               display: "grid",
               placeItems: "center",
-              background: "#151f33",
-              color: "#7f85ff",
+              background: isLight ? "#eef3ff" : "#151f33",
+              color: isLight ? "#4f63ff" : "#7f85ff",
             }}
           >
             <BoltRoundedIcon sx={{ fontSize: 16 }} />
@@ -194,7 +197,7 @@ export default function MainLayout() {
               fontSize: 16,
               fontWeight: 700,
               letterSpacing: "-0.02em",
-              color: "#f6f8ff",
+              color: theme.palette.text.primary,
             }}
           >
             Party Script
@@ -210,8 +213,8 @@ export default function MainLayout() {
             height: 42,
             px: 1.2,
             borderRadius: 2.5,
-            background: "#121722",
-            border: "1px solid rgba(255,255,255,0.04)",
+            background: isLight ? "#ffffff" : "#121722",
+            border: `1px solid ${theme.palette.divider}`,
             mb: 1.8,
           }}
         >
@@ -301,19 +304,31 @@ export default function MainLayout() {
                         minHeight: 42,
                         px: 1.15,
                         borderRadius: 2.5,
-                        background: active ? "#1a2232" : "transparent",
+                        background: active
+                          ? isLight
+                            ? "rgba(79, 99, 255, 0.1)"
+                            : "#1a2232"
+                          : "transparent",
                         border: active
-                          ? "1px solid rgba(142, 127, 255, 0.22)"
+                          ? isLight
+                            ? "1px solid rgba(79, 99, 255, 0.18)"
+                            : "1px solid rgba(142, 127, 255, 0.22)"
                           : "1px solid transparent",
                         "&:hover": {
-                          background: active ? "#1d2638" : "#121722",
+                          background: active
+                            ? isLight
+                              ? "rgba(79, 99, 255, 0.14)"
+                              : "#1d2638"
+                            : isLight
+                              ? "#f2f6ff"
+                              : "#121722",
                         },
                       }}
                     >
                       <ListItemIcon
                         sx={{
                           minWidth: 30,
-                          color: active ? "#f5f7ff" : "#8d93a0",
+                          color: active ? theme.palette.text.primary : "text.secondary",
                         }}
                       >
                         {item.icon}
@@ -324,7 +339,7 @@ export default function MainLayout() {
                             sx={{
                               fontSize: 13,
                               fontWeight: active ? 700 : 500,
-                              color: active ? "#f7f8ff" : "#c0c4d2",
+                              color: active ? theme.palette.text.primary : "text.secondary",
                             }}
                           >
                             {item.label}
@@ -340,7 +355,7 @@ export default function MainLayout() {
         </Box>
 
         <Box sx={{ pt: 1.2 }}>
-          <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mb: 1.2 }} />
+          <Divider sx={{ borderColor: "divider", mb: 1.2 }} />
 
           <List disablePadding sx={{ display: "grid", gap: 0.2, mb: 1.3 }}>
             {utilityItems.map((item) => (
@@ -351,16 +366,21 @@ export default function MainLayout() {
                   minHeight: 38,
                   px: 1,
                   borderRadius: 2.5,
-                  background: item.path && isActive(item.path) ? "#1a2232" : "transparent",
+                  background:
+                    item.path && isActive(item.path)
+                      ? isLight
+                        ? "rgba(79, 99, 255, 0.1)"
+                        : "#1a2232"
+                      : "transparent",
                   "&:hover": {
-                    background: "#121722",
+                    background: isLight ? "#f2f6ff" : "#121722",
                   },
                 }}
               >
                 <ListItemIcon
                   sx={{
                     minWidth: 30,
-                    color: item.path && isActive(item.path) ? "#f5f7ff" : "#8d93a0",
+                    color: item.path && isActive(item.path) ? theme.palette.text.primary : "text.secondary",
                   }}
                 >
                   {item.icon}
@@ -370,7 +390,7 @@ export default function MainLayout() {
                     <Typography
                       sx={{
                         fontSize: 12.5,
-                        color: item.path && isActive(item.path) ? "#f7f8ff" : "#bcc1ce",
+                        color: item.path && isActive(item.path) ? theme.palette.text.primary : "text.secondary",
                         fontWeight: item.path && isActive(item.path) ? 700 : 500,
                       }}
                     >
@@ -386,8 +406,8 @@ export default function MainLayout() {
             sx={{
               p: 1.1,
               borderRadius: 3,
-              background: "#0f1520",
-              border: "1px solid rgba(255,255,255,0.05)",
+              background: isLight ? "#ffffff" : "#0f1520",
+              border: `1px solid ${theme.palette.divider}`,
             }}
           >
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -397,7 +417,7 @@ export default function MainLayout() {
                   height: 36,
                   fontSize: 12,
                   fontWeight: 800,
-                  background: "#5f65f6",
+                  background: isLight ? "#4f63ff" : "#5f65f6",
                 }}
               >
                 {(user?.name || "PS")
@@ -432,7 +452,7 @@ export default function MainLayout() {
           overflow: "hidden",
           px: 1.5,
           py: 1.5,
-          background: "#0a0f18",
+          background: theme.palette.background.default,
         }}
       >
         <motion.div

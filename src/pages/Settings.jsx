@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -28,9 +28,8 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
-import ArrowOutwardRoundedIcon from "@mui/icons-material/ArrowOutwardRounded";
 import { useAuth } from "../context/auth-context";
+import { useAppSettings } from "../context/AppSettingsContext";
 
 const settingsNav = [
   { id: "general", label: "General", icon: TuneRoundedIcon },
@@ -72,11 +71,7 @@ function ComingSoonSection({ title, description }) {
   return (
     <Paper elevation={0} sx={sectionPanel}>
       <Stack spacing={1.5}>
-        <SectionHeader
-          eyebrow="Coming soon"
-          title={title}
-          description={description}
-        />
+        <SectionHeader eyebrow="Coming soon" title={title} description={description} />
         <Box sx={comingSoonBox}>
           <Chip label="Planned for the next pass" sx={comingSoonChip} />
           <Typography sx={comingSoonText}>
@@ -88,23 +83,80 @@ function ComingSoonSection({ title, description }) {
   );
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function exportSettingsFile(settings, user) {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    user: {
+      name: user?.name || "",
+      email: user?.email || "",
+    },
+    settings,
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "party-script-settings.json";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Settings() {
   const { user, updateProfileName } = useAuth();
+  const { settings, updateSettings, resetSettings } = useAppSettings();
   const [activeSection, setActiveSection] = useState("general");
+
   const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState("");
-  const [companyName, setCompanyName] = useState("Party Script");
-  const [currency, setCurrency] = useState("INR");
-  const [timeZone, setTimeZone] = useState("Asia/Kolkata");
-  const [eventReminders, setEventReminders] = useState(true);
-  const [taskAlerts, setTaskAlerts] = useState(true);
-  const [emailNotifications, setEmailNotifications] = useState(false);
-  const [themeMode, setThemeMode] = useState("Dark");
-  const [accentColor, setAccentColor] = useState("Electric Blue");
-  const [defaultPage, setDefaultPage] = useState("Dashboard");
+  const [phone, setPhone] = useState(settings.phone || "");
+  const [companyName, setCompanyName] = useState(settings.companyName || "Party Script");
+  const [currency, setCurrency] = useState(settings.currency || "INR");
+  const [timeZone, setTimeZone] = useState(settings.timeZone || "Asia/Kolkata");
+  const [eventReminders, setEventReminders] = useState(Boolean(settings.eventReminders));
+  const [taskAlerts, setTaskAlerts] = useState(Boolean(settings.taskAlerts));
+  const [emailNotifications, setEmailNotifications] = useState(Boolean(settings.emailNotifications));
+  const [themeMode, setThemeMode] = useState(settings.themeMode === "light" ? "Light" : "Dark");
+  const [accentColor, setAccentColor] = useState(settings.accentColor || "electric-blue");
+  const [defaultPage, setDefaultPage] = useState(settings.defaultPage || "/");
+  const [profilePhoto, setProfilePhoto] = useState(settings.profilePhoto || "");
+  const [organizationLogo, setOrganizationLogo] = useState(settings.organizationLogo || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const profilePhotoInputRef = useRef(null);
+  const organizationLogoInputRef = useRef(null);
+
+  useEffect(() => {
+    setName(user?.name || "");
+  }, [user?.name]);
+
+  useEffect(() => {
+    setPhone(settings.phone || "");
+    setCompanyName(settings.companyName || "Party Script");
+    setCurrency(settings.currency || "INR");
+    setTimeZone(settings.timeZone || "Asia/Kolkata");
+    setEventReminders(Boolean(settings.eventReminders));
+    setTaskAlerts(Boolean(settings.taskAlerts));
+    setEmailNotifications(Boolean(settings.emailNotifications));
+    setThemeMode(settings.themeMode === "light" ? "Light" : "Dark");
+    setAccentColor(settings.accentColor || "electric-blue");
+    setDefaultPage(settings.defaultPage || "/");
+    setProfilePhoto(settings.profilePhoto || "");
+    setOrganizationLogo(settings.organizationLogo || "");
+  }, [settings]);
 
   const selectedNavItem = useMemo(
     () => settingsNav.find((item) => item.id === activeSection) || settingsNav[0],
@@ -117,11 +169,65 @@ export default function Settings() {
 
     try {
       await updateProfileName(name);
-      setNotice("Profile updated");
+      updateSettings({
+        phone,
+        profilePhoto,
+      });
+      setNotice("General settings saved");
     } catch (nextError) {
       setError(nextError.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveOrganization = () => {
+    updateSettings({
+      companyName,
+      currency,
+      timeZone,
+      organizationLogo,
+    });
+    setNotice("Organization settings saved");
+  };
+
+  const handleSaveNotifications = () => {
+    updateSettings({
+      eventReminders,
+      taskAlerts,
+      emailNotifications,
+    });
+    setNotice("Notification settings saved");
+  };
+
+  const handleSavePreferences = () => {
+    updateSettings({
+      themeMode: themeMode.toLowerCase(),
+      accentColor,
+      defaultPage,
+    });
+    setNotice("Preferences saved");
+  };
+
+  const handleFileUpload = async (event, kind) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+
+      if (kind === "profile") {
+        setProfilePhoto(String(dataUrl));
+      } else {
+        setOrganizationLogo(String(dataUrl));
+      }
+    } catch {
+      setError("Unable to read that file. Please try another image.");
+    } finally {
+      event.target.value = "";
     }
   };
 
@@ -150,16 +256,8 @@ export default function Settings() {
                 />
               </SettingRow>
 
-              <SettingRow
-                label="Email"
-                hint="Your sign-in email for Party Script."
-              >
-                <TextField
-                  fullWidth
-                  value={user?.email || ""}
-                  disabled
-                  sx={fieldSx}
-                />
+              <SettingRow label="Email" hint="Your sign-in email for Party Script.">
+                <TextField fullWidth value={user?.email || ""} disabled sx={fieldSx} />
               </SettingRow>
 
               <SettingRow
@@ -179,9 +277,30 @@ export default function Settings() {
                 label="Profile photo"
                 hint="Use your team portrait or a brand avatar."
               >
-                <Button variant="outlined" startIcon={<CloudUploadRoundedIcon />}>
-                  Upload
-                </Button>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  {profilePhoto ? (
+                    <Box
+                      component="img"
+                      src={profilePhoto}
+                      alt="Profile preview"
+                      sx={{ width: 42, height: 42, borderRadius: 999, objectFit: "cover" }}
+                    />
+                  ) : null}
+                  <Button
+                    variant="outlined"
+                    startIcon={<CloudUploadRoundedIcon />}
+                    onClick={() => profilePhotoInputRef.current?.click()}
+                  >
+                    Upload
+                  </Button>
+                  <input
+                    ref={profilePhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(event) => void handleFileUpload(event, "profile")}
+                  />
+                </Stack>
               </SettingRow>
 
               <SettingRow
@@ -234,9 +353,30 @@ export default function Settings() {
                 label="Logo"
                 hint="Upload a square logo to reuse across your workspace."
               >
-                <Button variant="outlined" startIcon={<CloudUploadRoundedIcon />}>
-                  Upload
-                </Button>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                  {organizationLogo ? (
+                    <Box
+                      component="img"
+                      src={organizationLogo}
+                      alt="Organization logo preview"
+                      sx={{ width: 42, height: 42, borderRadius: 2, objectFit: "cover" }}
+                    />
+                  ) : null}
+                  <Button
+                    variant="outlined"
+                    startIcon={<CloudUploadRoundedIcon />}
+                    onClick={() => organizationLogoInputRef.current?.click()}
+                  >
+                    Upload
+                  </Button>
+                  <input
+                    ref={organizationLogoInputRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(event) => void handleFileUpload(event, "organization")}
+                  />
+                </Stack>
               </SettingRow>
 
               <SettingRow
@@ -250,9 +390,9 @@ export default function Settings() {
                   onChange={(event) => setCurrency(event.target.value)}
                   sx={fieldSx}
                 >
-                  <MenuItem value="INR">INR ₹</MenuItem>
+                  <MenuItem value="INR">INR Rs</MenuItem>
                   <MenuItem value="USD">USD $</MenuItem>
-                  <MenuItem value="AED">AED د.إ</MenuItem>
+                  <MenuItem value="AED">AED Dirham</MenuItem>
                 </TextField>
               </SettingRow>
 
@@ -276,7 +416,9 @@ export default function Settings() {
             </Box>
 
             <Box sx={actionsRow}>
-              <Button variant="contained">Save organization</Button>
+              <Button variant="contained" onClick={handleSaveOrganization}>
+                Save organization
+              </Button>
             </Box>
           </Stack>
         </Paper>
@@ -327,7 +469,9 @@ export default function Settings() {
             </Box>
 
             <Box sx={actionsRow}>
-              <Button variant="contained">Save notifications</Button>
+              <Button variant="contained" onClick={handleSaveNotifications}>
+                Save notifications
+              </Button>
             </Box>
           </Stack>
         </Paper>
@@ -347,7 +491,7 @@ export default function Settings() {
             <Box>
               <SettingRow
                 label="Theme"
-                hint="Keep the interface consistent across the dashboard and event workspace."
+                hint="Switch between the dark console and a premium white-blue workspace."
               >
                 <TextField
                   select
@@ -357,6 +501,7 @@ export default function Settings() {
                   sx={fieldSx}
                 >
                   <MenuItem value="Dark">Dark</MenuItem>
+                  <MenuItem value="Light">Light</MenuItem>
                 </TextField>
               </SettingRow>
 
@@ -371,9 +516,9 @@ export default function Settings() {
                   onChange={(event) => setAccentColor(event.target.value)}
                   sx={fieldSx}
                 >
-                  <MenuItem value="Electric Blue">Electric Blue</MenuItem>
-                  <MenuItem value="Indigo">Indigo</MenuItem>
-                  <MenuItem value="Soft Violet">Soft Violet</MenuItem>
+                  <MenuItem value="electric-blue">Electric Blue</MenuItem>
+                  <MenuItem value="indigo">Indigo</MenuItem>
+                  <MenuItem value="soft-violet">Soft Violet</MenuItem>
                 </TextField>
               </SettingRow>
 
@@ -389,16 +534,19 @@ export default function Settings() {
                   onChange={(event) => setDefaultPage(event.target.value)}
                   sx={fieldSx}
                 >
-                  <MenuItem value="Dashboard">Dashboard</MenuItem>
-                  <MenuItem value="Events">Events</MenuItem>
-                  <MenuItem value="Tasks">Tasks</MenuItem>
-                  <MenuItem value="Vendors">Vendors</MenuItem>
+                  <MenuItem value="/">Dashboard</MenuItem>
+                  <MenuItem value="/events">Events</MenuItem>
+                  <MenuItem value="/tasks">Tasks</MenuItem>
+                  <MenuItem value="/vendors">Vendors</MenuItem>
+                  <MenuItem value="/budget">Budget</MenuItem>
                 </TextField>
               </SettingRow>
             </Box>
 
             <Box sx={actionsRow}>
-              <Button variant="contained">Save preferences</Button>
+              <Button variant="contained" onClick={handleSavePreferences}>
+                Save preferences
+              </Button>
             </Box>
           </Stack>
         </Paper>
@@ -407,10 +555,47 @@ export default function Settings() {
 
     if (activeSection === "data") {
       return (
-        <ComingSoonSection
-          title="Data controls"
-          description="Storage usage, exports, and retention tools will land here next."
-        />
+        <Paper elevation={0} sx={sectionPanel}>
+          <Stack spacing={2.5}>
+            <SectionHeader
+              eyebrow="Data"
+              title="Export and reset"
+              description="Keep a portable copy of your console preferences and local workspace state."
+            />
+
+            <Box>
+              <SettingRow
+                label="Export settings"
+                hint="Download your current console preferences as a JSON file."
+              >
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadRoundedIcon />}
+                  onClick={() => exportSettingsFile(settings, user)}
+                >
+                  Download JSON
+                </Button>
+              </SettingRow>
+
+              <SettingRow
+                label="Reset preferences"
+                hint="Restore the local console preferences back to their default values."
+                divider={false}
+              >
+                <Button
+                  color="error"
+                  variant="outlined"
+                  onClick={() => {
+                    resetSettings();
+                    setNotice("Local settings reset");
+                  }}
+                >
+                  Reset local settings
+                </Button>
+              </SettingRow>
+            </Box>
+          </Stack>
+        </Paper>
       );
     }
 
@@ -476,10 +661,7 @@ export default function Settings() {
                       primary={item.label}
                       primaryTypographyProps={{ sx: navLabel(isActive) }}
                     />
-                    {item.id !== "general" &&
-                    item.id !== "organization" &&
-                    item.id !== "notifications" &&
-                    item.id !== "preferences" ? (
+                    {item.id === "team" || item.id === "security" || item.id === "account" ? (
                       <Chip label="Soon" size="small" sx={soonChip} />
                     ) : null}
                   </ListItemButton>
@@ -506,12 +688,7 @@ export default function Settings() {
         onClose={() => setNotice("")}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert
-          onClose={() => setNotice("")}
-          severity="success"
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={() => setNotice("")} severity="success" variant="filled" sx={{ width: "100%" }}>
           {notice}
         </Alert>
       </Snackbar>
@@ -529,12 +706,12 @@ const pageTitle = {
   fontSize: { xs: 30, md: 34 },
   lineHeight: 1,
   fontWeight: 700,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const pageSubtitle = {
   fontSize: 14,
-  color: "rgba(191, 199, 219, 0.72)",
+  color: "text.secondary",
 };
 
 const settingsLayout = {
@@ -547,8 +724,9 @@ const settingsLayout = {
 const navPanel = {
   p: 1.5,
   borderRadius: 4,
-  backgroundColor: "#0f1625",
-  border: "1px solid rgba(125, 144, 197, 0.16)",
+  backgroundColor: "background.paper",
+  border: "1px solid",
+  borderColor: "divider",
   position: { lg: "sticky" },
   top: { lg: 0 },
 };
@@ -564,7 +742,7 @@ const navTitle = {
   mt: 0.7,
   fontSize: 18,
   fontWeight: 700,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const navItem = {
@@ -593,7 +771,7 @@ const navIcon = (isActive) => ({
 const navLabel = (isActive) => ({
   fontSize: 14,
   fontWeight: isActive ? 700 : 500,
-  color: isActive ? "#f7f9ff" : "rgba(211, 219, 237, 0.84)",
+  color: isActive ? "text.primary" : "text.secondary",
 });
 
 const soonChip = {
@@ -608,7 +786,8 @@ const soonChip = {
 const navFooter = {
   mt: 1.4,
   pt: 2,
-  borderTop: "1px solid rgba(125, 144, 197, 0.16)",
+  borderTop: "1px solid",
+  borderColor: "divider",
 };
 
 const footerLabel = {
@@ -622,14 +801,14 @@ const footerValue = {
   mt: 0.8,
   fontSize: 16,
   fontWeight: 700,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const footerHint = {
   mt: 0.6,
   fontSize: 13,
   lineHeight: 1.6,
-  color: "rgba(184, 194, 219, 0.7)",
+  color: "text.secondary",
 };
 
 const contentWrap = {
@@ -640,8 +819,9 @@ const contentWrap = {
 const sectionPanel = {
   p: { xs: 1.5, md: 2.2 },
   borderRadius: 4,
-  backgroundColor: "#0f1625",
-  border: "1px solid rgba(125, 144, 197, 0.16)",
+  backgroundColor: "background.paper",
+  border: "1px solid",
+  borderColor: "divider",
 };
 
 const sectionEyebrow = {
@@ -654,13 +834,13 @@ const sectionEyebrow = {
 const sectionTitle = {
   fontSize: 24,
   fontWeight: 700,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const sectionDescription = {
   fontSize: 14,
   lineHeight: 1.7,
-  color: "rgba(191, 199, 219, 0.72)",
+  color: "text.secondary",
 };
 
 const settingRow = {
@@ -679,13 +859,13 @@ const settingMeta = {
 const settingLabel = {
   fontSize: 14,
   fontWeight: 600,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const settingHint = {
   fontSize: 13,
   lineHeight: 1.65,
-  color: "rgba(191, 199, 219, 0.68)",
+  color: "text.secondary",
 };
 
 const settingControl = {
@@ -700,10 +880,10 @@ const fieldSx = {
   "& .MuiOutlinedInput-root": {
     minHeight: 48,
     borderRadius: 2.4,
-    color: "#f7f9ff",
-    backgroundColor: "#121a2c",
+    color: "text.primary",
+    backgroundColor: "background.default",
     "& fieldset": {
-      borderColor: "rgba(125, 144, 197, 0.18)",
+      borderColor: "divider",
     },
     "&:hover fieldset": {
       borderColor: "rgba(125, 144, 197, 0.28)",
@@ -725,7 +905,8 @@ const actionsRow = {
 const comingSoonBox = {
   p: 2,
   borderRadius: 3,
-  border: "1px dashed rgba(125, 144, 197, 0.22)",
+  border: "1px dashed",
+  borderColor: "divider",
   backgroundColor: "rgba(255, 255, 255, 0.02)",
 };
 
@@ -740,5 +921,5 @@ const comingSoonChip = {
 const comingSoonText = {
   fontSize: 14,
   lineHeight: 1.7,
-  color: "rgba(191, 199, 219, 0.72)",
+  color: "text.secondary",
 };

@@ -3,6 +3,15 @@ import { AuthContext } from "./auth-context";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
 const AUTH_REQUEST_TIMEOUT_MS = 10000;
+const DISPLAY_NAME_STORAGE_KEY = "party-script-display-name";
+
+function getStoredDisplayName() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem(DISPLAY_NAME_STORAGE_KEY) || "";
+}
 
 function formatAuthError(error) {
   if (!error) {
@@ -28,6 +37,7 @@ function buildAppUser(authUser, profile) {
   }
 
   const displayName =
+    getStoredDisplayName() ||
     profile.full_name ||
     authUser.user_metadata?.full_name ||
     authUser.user_metadata?.name ||
@@ -311,6 +321,12 @@ export function AuthProvider({ children }) {
       throw new Error("Name is required.");
     }
 
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(DISPLAY_NAME_STORAGE_KEY, trimmed);
+    }
+
+    let nextData;
+
     const { data, error } = await supabase
       .from("profiles")
       .update({ full_name: trimmed })
@@ -319,21 +335,45 @@ export function AuthProvider({ children }) {
       .single();
 
     if (error) {
-      throw error;
+      const isRecursivePolicyError = error.message?.toLowerCase().includes("infinite recursion");
+
+      if (!isRecursivePolicyError) {
+        throw error;
+      }
+
+      const { error: authUpdateError } = await supabase.auth.updateUser({
+        data: {
+          full_name: trimmed,
+          name: trimmed,
+        },
+      });
+
+      if (authUpdateError) {
+        throw authUpdateError;
+      }
+
+      nextData = {
+        id: user.id,
+        full_name: trimmed,
+        role: user.role,
+        organization_id: user.organizationId,
+      };
+    } else {
+      nextData = data;
     }
 
     setUser((current) =>
       current
         ? {
             ...current,
-            name: data.full_name || current.name,
-            role: data.role,
-            organizationId: data.organization_id,
+            name: nextData.full_name || current.name,
+            role: nextData.role,
+            organizationId: nextData.organization_id,
           }
         : current
     );
 
-    return data;
+    return nextData;
   }, [user]);
 
   const permissions = useMemo(
