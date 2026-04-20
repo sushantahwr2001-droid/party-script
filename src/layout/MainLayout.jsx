@@ -24,7 +24,6 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import { useTheme } from "@mui/material/styles";
 import { useAuth } from "../context/auth-context";
 import { useEvents } from "../hooks/useEvents";
@@ -173,34 +172,26 @@ export default function MainLayout() {
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1.1,
             px: 1,
             mb: 1.6,
             minHeight: 38,
           }}
         >
-          <Box
-            sx={{
-              width: 30,
-              height: 30,
-              borderRadius: 999,
-              display: "grid",
-              placeItems: "center",
-              background: isLight ? "#eef3ff" : "#151f33",
-              color: isLight ? "#4f63ff" : "#7f85ff",
-            }}
-          >
-            <BoltRoundedIcon sx={{ fontSize: 16 }} />
-          </Box>
           <Typography
             sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              letterSpacing: "-0.02em",
+              fontSize: 17,
+              fontWeight: 800,
+              letterSpacing: "-0.03em",
+              fontFamily: "Poppins, Inter, sans-serif",
               color: theme.palette.text.primary,
+              lineHeight: 1,
             }}
           >
-            Party Script
+            P
+            <Box component="span" sx={{ color: isLight ? "#2563eb" : "#4f63ff" }}>
+              @
+            </Box>
+            RTY SCRIPT
           </Typography>
         </Box>
 
