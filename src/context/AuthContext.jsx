@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./auth-context";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 
-const AUTH_REQUEST_TIMEOUT_MS = 10000;
 const DISPLAY_NAME_STORAGE_KEY = "party-script-display-name";
 
 function getStoredDisplayName() {
@@ -77,33 +76,15 @@ async function getProfileForUser(authUser) {
   throw new Error("Your account is missing a profile row. Contact an admin to finish setup.");
 }
 
-async function withTimeout(promise, message) {
-  let timerId;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timerId = window.setTimeout(() => reject(new Error(message)), AUTH_REQUEST_TIMEOUT_MS);
-      }),
-    ]);
-  } finally {
-    window.clearTimeout(timerId);
-  }
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [authError, setAuthError] = useState("");
   const [authDebug, setAuthDebug] = useState("");
-  const hydratedUserIdRef = useRef(null);
-  const hydratingUserIdRef = useRef(null);
 
   const hydrateUser = async (authUser) => {
     const profile = await getProfileForUser(authUser);
     const nextUser = buildAppUser(authUser, profile);
-    hydratedUserIdRef.current = authUser.id;
     setUser(nextUser);
     setAuthError("");
     setAuthDebug("");
@@ -118,17 +99,17 @@ export function AuthProvider({ children }) {
     let active = true;
 
     const clearAuthState = () => {
-      hydratedUserIdRef.current = null;
-      hydratingUserIdRef.current = null;
       setUser(null);
       setAuthError("");
       setAuthDebug("");
     };
 
-    const syncAuthUser = async (authUser) => {
+    const syncAuthSession = async (session) => {
       if (!active) {
         return;
       }
+
+      const authUser = session?.user ?? null;
 
       if (!authUser) {
         clearAuthState();
@@ -136,36 +117,19 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      if (
-        hydratedUserIdRef.current === authUser.id ||
-        hydratingUserIdRef.current === authUser.id
-      ) {
-        setLoading(false);
-        return;
-      }
-
-      hydratingUserIdRef.current = authUser.id;
       setLoading(true);
 
       try {
-        await withTimeout(
-          hydrateUser(authUser),
-          "Profile loading timed out. Please try signing in again."
-        );
+        await hydrateUser(authUser);
       } catch (profileError) {
         if (!active) {
           return;
         }
 
-        hydratedUserIdRef.current = null;
         setUser(null);
         setAuthError(profileError.message);
         setAuthDebug(formatAuthError(profileError));
       } finally {
-        if (hydratingUserIdRef.current === authUser.id) {
-          hydratingUserIdRef.current = null;
-        }
-
         if (active) {
           setLoading(false);
         }
@@ -173,11 +137,10 @@ export function AuthProvider({ children }) {
     };
 
     const bootstrapSession = async () => {
+      setLoading(true);
+
       try {
-        const { data, error } = await withTimeout(
-          supabase.auth.getSession(),
-          "Session restore timed out. Please sign in again."
-        );
+        const { data, error } = await supabase.auth.getSession();
 
         if (!active) {
           return;
@@ -187,10 +150,11 @@ export function AuthProvider({ children }) {
           setUser(null);
           setAuthError(error.message);
           setAuthDebug(formatAuthError(error));
+          setLoading(false);
           return;
         }
 
-        await syncAuthUser(data.session?.user ?? null);
+        await syncAuthSession(data.session);
       } catch (sessionError) {
         if (!active) {
           return;
@@ -199,6 +163,7 @@ export function AuthProvider({ children }) {
         clearAuthState();
         setAuthError(sessionError.message);
         setAuthDebug(formatAuthError(sessionError));
+        setLoading(false);
       }
     };
 
@@ -211,7 +176,7 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      void syncAuthUser(session?.user ?? null);
+      void syncAuthSession(session);
     });
 
     return () => {
@@ -245,7 +210,6 @@ export function AuthProvider({ children }) {
 
       throw error;
     }
-    hydratedUserIdRef.current = null;
     setAuthError("");
     setAuthDebug("");
     return data;
@@ -289,7 +253,6 @@ export function AuthProvider({ children }) {
       return { requiresEmailConfirmation: true };
     }
 
-    hydratedUserIdRef.current = null;
     setAuthError("");
     setAuthDebug("");
     return { requiresEmailConfirmation: false };
@@ -306,7 +269,6 @@ export function AuthProvider({ children }) {
 
     setAuthError("");
     setAuthDebug("");
-    hydratedUserIdRef.current = null;
     setUser(null);
   };
 

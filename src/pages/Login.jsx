@@ -80,11 +80,27 @@ export default function Login() {
         placeItems: "center",
         px: 2,
         py: 3,
-        background: "#0a0f18",
+        position: "relative",
+        overflow: "hidden",
+        background:
+          "radial-gradient(circle at top, rgba(99,102,241,0.2), transparent 30%), radial-gradient(circle at 80% 20%, rgba(59,130,246,0.16), transparent 28%), #0a0f18",
       }}
     >
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage:
+            "linear-gradient(rgba(148,163,184,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.04) 1px, transparent 1px)",
+          backgroundSize: "42px 42px",
+          maskImage: "linear-gradient(to bottom, rgba(0,0,0,0.55), transparent 95%)",
+          pointerEvents: "none",
+        }}
+      />
+
       <Card
         sx={{
+          position: "relative",
           width: "100%",
           maxWidth: 540,
           p: { xs: 3, md: 4.5 },
@@ -97,14 +113,18 @@ export default function Login() {
         <Stack spacing={1.25} sx={{ textAlign: "center", alignItems: "center" }}>
           <Typography
             sx={{
-              fontSize: 13,
-              fontWeight: 700,
-              letterSpacing: "0.18em",
-              textTransform: "uppercase",
-              color: "#7c76ff",
+              fontSize: { xs: 24, md: 28 },
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
+              color: "#f8fafc",
+              fontFamily: "Poppins, Inter, sans-serif",
             }}
           >
-            {copy.eyebrow}
+            P
+            <Box component="span" sx={{ color: "#4f63ff" }}>
+              @
+            </Box>
+            RTY SCRIPT
           </Typography>
           <Typography
             sx={{
@@ -205,6 +225,11 @@ export default function Login() {
               borderRadius: 999,
               fontSize: 18,
               fontWeight: 700,
+              background: "linear-gradient(135deg, #5b61ff 0%, #6366f1 100%)",
+              boxShadow: "0 18px 30px rgba(79, 70, 229, 0.28)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #646cff 0%, #6d67ff 100%)",
+              },
             }}
           >
             {submitting
