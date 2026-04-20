@@ -549,8 +549,35 @@ const heroGrid = {
 const heroCard = {
   p: 1.4,
   borderRadius: 3.1,
-  background: "linear-gradient(135deg, #334fc7 0%, #4662d7 52%, #5a78ea 100%)",
-  border: "1px solid rgba(140, 158, 255, 0.24)",
+  background:
+    "radial-gradient(circle at 85% 20%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 34%), linear-gradient(135deg, #2d44b2 0%, #3d58cd 46%, #5a78ea 100%)",
+  border: "1px solid rgba(170, 183, 255, 0.22)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 36px rgba(35, 52, 133, 0.24)",
+  position: "relative",
+  overflow: "hidden",
+  "&:before": {
+    content: '""',
+    position: "absolute",
+    inset: "auto -40px -40px auto",
+    width: 180,
+    height: 180,
+    borderRadius: 32,
+    background:
+      "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.0) 100%)",
+    transform: "rotate(18deg)",
+  },
+  "&:after": {
+    content: '""',
+    position: "absolute",
+    right: 34,
+    bottom: 24,
+    width: 92,
+    height: 92,
+    borderRadius: 24,
+    border: "1px solid rgba(255,255,255,0.16)",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 100%)",
+    boxShadow: "0 14px 30px rgba(17, 24, 39, 0.2)",
+  },
 };
 
 const eyebrow = {
@@ -581,6 +608,8 @@ const quickCreateGrid = {
   display: "grid",
   gridTemplateColumns: { xs: "1fr", md: "repeat(4, minmax(0, 1fr))" },
   gap: 0.8,
+  position: "relative",
+  zIndex: 1,
 };
 
 const metricGrid = {

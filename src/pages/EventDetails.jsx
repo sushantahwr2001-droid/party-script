@@ -27,6 +27,9 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DriveFileRenameOutlineOutlinedIcon from "@mui/icons-material/DriveFileRenameOutlineOutlined";
 import PublishedWithChangesOutlinedIcon from "@mui/icons-material/PublishedWithChangesOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import AddTaskRoundedIcon from "@mui/icons-material/AddTaskRounded";
+import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
+import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router-dom";
 import EventWorkspaceLayout from "../layout/EventWorkspaceLayout";
@@ -986,6 +989,9 @@ function OverviewTab({
               subtitle="Budget, vendors, and deadlines look stable right now."
               actionLabel="+ Add task"
               onAction={() => onQuickAction("Tasks")}
+              compactAction
+              actionTooltip="Add task"
+              actionIcon={<AddTaskRoundedIcon sx={{ fontSize: 18 }} />}
             />
           )}
         </Stack>
@@ -1025,6 +1031,8 @@ function ContactsTab({ event, expanded, onToggle, onQuickAction }) {
       emptySubtitle="Add your first stakeholder to manage communication."
       emptyActionLabel="+ Add Contact"
       onEmptyAction={() => onQuickAction("Contacts")}
+      emptyActionIcon={<PersonAddAlt1RoundedIcon sx={{ fontSize: 18 }} />}
+      emptyActionTooltip="Add contact"
       renderItem={(contact) => (
         <Box key={contact.id} sx={listRow}>
           <Box>
@@ -1052,6 +1060,8 @@ function VendorsTab({ vendors, expanded, onToggle, onQuickAction, onVendorEdit, 
       emptySubtitle="Add your first supplier to track status, cost, and contact details."
       emptyActionLabel="+ Add Vendor"
       onEmptyAction={() => onQuickAction("Vendors")}
+      emptyActionIcon={<StorefrontRoundedIcon sx={{ fontSize: 18 }} />}
+      emptyActionTooltip="Add vendor"
       renderItem={(vendor) => (
         <Box key={vendor.id} sx={listRow}>
           <Box>
@@ -1166,6 +1176,9 @@ function TasksTab({ tasks, expanded, onToggle, onQuickAction, onTaskToggle, onTa
                   subtitle="Create the next checklist item to keep the runbook moving."
                   actionLabel="+ Add Task"
                   onAction={() => onQuickAction("Tasks")}
+                  compactAction
+                  actionTooltip="Add task"
+                  actionIcon={<AddTaskRoundedIcon sx={{ fontSize: 18 }} />}
                 />
               )}
             </Stack>
@@ -1292,6 +1305,8 @@ function CompactListTab({
   emptySubtitle,
   emptyActionLabel,
   onEmptyAction,
+  emptyActionIcon,
+  emptyActionTooltip,
   renderItem,
   footer,
 }) {
@@ -1310,6 +1325,9 @@ function CompactListTab({
             subtitle={emptySubtitle}
             actionLabel={emptyActionLabel}
             onAction={onEmptyAction}
+            compactAction={Boolean(emptyActionIcon)}
+            actionIcon={emptyActionIcon}
+            actionTooltip={emptyActionTooltip}
           />
         )}
       </Stack>

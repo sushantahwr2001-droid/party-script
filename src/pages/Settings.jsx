@@ -127,7 +127,7 @@ export default function Settings() {
   const [eventReminders, setEventReminders] = useState(Boolean(settings.eventReminders));
   const [taskAlerts, setTaskAlerts] = useState(Boolean(settings.taskAlerts));
   const [emailNotifications, setEmailNotifications] = useState(Boolean(settings.emailNotifications));
-  const [themeMode, setThemeMode] = useState(settings.themeMode === "light" ? "Light" : "Dark");
+  const [themeMode, setThemeMode] = useState("Dark");
   const [accentColor, setAccentColor] = useState(settings.accentColor || "electric-blue");
   const [defaultPage, setDefaultPage] = useState(settings.defaultPage || "/");
   const [profilePhoto, setProfilePhoto] = useState(settings.profilePhoto || "");
@@ -151,7 +151,7 @@ export default function Settings() {
     setEventReminders(Boolean(settings.eventReminders));
     setTaskAlerts(Boolean(settings.taskAlerts));
     setEmailNotifications(Boolean(settings.emailNotifications));
-    setThemeMode(settings.themeMode === "light" ? "Light" : "Dark");
+    setThemeMode("Dark");
     setAccentColor(settings.accentColor || "electric-blue");
     setDefaultPage(settings.defaultPage || "/");
     setProfilePhoto(settings.profilePhoto || "");
@@ -202,7 +202,7 @@ export default function Settings() {
 
   const handleSavePreferences = () => {
     updateSettings({
-      themeMode: themeMode.toLowerCase(),
+      themeMode: "dark",
       accentColor,
       defaultPage,
     });
@@ -491,17 +491,19 @@ export default function Settings() {
             <Box>
               <SettingRow
                 label="Theme"
-                hint="Switch between the dark console and a premium white-blue workspace."
+                hint="Dark stays active for now. Light mode is being refined and will return soon."
               >
                 <TextField
                   select
                   fullWidth
-                  value={themeMode}
+                  value="Dark"
                   onChange={(event) => setThemeMode(event.target.value)}
                   sx={fieldSx}
                 >
                   <MenuItem value="Dark">Dark</MenuItem>
-                  <MenuItem value="Light">Light</MenuItem>
+                  <MenuItem value="Light" disabled>
+                    Light (Coming soon)
+                  </MenuItem>
                 </TextField>
               </SettingRow>
 

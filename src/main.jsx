@@ -9,11 +9,8 @@ import AppErrorBoundary from "./components/AppErrorBoundary";
 import { AppSettingsProvider, useAppSettings } from "./context/AppSettingsContext";
 
 function ThemedApp() {
-  const { settings } = useAppSettings();
-  const theme = React.useMemo(
-    () => getAppTheme(settings.themeMode),
-    [settings.themeMode]
-  );
+  useAppSettings();
+  const theme = React.useMemo(() => getAppTheme("dark"), []);
 
   return (
     <ThemeProvider theme={theme}>
