@@ -765,7 +765,13 @@ const budgetListRow = {
 };
 
 const budgetListValue = {
+  minWidth: 0,
+  maxWidth: 112,
+  textAlign: "right",
   fontSize: 12.5,
+  lineHeight: 1.3,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
   color: "#edf2ff",
 };
 
@@ -785,7 +791,10 @@ const metricTile = {
 const tileValue = {
   mt: 0.45,
   fontSize: 18,
+  lineHeight: 1.2,
   fontWeight: 700,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
 const calendarMonth = {
