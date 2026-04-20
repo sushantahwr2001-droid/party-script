@@ -466,11 +466,14 @@ const donutCenterLabel = {
 };
 
 const legendRow = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 1,
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 0.35,
   minWidth: 0,
+  p: 0.85,
+  borderRadius: 2,
+  background: "#0c1421",
+  border: "1px solid rgba(95,113,165,0.12)",
 };
 
 const legendLabel = {
@@ -479,16 +482,14 @@ const legendLabel = {
 };
 
 const legendValue = {
-  minWidth: 88,
-  maxWidth: 124,
-  textAlign: "right",
+  minWidth: 0,
+  textAlign: "left",
   fontSize: 13,
   lineHeight: 1.3,
   fontWeight: 700,
   overflowWrap: "anywhere",
   wordBreak: "break-word",
   color: "#f4f7ff",
-  flexShrink: 0,
 };
 
 const metricStrip = {
