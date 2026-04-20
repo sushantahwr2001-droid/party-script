@@ -14,6 +14,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
@@ -508,7 +509,7 @@ const headerBlock = {
 const pageTitle = {
   fontSize: 18,
   fontWeight: 700,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const pageSubtitle = {
@@ -531,7 +532,7 @@ const toolbar = {
   flexWrap: "wrap",
 };
 
-const searchShell = {
+const searchShell = (theme) => ({
   minWidth: 320,
   flex: 1,
   height: 46,
@@ -540,18 +541,18 @@ const searchShell = {
   gap: 1,
   px: 1.2,
   borderRadius: 2.5,
-  background: "#101826",
-  border: "1px solid rgba(95,113,165,0.16)",
-};
+  background: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
+});
 
-const searchInput = {
+const searchInput = (theme) => ({
   flex: 1,
   outline: "none",
   border: "none",
   background: "transparent",
-  color: "#eef2ff",
+  color: theme.palette.text.primary,
   fontSize: "13px",
-};
+});
 
 const toolbarActions = {
   display: "flex",
@@ -570,22 +571,25 @@ const addButton = {
   px: 1.55,
 };
 
-const tableShell = {
-  background: "#101826",
-  border: "1px solid rgba(95,113,165,0.16)",
+const tableShell = (theme) => ({
+  background: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
   borderRadius: 3,
   overflow: "hidden",
-  boxShadow: "0 14px 30px rgba(2, 6, 23, 0.16)",
-};
+  boxShadow:
+    theme.palette.mode === "light"
+      ? "0 14px 30px rgba(15, 23, 42, 0.08)"
+      : "0 14px 30px rgba(2, 6, 23, 0.16)",
+});
 
-const tableHeader = {
+const tableHeader = (theme) => ({
   display: "flex",
   alignItems: "center",
   gap: 1.2,
   px: 2.1,
   py: 1.35,
-  borderBottom: "1px solid rgba(95,113,165,0.12)",
-};
+  borderBottom: `1px solid ${theme.palette.divider}`,
+});
 
 const columnHeader = {
   fontSize: 12,
@@ -597,22 +601,22 @@ const tableBody = {
   flexDirection: "column",
 };
 
-const row = {
+const row = (theme) => ({
   display: "flex",
   alignItems: "center",
   gap: 1.2,
   px: 2.1,
   py: 1.45,
-  borderBottom: "1px solid rgba(95,113,165,0.08)",
+  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.75)}`,
   "&:last-of-type": {
     borderBottom: "none",
   },
-};
+});
 
 const vendorName = {
   fontSize: 14,
   fontWeight: 700,
-  color: "#f5f7ff",
+  color: "text.primary",
 };
 
 const vendorMeta = {
@@ -624,7 +628,7 @@ const vendorMeta = {
 const amountText = {
   fontSize: 14,
   fontWeight: 600,
-  color: "#f4f7ff",
+  color: "text.primary",
 };
 
 const rowActions = {
@@ -642,14 +646,14 @@ const rowButton = {
   fontSize: 12,
 };
 
-const iconButton = {
+const iconButton = (theme) => ({
   width: 32,
   height: 32,
   borderRadius: 2,
-  color: "#c9d1e1",
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  color: theme.palette.text.secondary,
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const emptyShell = {
   p: 3.2,
@@ -658,7 +662,7 @@ const emptyShell = {
 const emptyTitle = {
   fontSize: 14,
   fontWeight: 700,
-  color: "#f4f7ff",
+  color: "text.primary",
 };
 
 const emptyCopy = {
@@ -677,12 +681,12 @@ const statsRow = {
   gap: 1,
 };
 
-const statCard = {
+const statCard = (theme) => ({
   p: 1.2,
-  background: "#101826",
-  border: "1px solid rgba(95,113,165,0.16)",
+  background: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
   borderRadius: 2.8,
-};
+});
 
 const statLabel = {
   fontSize: 12,
@@ -693,7 +697,7 @@ const statValue = {
   mt: 0.45,
   fontSize: 18,
   fontWeight: 700,
-  color: "#f6f8ff",
+  color: "text.primary",
 };
 
 const statusPill = (status) => ({

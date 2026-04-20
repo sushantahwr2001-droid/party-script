@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
 import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
@@ -326,7 +327,7 @@ const pageShell = {
 const pageTitle = {
   fontSize: 22,
   fontWeight: 700,
-  color: "#f7f9ff",
+  color: "text.primary",
 };
 
 const pageSubtitle = {
@@ -347,12 +348,15 @@ const topGrid = {
   mb: 1.2,
 };
 
-const selectorCard = {
+const selectorCard = (theme) => ({
   p: 1.25,
   borderRadius: 3,
-  border: "1px solid rgba(127,133,255,0.4)",
-  boxShadow: "0 0 0 2px rgba(109,107,255,0.18), 0 10px 26px rgba(50, 57, 102, 0.22)",
-};
+  border: `1px solid ${alpha(theme.palette.primary.main, 0.42)}`,
+  boxShadow:
+    theme.palette.mode === "light"
+      ? "0 0 0 2px rgba(79,99,255,0.10), 0 10px 26px rgba(50, 57, 102, 0.08)"
+      : "0 0 0 2px rgba(109,107,255,0.18), 0 10px 26px rgba(50, 57, 102, 0.22)",
+});
 
 const selectorLabel = {
   fontSize: 11,
@@ -374,16 +378,16 @@ const metricCard = {
   gap: 1,
 };
 
-const metricIcon = {
+const metricIcon = (theme) => ({
   width: 50,
   height: 50,
   borderRadius: 2,
   display: "grid",
   placeItems: "center",
-  background: "#171f31",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.08) : "#171f31",
   color: "#7f85ff",
   flexShrink: 0,
-};
+});
 
 const metricLabel = {
   fontSize: 11,
@@ -444,14 +448,14 @@ const donutWrap = {
   justifySelf: "center",
 };
 
-const donutSummaryCard = {
+const donutSummaryCard = (theme) => ({
   width: "100%",
   p: 1,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   textAlign: "center",
-};
+});
 
 const donutCenterValue = {
   fontSize: 22,
@@ -465,20 +469,20 @@ const donutCenterLabel = {
   color: "text.secondary",
 };
 
-const legendRow = {
+const legendRow = (theme) => ({
   display: "grid",
   gridTemplateColumns: "1fr",
   gap: 0.35,
   minWidth: 0,
   p: 0.85,
   borderRadius: 2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const legendLabel = {
   fontSize: 13,
-  color: "#d5dced",
+  color: "text.primary",
 };
 
 const legendValue = {
@@ -489,15 +493,15 @@ const legendValue = {
   fontWeight: 700,
   overflowWrap: "anywhere",
   wordBreak: "break-word",
-  color: "#f4f7ff",
+  color: "text.primary",
 };
 
-const metricStrip = {
+const metricStrip = (theme) => ({
   p: 1,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const metricStripLabel = {
   fontSize: 11.5,
@@ -520,29 +524,29 @@ const activityCard = {
   borderRadius: 3,
 };
 
-const activityRow = {
+const activityRow = (theme) => ({
   display: "flex",
   alignItems: "center",
   gap: 1,
   p: 0.95,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
-const activityIconWrap = {
+const activityIconWrap = (theme) => ({
   width: 44,
   height: 44,
   borderRadius: 2,
   display: "grid",
   placeItems: "center",
-  background: "#171f31",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.08) : "#171f31",
   flexShrink: 0,
-};
+});
 
 const activityTitle = {
   fontSize: 13,
-  color: "#e9eefb",
+  color: "text.primary",
 };
 
 const activityTime = {

@@ -7,6 +7,7 @@ import {
   Tabs,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import dayjs from "dayjs";
@@ -240,19 +241,22 @@ function formatCurrency(value) {
   }).format(value || 0);
 }
 
-const headerShell = {
+const headerShell = (theme) => ({
   flexShrink: 0,
   position: "sticky",
   top: 0,
   zIndex: 20,
   mb: 1,
   borderRadius: 3.2,
-  border: "1px solid rgba(95,113,165,0.22)",
-  background: "#101826",
+  border: `1px solid ${theme.palette.divider}`,
+  background: theme.palette.background.paper,
   px: 1.5,
   py: 1.2,
-  boxShadow: "0 12px 28px rgba(2, 6, 23, 0.18)",
-};
+  boxShadow:
+    theme.palette.mode === "light"
+      ? "0 12px 28px rgba(15, 23, 42, 0.08)"
+      : "0 12px 28px rgba(2, 6, 23, 0.18)",
+});
 
 const statsGrid = {
   mt: 1,
@@ -264,19 +268,19 @@ const statsGrid = {
   gap: 0.8,
 };
 
-const statCard = {
+const statCard = (theme) => ({
   p: 1,
   borderRadius: 2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   boxShadow: "none",
-};
+});
 
 const titleText = {
   fontSize: 12.5,
   fontWeight: 600,
   letterSpacing: "-0.02em",
-  color: "#f4f7ff",
+  color: "text.primary",
 };
 
 const subtitleText = {
@@ -297,7 +301,7 @@ const statValue = {
   mt: 0.35,
   fontSize: 13,
   fontWeight: 650,
-  color: "#f4f7ff",
+  color: "text.primary",
 };
 
 const statCaption = {

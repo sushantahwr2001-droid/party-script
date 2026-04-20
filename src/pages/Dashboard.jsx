@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
@@ -243,7 +244,7 @@ export default function Dashboard() {
             </Box>
 
             {createError ? (
-              <Typography sx={{ ...subtleText, color: "#fca5a5", mt: 1 }}>{createError}</Typography>
+              <Typography sx={{ ...subtleText, color: "error.main", mt: 1 }}>{createError}</Typography>
             ) : null}
           </Box>
 
@@ -527,11 +528,17 @@ const pageShell = {
   pb: 2.5,
 };
 
-const heroSection = {
+const heroSection = (theme) => ({
   p: 1.2,
   borderRadius: 3.4,
   mb: 1.25,
-};
+  background: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
+  boxShadow:
+    theme.palette.mode === "light"
+      ? "0 18px 36px rgba(15, 23, 42, 0.08)"
+      : "0 16px 32px rgba(2, 6, 23, 0.14)",
+});
 
 const heroGrid = {
   display: "grid",
@@ -628,11 +635,13 @@ const dashboardGrid = {
   gap: 1.2,
 };
 
-const panelCard = {
+const panelCard = (theme) => ({
   p: 1.25,
   borderRadius: 3.1,
   minHeight: 0,
-};
+  background: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const sectionTitle = {
   fontSize: 14,
@@ -719,14 +728,14 @@ const donutWrap = {
   justifySelf: "center",
 };
 
-const donutSummaryCard = {
+const donutSummaryCard = (theme) => ({
   width: "100%",
   p: 1,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   textAlign: "center",
-};
+});
 
 const donutCenterLabel = {
   fontSize: 10,
@@ -764,14 +773,14 @@ const budgetListRow = {
   minWidth: 0,
 };
 
-const budgetListValue = {
+const budgetListValue = (theme) => ({
   minWidth: 0,
   textAlign: "right",
   fontSize: 12.5,
   lineHeight: 1.3,
   whiteSpace: "nowrap",
-  color: "#edf2ff",
-};
+  color: theme.palette.text.primary,
+});
 
 const budgetFooter = {
   display: "grid",
@@ -779,12 +788,12 @@ const budgetFooter = {
   gap: 0.8,
 };
 
-const metricTile = {
+const metricTile = (theme) => ({
   p: 1,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const tileValue = {
   mt: 0.45,
@@ -821,22 +830,33 @@ const calendarGrid = {
   gap: 0.4,
 };
 
-const calendarCell = (isCurrentMonth, isToday) => ({
+const calendarCell = (isCurrentMonth, isToday) => (theme) => ({
   aspectRatio: "1 / 1",
   minHeight: 44,
   p: 0.35,
   borderRadius: 2,
-  border: isToday ? "1px solid rgba(127,133,255,0.32)" : "1px solid transparent",
-  background: isCurrentMonth ? "#0c1421" : "#0b1019",
+  border: isToday ? `1px solid ${alpha(theme.palette.primary.main, 0.42)}` : "1px solid transparent",
+  background:
+    theme.palette.mode === "light"
+      ? isCurrentMonth
+        ? "#f8fbff"
+        : "#eef3fb"
+      : isCurrentMonth
+        ? "#0c1421"
+        : "#0b1019",
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
 });
 
-const calendarDayLabel = (isCurrentMonth, isToday) => ({
+const calendarDayLabel = (isCurrentMonth, isToday) => (theme) => ({
   fontSize: 11,
   fontWeight: isToday ? 700 : 600,
-  color: isToday ? "#ecf0ff" : isCurrentMonth ? "#f1f4ff" : "#6e7687",
+  color: isToday
+    ? theme.palette.text.primary
+    : isCurrentMonth
+      ? theme.palette.text.primary
+      : alpha(theme.palette.text.secondary, 0.9),
   textAlign: "center",
 });
 
@@ -862,12 +882,12 @@ const pipelineStats = {
   mb: 1.1,
 };
 
-const pipelineStat = {
+const pipelineStat = (theme) => ({
   p: 0.95,
   borderRadius: 2.1,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const pipelineStatValue = {
   mt: 0.45,
@@ -890,46 +910,46 @@ const tableHeaderText = {
   letterSpacing: "0.1em",
 };
 
-const pipelineRow = {
+const pipelineRow = (theme) => ({
   display: "grid",
   gridTemplateColumns: "1.2fr 1fr 0.8fr",
   gap: 1,
   alignItems: "center",
   p: 0.85,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   cursor: "pointer",
-};
+});
 
 const pipelineTitle = {
   fontSize: 13,
   fontWeight: 700,
-  color: "#f5f7ff",
+  color: "text.primary",
 };
 
-const activityRow = {
+const activityRow = (theme) => ({
   display: "flex",
   alignItems: "center",
   gap: 0.9,
   p: 0.85,
   borderRadius: 2.2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
-const activityBadge = {
+const activityBadge = (theme) => ({
   width: 28,
   height: 28,
   borderRadius: 1.5,
   display: "grid",
   placeItems: "center",
-  background: "#151f33",
-  color: "#b9c2d8",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.08) : "#151f33",
+  color: theme.palette.text.secondary,
   fontSize: 11,
   fontWeight: 700,
   flexShrink: 0,
-};
+});
 
 const activityTitle = {
   fontSize: 12.5,
@@ -942,21 +962,21 @@ const activityTime = {
   flexShrink: 0,
 };
 
-const iconShell = {
+const iconShell = (theme) => ({
   width: 30,
   height: 30,
   borderRadius: 2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   display: "grid",
   placeItems: "center",
-};
+});
 
-const softChip = {
-  background: "#141c2c",
-  color: "#d7dcec",
-  border: "1px solid rgba(95,113,165,0.14)",
-};
+const softChip = (theme) => ({
+  background: theme.palette.mode === "light" ? "#f4f7ff" : "#141c2c",
+  color: theme.palette.text.primary,
+  border: `1px solid ${theme.palette.divider}`,
+});
 
 const statusChip = (status) => ({
   background:
