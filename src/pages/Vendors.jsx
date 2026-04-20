@@ -543,16 +543,17 @@ const searchShell = (theme) => ({
   borderRadius: 2.5,
   background: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
+  color: theme.palette.text.primary,
 });
 
-const searchInput = (theme) => ({
+const searchInput = {
   flex: 1,
   outline: "none",
   border: "none",
   background: "transparent",
-  color: theme.palette.text.primary,
+  color: "inherit",
   fontSize: "13px",
-});
+};
 
 const toolbarActions = {
   display: "flex",
