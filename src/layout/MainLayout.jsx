@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Avatar,
@@ -25,6 +26,9 @@ import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import { useAuth } from "../context/auth-context";
+import { useEvents } from "../hooks/useEvents";
+import { useTasks } from "../hooks/useTasks";
+import { useVendors } from "../hooks/useVendors";
 
 const menuGroups = [
   {
@@ -49,6 +53,11 @@ export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { events } = useEvents();
+  const { tasks } = useTasks();
+  const { vendors } = useVendors();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isActive = (path) => {
     if (path === "/") {
@@ -56,6 +65,85 @@ export default function MainLayout() {
     }
 
     return location.pathname.startsWith(path);
+  };
+
+  const searchResults = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) {
+      return [];
+    }
+
+    const pageResults = [
+      ...menuGroups.flatMap((group) => group.items),
+      ...utilityItems.filter((item) => item.path),
+    ]
+      .filter((item) => item.label.toLowerCase().includes(query))
+      .map((item) => ({
+        id: `page-${item.path}`,
+        title: item.label,
+        subtitle: "Page",
+        type: "Page",
+        onSelect: () => navigate(item.path),
+      }));
+
+    const eventResults = events
+      .filter(
+        (event) =>
+          event.name.toLowerCase().includes(query) ||
+          event.venue.toLowerCase().includes(query) ||
+          event.notes.toLowerCase().includes(query)
+      )
+      .map((event) => ({
+        id: `event-${event.id}`,
+        title: event.name,
+        subtitle: `${event.venue || "No venue"} / ${event.status || "Planning"}`,
+        type: "Event",
+        onSelect: () => navigate(`/events/${event.id}`),
+      }));
+
+    const taskResults = tasks
+      .filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          task.assignee.toLowerCase().includes(query) ||
+          task.stage.toLowerCase().includes(query)
+      )
+      .map((task) => ({
+        id: `task-${task.id}`,
+        title: task.title,
+        subtitle: `${task.stage} / ${task.assignee || "Unassigned"}`,
+        type: "Task",
+        onSelect: () => navigate(`/events/${task.eventId}?tab=Tasks`),
+      }));
+
+    const vendorResults = vendors
+      .filter(
+        (vendor) =>
+          vendor.name.toLowerCase().includes(query) ||
+          vendor.category.toLowerCase().includes(query) ||
+          vendor.email.toLowerCase().includes(query) ||
+          vendor.phone.toLowerCase().includes(query)
+      )
+      .map((vendor) => ({
+        id: `vendor-${vendor.id}`,
+        title: vendor.name,
+        subtitle: `${vendor.category} / ${vendor.status}`,
+        type: "Vendor",
+        onSelect: () => navigate(`/events/${vendor.eventId}?tab=Vendors`),
+      }));
+
+    return [...pageResults, ...eventResults, ...taskResults, ...vendorResults].slice(0, 10);
+  }, [events, navigate, searchQuery, tasks, vendors]);
+
+  useEffect(() => {
+    setSearchOpen(false);
+  }, [location.pathname, location.search]);
+
+  const handleSearchSelect = (item) => {
+    item.onSelect();
+    setSearchOpen(false);
+    setSearchQuery("");
   };
 
   return (
@@ -107,6 +195,7 @@ export default function MainLayout() {
 
         <Box
           sx={{
+            position: "relative",
             display: "flex",
             alignItems: "center",
             gap: 0.9,
@@ -120,7 +209,26 @@ export default function MainLayout() {
         >
           <SearchRoundedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
           <InputBase
-            placeholder="Search"
+            placeholder="Search console"
+            value={searchQuery}
+            onChange={(event) => {
+              setSearchQuery(event.target.value);
+              setSearchOpen(true);
+            }}
+            onFocus={() => {
+              if (searchQuery.trim()) {
+                setSearchOpen(true);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && searchResults[0]) {
+                event.preventDefault();
+                handleSearchSelect(searchResults[0]);
+              }
+              if (event.key === "Escape") {
+                setSearchOpen(false);
+              }
+            }}
             sx={{
               flex: 1,
               color: "text.primary",
@@ -131,6 +239,31 @@ export default function MainLayout() {
               },
             }}
           />
+
+          {searchOpen && searchQuery.trim() ? (
+            <Box sx={searchDropdown}>
+              {searchResults.length > 0 ? (
+                searchResults.map((item) => (
+                  <Box
+                    key={item.id}
+                    onMouseDown={() => handleSearchSelect(item)}
+                    sx={searchResultRow}
+                  >
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={searchResultTitle}>{item.title}</Typography>
+                      <Typography sx={searchResultMeta}>{item.subtitle}</Typography>
+                    </Box>
+                    <Typography sx={searchResultType}>{item.type}</Typography>
+                  </Box>
+                ))
+              ) : (
+                <Box sx={searchEmpty}>
+                  <Typography sx={searchResultTitle}>No results found</Typography>
+                  <Typography sx={searchResultMeta}>Try searching events, tasks, vendors, or pages.</Typography>
+                </Box>
+              )}
+            </Box>
+          ) : null}
         </Box>
 
         <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pr: 0.4 }}>
@@ -307,3 +440,64 @@ export default function MainLayout() {
     </Box>
   );
 }
+
+const searchDropdown = {
+  position: "absolute",
+  top: "calc(100% + 10px)",
+  left: 0,
+  right: 0,
+  zIndex: 40,
+  borderRadius: 2.8,
+  background: "#101826",
+  border: "1px solid rgba(95,113,165,0.18)",
+  boxShadow: "0 18px 36px rgba(2, 6, 23, 0.28)",
+  overflow: "hidden",
+};
+
+const searchResultRow = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 0.8,
+  px: 1,
+  py: 0.9,
+  cursor: "pointer",
+  borderBottom: "1px solid rgba(95,113,165,0.08)",
+  "&:last-of-type": {
+    borderBottom: "none",
+  },
+  "&:hover": {
+    background: "#121d2d",
+  },
+};
+
+const searchResultTitle = {
+  fontSize: 12.5,
+  fontWeight: 600,
+  color: "#f3f6ff",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const searchResultMeta = {
+  mt: 0.2,
+  fontSize: 11,
+  color: "text.secondary",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const searchResultType = {
+  flexShrink: 0,
+  fontSize: 10.5,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#8b93a8",
+};
+
+const searchEmpty = {
+  px: 1,
+  py: 1,
+};
