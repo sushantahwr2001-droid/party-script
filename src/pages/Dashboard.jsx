@@ -323,33 +323,39 @@ export default function Dashboard() {
           </Stack>
 
           <Box sx={budgetGrid}>
-            <Box sx={donutWrap}>
-              <Suspense fallback={<ChartFallback height={180} />}>
-                <BudgetDonutChart data={donutData} width={208} height={208} innerRadius={64} outerRadius={92} />
-              </Suspense>
-              <Box sx={donutCenter}>
+            <Stack spacing={1.1} sx={donutColumn}>
+              <Box sx={donutWrap}>
+                <Suspense fallback={<ChartFallback height={180} />}>
+                  <BudgetDonutChart data={donutData} width={208} height={208} innerRadius={64} outerRadius={92} />
+                </Suspense>
+              </Box>
+              <Box sx={donutSummaryCard}>
                 <Typography sx={donutCenterLabel}>Total Budget</Typography>
                 <Typography sx={donutCenterValue}>{formatCurrency(stats.totalBudget)}</Typography>
                 <Typography sx={donutCenterMeta}>30d used</Typography>
               </Box>
-            </Box>
+            </Stack>
 
-            <Box sx={budgetList}>
-              {budgetBreakdown.slice(0, 5).map((item) => (
-                <Box key={item.name} sx={budgetListRow}>
-                  <Stack direction="row" spacing={0.7} sx={{ alignItems: "center" }}>
-                    <Box sx={legendSwatch(item.name)} />
-                    <Typography sx={subtleText}>{item.name}</Typography>
-                  </Stack>
-                  <Typography sx={budgetListValue}>{formatCurrency(item.value)}</Typography>
-                </Box>
-              ))}
-            </Box>
-          </Box>
+            <Stack spacing={1.1}>
+              <Box sx={budgetList}>
+                {budgetBreakdown.slice(0, 5).map((item) => (
+                  <Box key={item.name} sx={budgetListRow}>
+                    <Stack direction="row" spacing={0.7} sx={{ alignItems: "center", minWidth: 0 }}>
+                      <Box sx={legendSwatch(item.name)} />
+                      <Typography sx={subtleText} noWrap>
+                        {item.name}
+                      </Typography>
+                    </Stack>
+                    <Typography sx={budgetListValue}>{formatCurrency(item.value)}</Typography>
+                  </Box>
+                ))}
+              </Box>
 
-          <Box sx={budgetFooter}>
-            <MetricTile label="Budget Used" value={formatCurrency(stats.totalSpent)} />
-            <MetricTile label="Budget Left" value={formatCurrency(stats.totalBudget - stats.totalSpent)} tone="success" />
+              <Box sx={budgetFooter}>
+                <MetricTile label="Budget Used" value={formatCurrency(stats.totalSpent)} />
+                <MetricTile label="Budget Left" value={formatCurrency(stats.totalBudget - stats.totalSpent)} tone="success" />
+              </Box>
+            </Stack>
           </Box>
         </Card>
 
@@ -694,13 +700,16 @@ const subtleText = {
 
 const budgetGrid = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", lg: "minmax(240px, 272px) minmax(0, 1fr)" },
+  gridTemplateColumns: { xs: "1fr", xl: "260px minmax(0, 1fr)" },
   gap: 1.2,
+  alignItems: "start",
+};
+
+const donutColumn = {
   alignItems: "center",
 };
 
 const donutWrap = {
-  position: "relative",
   width: "100%",
   maxWidth: 220,
   height: 220,
@@ -710,17 +719,13 @@ const donutWrap = {
   justifySelf: "center",
 };
 
-const donutCenter = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 0.3,
+const donutSummaryCard = {
+  width: "100%",
+  p: 1,
+  borderRadius: 2.2,
+  background: "#0c1421",
+  border: "1px solid rgba(95,113,165,0.12)",
   textAlign: "center",
-  pointerEvents: "none",
-  paddingInline: 24,
 };
 
 const donutCenterLabel = {
@@ -747,7 +752,7 @@ const donutCenterMeta = {
 
 const budgetList = {
   display: "grid",
-  gap: 0.65,
+  gap: 0.8,
   minWidth: 0,
 };
 
@@ -765,7 +770,6 @@ const budgetListValue = {
 };
 
 const budgetFooter = {
-  mt: 1.2,
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 0.8,

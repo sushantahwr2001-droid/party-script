@@ -161,15 +161,17 @@ export default function Budget() {
           <Typography sx={sectionSubtitle}>Committed vs Remaining</Typography>
 
           <Box sx={budgetOverviewGrid}>
-            <Box sx={donutWrap}>
-              <Suspense fallback={<ChartFallback height={180} />}>
-                <BudgetDonutChart data={donutData} width={204} height={204} innerRadius={62} outerRadius={88} />
-              </Suspense>
-              <Box sx={donutCenter}>
+            <Stack spacing={1.1} sx={donutColumn}>
+              <Box sx={donutWrap}>
+                <Suspense fallback={<ChartFallback height={180} />}>
+                  <BudgetDonutChart data={donutData} width={204} height={204} innerRadius={62} outerRadius={88} />
+                </Suspense>
+              </Box>
+              <Box sx={donutSummaryCard}>
                 <Typography sx={donutCenterValue}>{committedPercent}%</Typography>
                 <Typography sx={donutCenterLabel}>Committed</Typography>
               </Box>
-            </Box>
+            </Stack>
 
             <Stack spacing={1.15}>
               <LegendRow label="Spent" value={formatCurrency(summary.spent)} color="#6d6bff" />
@@ -422,34 +424,33 @@ const sectionSubtitle = {
 
 const budgetOverviewGrid = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", lg: "minmax(248px, 280px) minmax(0, 1fr)" },
+  gridTemplateColumns: { xs: "1fr", xl: "260px minmax(0, 1fr)" },
   gap: 1.1,
-  alignItems: "center",
+  alignItems: "start",
   mt: 1.2,
+};
+
+const donutColumn = {
+  alignItems: "center",
 };
 
 const donutWrap = {
   width: "100%",
   maxWidth: 228,
   height: 228,
-  position: "relative",
   display: "grid",
   placeItems: "center",
   marginInline: "auto",
   justifySelf: "center",
 };
 
-const donutCenter = {
-  position: "absolute",
-  inset: 0,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 0.2,
+const donutSummaryCard = {
+  width: "100%",
+  p: 1,
+  borderRadius: 2.2,
+  background: "#0c1421",
+  border: "1px solid rgba(95,113,165,0.12)",
   textAlign: "center",
-  pointerEvents: "none",
-  paddingInline: 24,
 };
 
 const donutCenterValue = {
@@ -481,6 +482,7 @@ const legendValue = {
   fontSize: 13,
   fontWeight: 700,
   color: "#f4f7ff",
+  flexShrink: 0,
 };
 
 const metricStrip = {
