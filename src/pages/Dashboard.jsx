@@ -46,6 +46,13 @@ const metricCards = [
   { key: "budgetUsed", title: "Budget Used", accent: "#ffb163", helper: "from last 30 days", suffix: "%" },
 ];
 
+const PLACEHOLDER_ANALYTICS = [
+  { name: "Week 1", revenue: 18000, expense: 9000, profit: 9000, placeholder: true },
+  { name: "Week 2", revenue: 24000, expense: 12000, profit: 12000, placeholder: true },
+  { name: "Week 3", revenue: 21000, expense: 10500, profit: 10500, placeholder: true },
+  { name: "Week 4", revenue: 28000, expense: 14000, profit: 14000, placeholder: true },
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -134,6 +141,14 @@ export default function Dashboard() {
       };
     });
   }, [stats.spendTrend, events, eventSummaries]);
+
+  const analyticsChartData = useMemo(() => {
+    const hasSignal = lineChartData.some(
+      (item) => Number(item.revenue) > 0 || Number(item.expense) > 0 || Number(item.profit) > 0
+    );
+
+    return hasSignal ? lineChartData : PLACEHOLDER_ANALYTICS;
+  }, [lineChartData]);
 
   const budgetBreakdown = useMemo(() => {
     const categoryData = stats.vendorCategoryData?.length
@@ -286,7 +301,7 @@ export default function Dashboard() {
           </Box>
 
           <Suspense fallback={<ChartFallback height={240} />}>
-            <BudgetComparisonChart data={lineChartData} />
+            <BudgetComparisonChart data={analyticsChartData} />
           </Suspense>
         </Card>
 
@@ -529,15 +544,12 @@ const pageShell = {
 };
 
 const heroSection = (theme) => ({
-  p: 1.2,
-  borderRadius: 3.4,
+  p: 1.05,
+  borderRadius: 3,
   mb: 1.25,
   background: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
-  boxShadow:
-    theme.palette.mode === "light"
-      ? "0 18px 36px rgba(15, 23, 42, 0.08)"
-      : "0 16px 32px rgba(2, 6, 23, 0.14)",
+  boxShadow: "none",
 });
 
 const heroGrid = {
@@ -547,36 +559,28 @@ const heroGrid = {
 };
 
 const heroCard = {
-  p: 1.4,
-  borderRadius: 3.1,
+  p: 1.2,
+  borderRadius: 2.6,
   background:
-    "radial-gradient(circle at 85% 20%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 34%), linear-gradient(135deg, #2d44b2 0%, #3d58cd 46%, #5a78ea 100%)",
-  border: "1px solid rgba(170, 183, 255, 0.22)",
-  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 36px rgba(35, 52, 133, 0.24)",
+    "linear-gradient(135deg, #2b45b5 0%, #4460dd 54%, #5c77eb 100%)",
+  border: "1px solid rgba(161, 175, 255, 0.18)",
+  boxShadow: "none",
   position: "relative",
   overflow: "hidden",
   "&:before": {
     content: '""',
     position: "absolute",
-    inset: "auto -40px -40px auto",
-    width: 180,
-    height: 180,
-    borderRadius: 32,
-    background:
-      "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.0) 100%)",
-    transform: "rotate(18deg)",
+    inset: "auto -18px -18px auto",
+    width: 120,
+    height: 120,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
   },
   "&:after": {
     content: '""',
     position: "absolute",
-    right: 34,
-    bottom: 24,
-    width: 92,
-    height: 92,
-    borderRadius: 24,
-    border: "1px solid rgba(255,255,255,0.16)",
-    background: "linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 100%)",
-    boxShadow: "0 14px 30px rgba(17, 24, 39, 0.2)",
+    inset: 0,
+    background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 55%)",
   },
 };
 
@@ -619,10 +623,11 @@ const metricGrid = {
 };
 
 const metricCard = {
-  p: 1.2,
-  borderRadius: 2.6,
+  p: 1.1,
+  borderRadius: 2.4,
   background: "#0d1421",
-  border: "1px solid rgba(95,113,165,0.15)",
+  border: "1px solid rgba(95,113,165,0.14)",
+  boxShadow: "none",
 };
 
 const metricIcon = (color) => ({
@@ -665,11 +670,12 @@ const dashboardGrid = {
 };
 
 const panelCard = (theme) => ({
-  p: 1.25,
-  borderRadius: 3.1,
+  p: 1.1,
+  borderRadius: 2.8,
   minHeight: 0,
   background: theme.palette.background.paper,
   border: `1px solid ${theme.palette.divider}`,
+  boxShadow: "none",
 });
 
 const sectionTitle = {
@@ -686,8 +692,8 @@ const summaryStrip = {
 };
 
 const summaryBox = {
-  p: 1,
-  borderRadius: 2.2,
+  p: 0.95,
+  borderRadius: 1.9,
   background: "#0c1421",
   border: "1px solid rgba(95,113,165,0.12)",
 };
@@ -710,7 +716,7 @@ const attentionItem = {
   alignItems: "center",
   gap: 1,
   p: 0.95,
-  borderRadius: 2.4,
+  borderRadius: 2,
   background: "#0c1421",
   border: "1px solid rgba(95,113,165,0.12)",
   cursor: "pointer",
@@ -738,8 +744,8 @@ const subtleText = {
 
 const budgetGrid = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", xl: "260px minmax(0, 1fr)" },
-  gap: 1.2,
+  gridTemplateColumns: { xs: "1fr", xl: "240px minmax(0, 1fr)" },
+  gap: 1,
   alignItems: "start",
 };
 
@@ -749,8 +755,8 @@ const donutColumn = {
 
 const donutWrap = {
   width: "100%",
-  maxWidth: 220,
-  height: 220,
+  maxWidth: 208,
+  height: 208,
   display: "grid",
   placeItems: "center",
   marginInline: "auto",
@@ -759,8 +765,8 @@ const donutWrap = {
 
 const donutSummaryCard = (theme) => ({
   width: "100%",
-  p: 1,
-  borderRadius: 2.2,
+  p: 0.9,
+  borderRadius: 1.9,
   background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
   border: `1px solid ${theme.palette.divider}`,
   textAlign: "center",
@@ -818,8 +824,8 @@ const budgetFooter = {
 };
 
 const metricTile = (theme) => ({
-  p: 1,
-  borderRadius: 2.2,
+  p: 0.95,
+  borderRadius: 1.9,
   background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
   border: `1px solid ${theme.palette.divider}`,
 });
@@ -833,9 +839,9 @@ const tileValue = {
 };
 
 const calendarMonth = {
-  fontSize: 14,
+  fontSize: 13,
   fontWeight: 700,
-  mb: 0.9,
+  mb: 0.8,
 };
 
 const calendarWeekHeader = {
@@ -856,14 +862,14 @@ const calendarWeekLabel = {
 const calendarGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: 0.4,
+  gap: 0.28,
 };
 
 const calendarCell = (isCurrentMonth, isToday) => (theme) => ({
   aspectRatio: "1 / 1",
-  minHeight: 44,
-  p: 0.35,
-  borderRadius: 2,
+  minHeight: 42,
+  p: 0.28,
+  borderRadius: 1.7,
   border: isToday ? `1px solid ${alpha(theme.palette.primary.main, 0.42)}` : "1px solid transparent",
   background:
     theme.palette.mode === "light"
@@ -912,8 +918,8 @@ const pipelineStats = {
 };
 
 const pipelineStat = (theme) => ({
-  p: 0.95,
-  borderRadius: 2.1,
+  p: 0.9,
+  borderRadius: 1.9,
   background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
   border: `1px solid ${theme.palette.divider}`,
 });
@@ -945,7 +951,7 @@ const pipelineRow = (theme) => ({
   gap: 1,
   alignItems: "center",
   p: 0.85,
-  borderRadius: 2.2,
+  borderRadius: 1.9,
   background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
   border: `1px solid ${theme.palette.divider}`,
   cursor: "pointer",
@@ -962,7 +968,7 @@ const activityRow = (theme) => ({
   alignItems: "center",
   gap: 0.9,
   p: 0.85,
-  borderRadius: 2.2,
+  borderRadius: 1.9,
   background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
   border: `1px solid ${theme.palette.divider}`,
 });
@@ -994,7 +1000,7 @@ const activityTime = {
 const iconShell = (theme) => ({
   width: 30,
   height: 30,
-  borderRadius: 2,
+  borderRadius: 1.7,
   background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
   border: `1px solid ${theme.palette.divider}`,
   display: "grid",
