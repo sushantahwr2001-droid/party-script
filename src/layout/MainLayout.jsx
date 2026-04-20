@@ -24,11 +24,11 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import HelpOutlineRoundedIcon from "@mui/icons-material/HelpOutlineRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import { useAuth } from "../context/auth-context";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
 import { useVendors } from "../hooks/useVendors";
-import partyScriptLogo from "../assets/party-script-logo.png";
 
 const menuGroups = [
   {
@@ -170,23 +170,35 @@ export default function MainLayout() {
           sx={{
             display: "flex",
             alignItems: "center",
+            gap: 1.1,
             px: 1,
             mb: 1.6,
             minHeight: 38,
           }}
         >
           <Box
-            component="img"
-            src={partyScriptLogo}
-            alt="Party Script"
             sx={{
-              height: 22,
-              width: "auto",
-              maxWidth: "100%",
-              display: "block",
-              objectFit: "contain",
+              width: 30,
+              height: 30,
+              borderRadius: 999,
+              display: "grid",
+              placeItems: "center",
+              background: "#151f33",
+              color: "#7f85ff",
             }}
-          />
+          >
+            <BoltRoundedIcon sx={{ fontSize: 16 }} />
+          </Box>
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "#f6f8ff",
+            }}
+          >
+            Party Script
+          </Typography>
         </Box>
 
         <Box

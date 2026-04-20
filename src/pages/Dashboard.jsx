@@ -694,18 +694,20 @@ const subtleText = {
 
 const budgetGrid = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", md: "220px 1fr" },
+  gridTemplateColumns: { xs: "1fr", lg: "minmax(240px, 272px) minmax(0, 1fr)" },
   gap: 1.2,
   alignItems: "center",
 };
 
 const donutWrap = {
   position: "relative",
-  width: 220,
+  width: "100%",
+  maxWidth: 220,
   height: 220,
   display: "grid",
   placeItems: "center",
   marginInline: "auto",
+  justifySelf: "center",
 };
 
 const donutCenter = {
@@ -746,6 +748,7 @@ const donutCenterMeta = {
 const budgetList = {
   display: "grid",
   gap: 0.65,
+  minWidth: 0,
 };
 
 const budgetListRow = {
@@ -753,6 +756,7 @@ const budgetListRow = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 1,
+  minWidth: 0,
 };
 
 const budgetListValue = {

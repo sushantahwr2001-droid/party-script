@@ -422,19 +422,21 @@ const sectionSubtitle = {
 
 const budgetOverviewGrid = {
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", md: "220px 1fr" },
+  gridTemplateColumns: { xs: "1fr", lg: "minmax(248px, 280px) minmax(0, 1fr)" },
   gap: 1.1,
   alignItems: "center",
   mt: 1.2,
 };
 
 const donutWrap = {
-  width: 228,
+  width: "100%",
+  maxWidth: 228,
   height: 228,
   position: "relative",
   display: "grid",
   placeItems: "center",
   marginInline: "auto",
+  justifySelf: "center",
 };
 
 const donutCenter = {
@@ -467,6 +469,7 @@ const legendRow = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 1,
+  minWidth: 0,
 };
 
 const legendLabel = {
