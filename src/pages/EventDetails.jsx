@@ -17,10 +17,16 @@ import {
   Snackbar,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import DriveFileRenameOutlineOutlinedIcon from "@mui/icons-material/DriveFileRenameOutlineOutlined";
+import PublishedWithChangesOutlinedIcon from "@mui/icons-material/PublishedWithChangesOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import dayjs from "dayjs";
 import { useNavigate, useParams } from "react-router-dom";
 import EventWorkspaceLayout from "../layout/EventWorkspaceLayout";
@@ -289,6 +295,20 @@ export default function EventDetails() {
   };
 
   const handleDocumentAction = (action, document) => {
+    if (action === "download") {
+      if (document.previewUrl) {
+        const link = window.document.createElement("a");
+        link.href = document.previewUrl;
+        link.download = document.name || "document";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.click();
+      } else {
+        setFeedback("Download is unavailable for this file");
+      }
+      return;
+    }
+
     if (action === "preview") {
       const mimeType = document.mimeType || "";
 
@@ -1105,7 +1125,7 @@ function TasksTab({ tasks, expanded, onToggle, onQuickAction, onTaskToggle, onTa
         const stageProgress = stageTasks.length === 0 ? 0 : (completedCount / stageTasks.length) * 100;
 
         return (
-          <Card key={stage} sx={taskStageCard}>
+          <Card key={stage} sx={(theme) => taskStageCard(theme)}>
             <Box mb={0.15}>
               <Typography sx={sectionTitle}>{stage}</Typography>
               <Typography sx={captionText}>
@@ -1117,7 +1137,7 @@ function TasksTab({ tasks, expanded, onToggle, onQuickAction, onTaskToggle, onTa
             <Stack spacing={0.55} mt={0.85} sx={taskListStack}>
               {visibleTasks.length > 0 ? (
                 visibleTasks.map((task) => (
-                  <Box key={task.id} sx={taskRowCard}>
+                  <Box key={task.id} sx={(theme) => taskRowCard(theme)}>
                     <Checkbox size="small" checked={task.done} onChange={() => onTaskToggle(task.id)} sx={taskCheckbox} />
                     <Box flex={1} minWidth={0}>
                       <Typography fontWeight={700} sx={task.done ? doneText : taskTitle}>
@@ -1219,10 +1239,35 @@ function DocumentsTab({ documents, expanded, onToggle, onQuickAction, onDocument
           >
             <Typography sx={captionText}>{document.sizeLabel || "File"}</Typography>
             <Box sx={documentButtonGroup}>
-              <Button size="small" variant="outlined" onClick={() => onDocumentAction("preview", document)}>Preview</Button>
-              <Button size="small" variant="outlined" onClick={() => onDocumentAction("rename", document)}>Rename</Button>
-              <Button size="small" variant="outlined" onClick={() => onDocumentAction("replace", document)}>Replace</Button>
-              <Button size="small" color="error" variant="outlined" onClick={() => onDocumentAction("delete", document)}>Delete</Button>
+              <Tooltip title="Preview">
+                <IconButton size="small" sx={toolIconButton} onClick={() => onDocumentAction("preview", document)}>
+                  <VisibilityOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Download">
+                <IconButton size="small" sx={toolIconButton} onClick={() => onDocumentAction("download", document)}>
+                  <FileDownloadOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Rename">
+                <IconButton size="small" sx={toolIconButton} onClick={() => onDocumentAction("rename", document)}>
+                  <DriveFileRenameOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Replace">
+                <IconButton size="small" sx={toolIconButton} onClick={() => onDocumentAction("replace", document)}>
+                  <PublishedWithChangesOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  sx={deleteToolIconButton}
+                  onClick={() => onDocumentAction("delete", document)}
+                >
+                  <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Box>
         </Box>
@@ -1254,7 +1299,7 @@ function CompactListTab({
   const hiddenCount = Math.max(0, items.length - VISIBLE_LIMIT);
 
   return (
-    <Card sx={{ ...panelCard, display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <Card sx={(theme) => ({ ...panelCard(theme), display: "flex", flexDirection: "column", minHeight: 0 })}>
       <Typography sx={sectionTitle}>{title}</Typography>
       <Stack spacing={0.7} mt={1} sx={scrollArea}>
         {actualItems.length > 0 ? (
@@ -1331,15 +1376,18 @@ const contentGrid = {
   alignContent: "start",
 };
 
-const panelCard = {
+const panelCard = (theme) => ({
   p: 1.2,
   borderRadius: 3,
-  background: "#101826",
-  border: "1px solid rgba(95,113,165,0.16)",
-  boxShadow: "0 10px 24px rgba(2, 6, 23, 0.14)",
+  backgroundColor: theme.palette.background.paper,
+  border: `1px solid ${theme.palette.divider}`,
+  boxShadow:
+    theme.palette.mode === "light"
+      ? "0 14px 30px rgba(15, 23, 42, 0.08)"
+      : "0 10px 24px rgba(2, 6, 23, 0.14)",
   overflow: "hidden",
   minHeight: 0,
-};
+});
 
 const compactStatsGrid = {
   display: "grid",
@@ -1351,29 +1399,29 @@ const compactStatsGrid = {
   mt: 1,
 };
 
-const miniCard = {
+const miniCard = (theme) => ({
   p: 1,
   borderRadius: 2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
-};
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
+});
 
-const listRow = {
+const listRow = (theme) => ({
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 1,
   p: 0.85,
   borderRadius: 2,
-  background: "#0c1421",
-  border: "1px solid rgba(148,163,184,0.08)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   cursor: "pointer",
   transition: "background 0.18s ease, border-color 0.18s ease",
   "&:hover": {
-    background: "#111b2a",
-    borderColor: "rgba(129,140,248,0.18)",
+    background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.08) : "#111b2a",
+    borderColor: alpha(theme.palette.primary.main, 0.18),
   },
-};
+});
 
 const attentionRow = (tone) => ({
   p: 0.9,
@@ -1395,7 +1443,7 @@ const attentionRow = (tone) => ({
 const sectionTitle = {
   fontSize: 11.5,
   fontWeight: 600,
-  color: "#f3f6ff",
+  color: "text.primary",
 };
 
 const sectionCopy = {
@@ -1476,13 +1524,12 @@ const actionIconGroup = {
   opacity: 0.82,
 };
 
-const taskStageCard = {
-  ...panelCard,
+const taskStageCard = (theme) => ({
+  ...panelCard(theme),
   display: "flex",
   flexDirection: "column",
   minHeight: 0,
-  background: "#101826",
-};
+});
 
 const taskStageProgress = {
   height: 7,
@@ -1491,29 +1538,29 @@ const taskStageProgress = {
   backgroundColor: "rgba(74, 85, 140, 0.4)",
 };
 
-const taskRowCard = {
+const taskRowCard = (theme) => ({
   display: "flex",
   alignItems: "center",
   gap: 1,
   p: 0.8,
   borderRadius: 2,
-  background: "#0c1421",
-  border: "1px solid rgba(95,113,165,0.12)",
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
+  border: `1px solid ${theme.palette.divider}`,
   transition: "all 0.18s ease",
   "&:hover": {
-    background: "#111b2a",
-    borderColor: "rgba(109,123,255,0.22)",
+    background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.08) : "#111b2a",
+    borderColor: alpha(theme.palette.primary.main, 0.22),
     transform: "translateY(-1px)",
   },
-};
+});
 
 const taskCheckbox = {
   p: 0.4,
-  color: "#8fa0c6",
+  color: "text.secondary",
 };
 
 const taskTitle = {
-  color: "#eef2ff",
+  color: "text.primary",
   lineHeight: 1.2,
   fontSize: 11,
   fontWeight: 600,
@@ -1574,8 +1621,30 @@ const documentButtonGroup = {
   alignItems: "center",
   justifyContent: "flex-end",
   gap: 0.4,
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
 };
+
+const toolIconButton = (theme) => ({
+  width: 34,
+  height: 34,
+  borderRadius: 1.8,
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.05) : "#101826",
+  border: `1px solid ${theme.palette.divider}`,
+  color: theme.palette.text.secondary,
+  "&:hover": {
+    background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.12) : "#151f33",
+    color: theme.palette.primary.main,
+  },
+});
+
+const deleteToolIconButton = (theme) => ({
+  ...toolIconButton(theme),
+  "&:hover": {
+    background: theme.palette.mode === "light" ? "rgba(239, 68, 68, 0.10)" : "rgba(127, 29, 29, 0.28)",
+    color: theme.palette.error.main,
+    borderColor: alpha(theme.palette.error.main, 0.2),
+  },
+});
 
 const scrollArea = {
   flex: 1,
