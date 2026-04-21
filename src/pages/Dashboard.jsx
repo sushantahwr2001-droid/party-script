@@ -73,6 +73,7 @@ export default function Dashboard() {
     notes: "",
     budget: "",
   });
+  const [currentMonth, setCurrentMonth] = useState(() => dayjs().startOf("month"));
 
   const loading =
     eventsLoading || tasksLoading || vendorsLoading || statsLoading || activitiesLoading;
@@ -101,7 +102,7 @@ export default function Dashboard() {
   const greetingName = user?.name || "there";
   const greeting = `${greetingPrefix}, ${greetingName}.`;
 
-  const monthStart = useMemo(() => dayjs().startOf("month"), []);
+  const monthStart = currentMonth.startOf("month");
   const monthEnd = monthStart.endOf("month");
   const startWeek = monthStart.startOf("week");
   const endWeek = monthEnd.endOf("week");
@@ -374,11 +375,21 @@ export default function Dashboard() {
             </Stack>
           </Stack>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.05 }}>
-            <Box sx={calendarNavButton}>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => setCurrentMonth((value) => value.subtract(1, "month"))}
+              sx={calendarNavButton}
+            >
               <ChevronLeftRoundedIcon sx={{ fontSize: 17, color: "#9da6be" }} />
             </Box>
             <Typography sx={calendarMonth}>{monthStart.format("MMMM YYYY")}</Typography>
-            <Box sx={calendarNavButton}>
+            <Box
+              component="button"
+              type="button"
+              onClick={() => setCurrentMonth((value) => value.add(1, "month"))}
+              sx={calendarNavButton}
+            >
               <ChevronRightRoundedIcon sx={{ fontSize: 17, color: "#9da6be" }} />
             </Box>
           </Stack>
@@ -1100,4 +1111,9 @@ const calendarNavButton = {
   height: 22,
   display: "grid",
   placeItems: "center",
+  border: "none",
+  padding: 0,
+  borderRadius: 999,
+  background: "transparent",
+  cursor: "pointer",
 };
