@@ -27,6 +27,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import DriveFileRenameOutlineOutlinedIcon from "@mui/icons-material/DriveFileRenameOutlineOutlined";
 import PublishedWithChangesOutlinedIcon from "@mui/icons-material/PublishedWithChangesOutlined";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import AddTaskRoundedIcon from "@mui/icons-material/AddTaskRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
@@ -803,7 +804,33 @@ export default function EventDetails() {
       </Dialog>
 
       <Dialog open={Boolean(documentPreview)} onClose={() => setDocumentPreview(null)} fullWidth maxWidth="md">
-        <DialogTitle>{documentPreview?.name || "Preview"}</DialogTitle>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+          <Typography fontWeight={700}>{documentPreview?.name || "Preview"}</Typography>
+          {documentPreview ? (
+            <Box sx={documentButtonGroup}>
+              <Tooltip title="Download">
+                <IconButton size="small" sx={toolIconButton} onClick={() => handleDocumentAction("download", documentPreview)}>
+                  <FileDownloadOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Rename">
+                <IconButton size="small" sx={toolIconButton} onClick={() => handleDocumentAction("rename", documentPreview)}>
+                  <DriveFileRenameOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Replace">
+                <IconButton size="small" sx={toolIconButton} onClick={() => handleDocumentAction("replace", documentPreview)}>
+                  <PublishedWithChangesOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton size="small" sx={deleteToolIconButton} onClick={() => handleDocumentAction("delete", documentPreview)}>
+                  <DeleteOutlineOutlinedIcon sx={{ fontSize: 17 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          ) : null}
+        </DialogTitle>
         <DialogContent sx={{ minHeight: 360, display: "grid", gap: 1 }}>
           {documentPreview?.mimeType?.startsWith("image/") && documentPreview?.previewUrl ? (
             <Box component="img" src={documentPreview.previewUrl} alt={documentPreview.name} sx={{ width: "100%", maxHeight: 480, objectFit: "contain", borderRadius: 2 }} />
@@ -843,8 +870,8 @@ export default function EventDetails() {
       <Dialog open={Boolean(replaceTarget)} onClose={() => setReplaceTarget(null)} fullWidth maxWidth="xs">
         <DialogTitle>Replace document</DialogTitle>
         <DialogContent sx={{ pt: "10px !important" }}>
-          <Button variant="outlined" component="label" fullWidth>
-            Choose replacement file
+          <Button variant="outlined" component="label" fullWidth startIcon={<UploadFileOutlinedIcon />}>
+            Select replacement file
             <input
               type="file"
               hidden
