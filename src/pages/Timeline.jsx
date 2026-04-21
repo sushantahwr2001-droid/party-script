@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Box, Card, Chip, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Card, Chip, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -66,9 +66,18 @@ export default function Timeline() {
         <Card sx={calendarCard}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
             <Stack direction="row" spacing={0.9} sx={{ alignItems: "center" }}>
-              <Box sx={calendarIconShell}>
-                <CalendarMonthRoundedIcon sx={{ fontSize: 16, color: "#8a8eff" }} />
-              </Box>
+              <Tooltip title="Jump to today">
+                <IconButton
+                  size="small"
+                  sx={calendarIconShell}
+                  onClick={() => {
+                    setMonthOffset(0);
+                    setSelectedDay(dayjs().format("YYYY-MM-DD"));
+                  }}
+                >
+                  <CalendarMonthRoundedIcon sx={{ fontSize: 16, color: "#8a8eff" }} />
+                </IconButton>
+              </Tooltip>
               <Typography sx={sectionTitle}>Calendar</Typography>
             </Stack>
 
@@ -282,8 +291,11 @@ const calendarIconShell = {
   height: 28,
   borderRadius: 1.6,
   background: "rgba(127,133,255,0.14)",
-  display: "grid",
-  placeItems: "center",
+  border: "1px solid rgba(127,133,255,0.18)",
+  "&:hover": {
+    background: "rgba(127,133,255,0.2)",
+    borderColor: "rgba(127,133,255,0.28)",
+  },
 };
 
 const calendarNavButton = {
