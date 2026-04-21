@@ -1268,6 +1268,8 @@ function DocumentsTab({ documents, expanded, onToggle, onQuickAction, onDocument
       emptySubtitle="Upload your first contract, proposal, or invoice for this event."
       emptyActionLabel="+ Add Document"
       onEmptyAction={() => onQuickAction("Documents")}
+      emptyActionIcon={<UploadFileOutlinedIcon sx={{ fontSize: 18 }} />}
+      emptyActionTooltip="Add document"
       renderItem={(document) => (
         <Box key={document.id} sx={listRow}>
           <Box>
