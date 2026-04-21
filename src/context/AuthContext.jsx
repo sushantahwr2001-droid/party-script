@@ -272,6 +272,25 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const sendPasswordReset = useCallback(async () => {
+    if (!user?.email || !supabase) {
+      throw new Error("You must be signed in to reset your password.");
+    }
+
+    const redirectTo =
+      typeof window !== "undefined" ? `${window.location.origin}/login` : undefined;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return true;
+  }, [user]);
+
   const updateProfileName = useCallback(async (fullName) => {
     if (!user || !supabase) {
       throw new Error("You must be signed in to update your profile.");
@@ -357,13 +376,14 @@ export function AuthProvider({ children }) {
       login,
       signup,
       logout,
+      sendPasswordReset,
       updateProfileName,
       authError,
       authDebug,
       permissions,
       isConfigured: isSupabaseConfigured,
     }),
-    [user, loading, authError, authDebug, permissions, updateProfileName]
+    [user, loading, authError, authDebug, permissions, updateProfileName, sendPasswordReset]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -352,7 +352,13 @@ export default function MainLayout() {
             {utilityItems.map((item) => (
               <ListItemButton
                 key={item.label}
-                onClick={item.path ? () => navigate(item.path) : undefined}
+                onClick={
+                  item.path
+                    ? () => navigate(item.path)
+                    : item.label === "Support"
+                      ? () => window.open("mailto:hello@partyscript.in?subject=Party%20Script%20Support", "_blank")
+                      : undefined
+                }
                 sx={{
                   minHeight: 38,
                   px: 1,

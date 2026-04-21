@@ -115,7 +115,7 @@ function exportSettingsFile(settings, user) {
 }
 
 export default function Settings() {
-  const { user, updateProfileName } = useAuth();
+  const { user, updateProfileName, sendPasswordReset } = useAuth();
   const { settings, updateSettings, resetSettings } = useAppSettings();
   const [activeSection, setActiveSection] = useState("general");
 
@@ -308,7 +308,19 @@ export default function Settings() {
                 hint="Change your password from Supabase Auth when you are ready."
                 divider={false}
               >
-                <Button variant="outlined" startIcon={<LockRoundedIcon />}>
+                <Button
+                  variant="outlined"
+                  startIcon={<LockRoundedIcon />}
+                  onClick={async () => {
+                    setError("");
+                    try {
+                      await sendPasswordReset();
+                      setNotice("Password reset email sent");
+                    } catch (nextError) {
+                      setError(nextError.message);
+                    }
+                  }}
+                >
                   Change password
                 </Button>
               </SettingRow>
