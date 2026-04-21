@@ -22,12 +22,10 @@ import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
 import NotificationsRoundedIcon from "@mui/icons-material/NotificationsRounded";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
-import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import SecurityRoundedIcon from "@mui/icons-material/SecurityRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import { useAuth } from "../context/auth-context";
 import { useAppSettings } from "../context/AppSettingsContext";
 
@@ -37,7 +35,6 @@ const settingsNav = [
   { id: "team", label: "Team", icon: GroupRoundedIcon },
   { id: "notifications", label: "Notifications", icon: NotificationsRoundedIcon },
   { id: "preferences", label: "Preferences", icon: PaletteRoundedIcon },
-  { id: "data", label: "Data", icon: StorageRoundedIcon },
   { id: "security", label: "Security", icon: SecurityRoundedIcon },
   { id: "account", label: "Account", icon: PersonRoundedIcon },
 ];
@@ -90,28 +87,6 @@ function readFileAsDataUrl(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
-}
-
-function exportSettingsFile(settings, user) {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    user: {
-      name: user?.name || "",
-      email: user?.email || "",
-    },
-    settings,
-  };
-
-  const blob = new Blob([JSON.stringify(payload, null, 2)], {
-    type: "application/json;charset=utf-8;",
-  });
-
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "party-script-settings.json";
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 export default function Settings() {
@@ -561,52 +536,6 @@ export default function Settings() {
               <Button variant="contained" onClick={handleSavePreferences}>
                 Save preferences
               </Button>
-            </Box>
-          </Stack>
-        </Paper>
-      );
-    }
-
-    if (activeSection === "data") {
-      return (
-        <Paper elevation={0} sx={sectionPanel}>
-          <Stack spacing={2.5}>
-            <SectionHeader
-              eyebrow="Data"
-              title="Export and reset"
-              description="Keep a portable copy of your console preferences and local workspace state."
-            />
-
-            <Box>
-              <SettingRow
-                label="Export settings"
-                hint="Download your current console preferences as a JSON file."
-              >
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadRoundedIcon />}
-                  onClick={() => exportSettingsFile(settings, user)}
-                >
-                  Download JSON
-                </Button>
-              </SettingRow>
-
-              <SettingRow
-                label="Reset preferences"
-                hint="Restore the local console preferences back to their default values."
-                divider={false}
-              >
-                <Button
-                  color="error"
-                  variant="outlined"
-                  onClick={() => {
-                    resetSettings();
-                    setNotice("Local settings reset");
-                  }}
-                >
-                  Reset local settings
-                </Button>
-              </SettingRow>
             </Box>
           </Stack>
         </Paper>
