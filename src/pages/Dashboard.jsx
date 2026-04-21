@@ -221,10 +221,12 @@ export default function Dashboard() {
               <TextField size="small" label="Event name" value={form.name} onChange={handleChange("name")} />
               <TextField
                 size="small"
+                label="Event date"
                 type="date"
                 value={form.date}
                 onChange={handleChange("date")}
                 inputProps={{ "aria-label": "Event date" }}
+                InputLabelProps={{ shrink: true }}
                 sx={dateField}
               />
               <TextField size="small" label="Venue" value={form.venue} onChange={handleChange("venue")} />
@@ -591,7 +593,7 @@ const heroCopy = {
 const quickCreateGrid = {
   mt: 1.3,
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", md: "repeat(5, minmax(0, 1fr))" },
+  gridTemplateColumns: { xs: "1fr", md: "repeat(4, minmax(0, 1fr))" },
   gap: 0.8,
   position: "relative",
   zIndex: 1,
@@ -603,8 +605,14 @@ const dateField = {
     "& input": {
       color: "#eef2ff",
       fontSize: 14,
-      paddingBlock: "11px",
+      paddingBlock: "12px",
     },
+  },
+  "& .MuiInputLabel-root": {
+    color: "rgba(238, 242, 255, 0.72)",
+  },
+  "& .MuiInputLabel-root.Mui-focused": {
+    color: "rgba(238, 242, 255, 0.92)",
   },
 };
 
@@ -614,6 +622,9 @@ const saveEventButton = {
   fontWeight: 700,
   boxShadow: "none",
   whiteSpace: "nowrap",
+  gridColumn: "1 / -1",
+  justifySelf: { xs: "stretch", md: "start" },
+  minWidth: { xs: "100%", md: 172 },
 };
 
 const metricGrid = {
