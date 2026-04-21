@@ -13,7 +13,6 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
@@ -150,31 +149,14 @@ export default function Dashboard() {
     return hasSignal ? lineChartData : PLACEHOLDER_ANALYTICS;
   }, [lineChartData]);
 
-  const budgetBreakdown = useMemo(() => {
-    const categoryData = stats.vendorCategoryData?.length
-      ? stats.vendorCategoryData
-      : Object.entries(
-          vendors.reduce((accumulator, vendor) => {
-            accumulator[vendor.category || "General"] =
-              (accumulator[vendor.category || "General"] || 0) + (vendor.cost || 0);
-            return accumulator;
-          }, {})
-        ).map(([name, value]) => ({ name, value }));
-
-    return categoryData
-      .filter((item) => Number(item.value) > 0)
-      .sort((a, b) => Number(b.value) - Number(a.value))
-      .slice(0, 5);
-  }, [stats.vendorCategoryData, vendors]);
-
   const donutData = useMemo(() => {
-    const palette = ["#7f85ff", "#4c5a78", "#2f3850", "#1f273a", "#131b2a"];
-    const source = budgetBreakdown.length > 0 ? budgetBreakdown : [{ name: "Unassigned", value: stats.totalSpent || 0 }];
-    return source.map((item, index) => ({
-      ...item,
-      fill: palette[index % palette.length],
-    }));
-  }, [budgetBreakdown, stats.totalSpent]);
+    const spent = Math.max(Number(stats.totalSpent) || 0, 0);
+    const remaining = Math.max(Number(stats.totalBudget) - spent, 0);
+    return [
+      { name: "Spent", value: spent, fill: "#7f85ff" },
+      { name: "Remaining", value: remaining, fill: "#37445f" },
+    ];
+  }, [stats.totalBudget, stats.totalSpent]);
 
   const eventRows = useMemo(
     () =>
@@ -235,27 +217,26 @@ export default function Dashboard() {
               in one place.
             </Typography>
 
-            <Stack direction="row" spacing={1} mt={2.1}>
-              <Button variant="contained" startIcon={<AddRoundedIcon />} onClick={handleCreate}>
-                Create Event
-              </Button>
-              <Button variant="outlined" startIcon={<VisibilityRoundedIcon />} onClick={() => navigate("/events")}>
-                View Events
-              </Button>
-            </Stack>
-
             <Box sx={quickCreateGrid}>
               <TextField size="small" label="Event name" value={form.name} onChange={handleChange("name")} />
               <TextField
                 size="small"
-                label="Date"
                 type="date"
                 value={form.date}
                 onChange={handleChange("date")}
-                InputLabelProps={{ shrink: true }}
+                inputProps={{ "aria-label": "Event date" }}
+                sx={dateField}
               />
               <TextField size="small" label="Venue" value={form.venue} onChange={handleChange("venue")} />
               <TextField size="small" label="Budget" value={form.budget} onChange={handleChange("budget")} />
+              <Button
+                variant="contained"
+                startIcon={<AddRoundedIcon />}
+                onClick={handleCreate}
+                sx={saveEventButton}
+              >
+                Save Event
+              </Button>
             </Box>
 
             {createError ? (
@@ -354,10 +335,10 @@ export default function Dashboard() {
 
             <Stack spacing={1.1}>
               <Box sx={budgetList}>
-                {budgetBreakdown.slice(0, 5).map((item) => (
+                {donutData.map((item) => (
                   <Box key={item.name} sx={budgetListRow}>
                     <Stack direction="row" spacing={0.7} sx={{ alignItems: "center", minWidth: 0 }}>
-                      <Box sx={legendSwatch(item.name)} />
+                      <Box sx={legendSwatch(item.fill)} />
                       <Typography sx={subtleText} noWrap>
                         {item.name}
                       </Typography>
@@ -610,10 +591,29 @@ const heroCopy = {
 const quickCreateGrid = {
   mt: 1.3,
   display: "grid",
-  gridTemplateColumns: { xs: "1fr", md: "repeat(4, minmax(0, 1fr))" },
+  gridTemplateColumns: { xs: "1fr", md: "repeat(5, minmax(0, 1fr))" },
   gap: 0.8,
   position: "relative",
   zIndex: 1,
+};
+
+const dateField = {
+  "& .MuiOutlinedInput-root": {
+    height: "100%",
+    "& input": {
+      color: "#eef2ff",
+      fontSize: 14,
+      paddingBlock: "11px",
+    },
+  },
+};
+
+const saveEventButton = {
+  minHeight: 40,
+  borderRadius: 2,
+  fontWeight: 700,
+  boxShadow: "none",
+  whiteSpace: "nowrap",
 };
 
 const metricGrid = {
@@ -1032,19 +1032,11 @@ const statusChip = (status) => ({
           : "#bfdbfe",
 });
 
-const legendSwatch = (name) => {
-  const palette = {
-    Venue: "#7f85ff",
-    Catering: "#65739d",
-    Decor: "#40506d",
-    Entertainment: "#2b364b",
-    Others: "#1e2737",
-  };
-
+const legendSwatch = (color) => {
   return {
     width: 7,
     height: 7,
     borderRadius: 999,
-    bgcolor: palette[name] || "#7f85ff",
+    bgcolor: color,
   };
 };

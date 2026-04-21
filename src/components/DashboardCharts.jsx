@@ -74,18 +74,25 @@ export function BudgetDonutChart({
   innerRadius = 58,
   outerRadius = 82,
 }) {
+  const total = (data || []).reduce((sum, item) => sum + Math.max(Number(item.value) || 0, 0), 0);
+  const safeData =
+    total > 0
+      ? data.filter((item) => Number(item.value) > 0)
+      : [{ name: "Empty", value: 1, fill: "#232d45" }];
+
   return (
     <Box sx={{ width, height }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
-            data={data}
+            data={safeData}
             dataKey="value"
             nameKey="name"
             innerRadius={innerRadius}
             outerRadius={outerRadius}
-            paddingAngle={3}
+            paddingAngle={total > 0 ? 3 : 0}
             stroke="none"
+            isAnimationActive={total > 0}
           />
           <Tooltip contentStyle={tooltipStyle} />
         </PieChart>
