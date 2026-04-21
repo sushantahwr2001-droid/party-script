@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Box, Button, Card, Chip, Typography } from "@mui/material";
+import { Box, Card, Chip, IconButton, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
 import { buildCalendarItems } from "../utils/eventSelectors";
@@ -48,7 +51,7 @@ export default function Timeline() {
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: "flex-start",
           gap: 1,
           mb: 1,
         }}
@@ -57,23 +60,28 @@ export default function Timeline() {
           <Typography sx={pageTitle}>Calendar</Typography>
           <Typography sx={pageSubtitle}>Monthly event and deadline visibility.</Typography>
         </Box>
-
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Button size="small" variant="outlined" onClick={() => setMonthOffset((value) => value - 1)}>
-            Previous
-          </Button>
-          <Button size="small" variant="outlined" onClick={() => setMonthOffset(0)}>
-            Today
-          </Button>
-          <Button size="small" variant="outlined" onClick={() => setMonthOffset((value) => value + 1)}>
-            Next
-          </Button>
-        </Box>
       </Box>
 
       <Box sx={calendarLayout}>
         <Card sx={calendarCard}>
-          <Typography sx={sectionTitle}>{monthStart.format("MMMM YYYY")}</Typography>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
+            <Stack direction="row" spacing={0.9} sx={{ alignItems: "center" }}>
+              <Box sx={calendarIconShell}>
+                <CalendarMonthRoundedIcon sx={{ fontSize: 16, color: "#8a8eff" }} />
+              </Box>
+              <Typography sx={sectionTitle}>Calendar</Typography>
+            </Stack>
+
+            <Stack direction="row" spacing={0.8} sx={{ alignItems: "center" }}>
+              <IconButton size="small" sx={calendarNavButton} onClick={() => setMonthOffset((value) => value - 1)}>
+                <ChevronLeftRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+              <Typography sx={monthTitle}>{monthStart.format("MMMM YYYY")}</Typography>
+              <IconButton size="small" sx={calendarNavButton} onClick={() => setMonthOffset((value) => value + 1)}>
+                <ChevronRightRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Stack>
+          </Stack>
 
           <Box sx={weekHeader}>
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
@@ -186,12 +194,20 @@ const calendarCard = {
 };
 
 const sectionTitle = {
-  fontSize: 11.5,
-  fontWeight: 600,
+  fontSize: 13.5,
+  fontWeight: 700,
+  letterSpacing: "-0.02em",
+};
+
+const monthTitle = {
+  fontSize: 13,
+  fontWeight: 700,
+  letterSpacing: "-0.02em",
+  minWidth: 110,
+  textAlign: "center",
 };
 
 const weekHeader = {
-  mt: 0.8,
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
   gap: 0.5,
@@ -259,4 +275,26 @@ const upcomingRow = {
 const captionText = {
   color: "text.secondary",
   fontSize: 11,
+};
+
+const calendarIconShell = {
+  width: 28,
+  height: 28,
+  borderRadius: 1.6,
+  background: "rgba(127,133,255,0.14)",
+  display: "grid",
+  placeItems: "center",
+};
+
+const calendarNavButton = {
+  width: 28,
+  height: 28,
+  borderRadius: 999,
+  color: "#aeb7cb",
+  background: "transparent",
+  border: "1px solid rgba(148,163,184,0.12)",
+  "&:hover": {
+    background: "rgba(127,133,255,0.08)",
+    borderColor: "rgba(127,133,255,0.22)",
+  },
 };
