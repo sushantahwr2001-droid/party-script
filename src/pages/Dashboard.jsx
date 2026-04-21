@@ -13,6 +13,9 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
@@ -221,12 +224,11 @@ export default function Dashboard() {
               <TextField size="small" label="Event name" value={form.name} onChange={handleChange("name")} />
               <TextField
                 size="small"
-                label="Event date"
                 type="date"
                 value={form.date}
                 onChange={handleChange("date")}
                 inputProps={{ "aria-label": "Event date" }}
-                InputLabelProps={{ shrink: true }}
+                placeholder="dd-mm-yyyy"
                 sx={dateField}
               />
               <TextField size="small" label="Venue" value={form.venue} onChange={handleChange("venue")} />
@@ -360,13 +362,26 @@ export default function Dashboard() {
 
         <Card sx={panelCard}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
-            <Typography sx={sectionTitle}>Event Calendar</Typography>
+            <Stack direction="row" spacing={0.9} sx={{ alignItems: "center" }}>
+              <Box sx={calendarIconShell}>
+                <CalendarMonthRoundedIcon sx={{ fontSize: 16, color: "#8a8eff" }} />
+              </Box>
+              <Typography sx={sectionTitle}>Calendar</Typography>
+            </Stack>
             <Stack direction="row" spacing={1}>
               <LegendDot color="#7f85ff" label="Events" />
               <LegendDot color="#ffb163" label="Tasks" />
             </Stack>
           </Stack>
-          <Typography sx={calendarMonth}>{monthStart.format("MMMM YYYY")}</Typography>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.05 }}>
+            <Box sx={calendarNavButton}>
+              <ChevronLeftRoundedIcon sx={{ fontSize: 17, color: "#9da6be" }} />
+            </Box>
+            <Typography sx={calendarMonth}>{monthStart.format("MMMM YYYY")}</Typography>
+            <Box sx={calendarNavButton}>
+              <ChevronRightRoundedIcon sx={{ fontSize: 17, color: "#9da6be" }} />
+            </Box>
+          </Stack>
           <Box sx={calendarWeekHeader}>
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((label) => (
               <Typography key={label} sx={calendarWeekLabel}>
@@ -380,9 +395,10 @@ export default function Dashboard() {
               const dayItems = calendarItems.filter((item) => dayjs(item.date).format("YYYY-MM-DD") === dayKey);
               const isCurrentMonth = day.isSame(monthStart, "month");
               const isToday = day.isSame(now, "day");
+              const dayTone = dayItems[0]?.type === "task" ? "task" : dayItems[0]?.type === "event" ? "event" : null;
 
               return (
-                <Box key={dayKey} sx={calendarCell(isCurrentMonth, isToday)}>
+                <Box key={dayKey} sx={calendarCell(isCurrentMonth, isToday, dayTone, dayItems.length > 0)}>
                   <Typography sx={calendarDayLabel(isCurrentMonth, isToday)}>{day.format("D")}</Typography>
                   <Box sx={calendarDots}>
                     {dayItems.slice(0, 3).map((item) => (
@@ -608,11 +624,9 @@ const dateField = {
       paddingBlock: "12px",
     },
   },
-  "& .MuiInputLabel-root": {
-    color: "rgba(238, 242, 255, 0.72)",
-  },
-  "& .MuiInputLabel-root.Mui-focused": {
-    color: "rgba(238, 242, 255, 0.92)",
+  "& input::-webkit-calendar-picker-indicator": {
+    cursor: "pointer",
+    filter: "invert(1) opacity(0.72)",
   },
 };
 
@@ -852,47 +866,55 @@ const tileValue = {
 const calendarMonth = {
   fontSize: 13,
   fontWeight: 700,
-  mb: 0.8,
+  letterSpacing: "-0.02em",
 };
 
 const calendarWeekHeader = {
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: 0.4,
-  mb: 0.4,
+  gap: 0.48,
+  mb: 0.48,
 };
 
 const calendarWeekLabel = {
   color: "text.secondary",
-  fontSize: 10,
+  fontSize: 10.5,
   textAlign: "center",
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
+  letterSpacing: "0.02em",
 };
 
 const calendarGrid = {
   display: "grid",
   gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-  gap: 0.28,
+  gap: 0.5,
 };
 
-const calendarCell = (isCurrentMonth, isToday) => (theme) => ({
+const calendarCell = (isCurrentMonth, isToday, tone, hasItems) => (theme) => ({
   aspectRatio: "1 / 1",
-  minHeight: 42,
+  minHeight: 34,
   p: 0.28,
-  borderRadius: 1.7,
-  border: isToday ? `1px solid ${alpha(theme.palette.primary.main, 0.42)}` : "1px solid transparent",
+  borderRadius: 1.6,
+  border: "1px solid transparent",
   background:
-    theme.palette.mode === "light"
-      ? isCurrentMonth
-        ? "#f8fbff"
-        : "#eef3fb"
-      : isCurrentMonth
-        ? "#0c1421"
-        : "#0b1019",
+    hasItems
+      ? tone === "task"
+        ? "rgba(255, 177, 99, 0.16)"
+        : "rgba(127, 133, 255, 0.22)"
+      : theme.palette.mode === "light"
+        ? isCurrentMonth
+          ? isToday
+            ? alpha(theme.palette.primary.main, 0.14)
+            : "transparent"
+          : "#eef3fb"
+        : isCurrentMonth
+          ? isToday
+            ? alpha(theme.palette.primary.main, 0.18)
+            : "transparent"
+          : "#0b1019",
   display: "flex",
   flexDirection: "column",
-  justifyContent: "space-between",
+  justifyContent: "center",
+  alignItems: "center",
 });
 
 const calendarDayLabel = (isCurrentMonth, isToday) => (theme) => ({
@@ -904,14 +926,26 @@ const calendarDayLabel = (isCurrentMonth, isToday) => (theme) => ({
       ? theme.palette.text.primary
       : alpha(theme.palette.text.secondary, 0.9),
   textAlign: "center",
+  lineHeight: 1,
+  ...(isToday
+    ? {
+        width: 24,
+        height: 24,
+        display: "grid",
+        placeItems: "center",
+        borderRadius: 999,
+        background: alpha(theme.palette.primary.main, 0.2),
+      }
+    : {}),
 });
 
 const calendarDots = {
   display: "flex",
   justifyContent: "center",
   gap: 0.28,
-  minHeight: 8,
+  minHeight: 7,
   alignItems: "center",
+  marginTop: 4,
 };
 
 const calendarDot = (type) => ({
@@ -1050,4 +1084,20 @@ const legendSwatch = (color) => {
     borderRadius: 999,
     bgcolor: color,
   };
+};
+
+const calendarIconShell = {
+  width: 28,
+  height: 28,
+  borderRadius: 1.6,
+  background: "rgba(127,133,255,0.14)",
+  display: "grid",
+  placeItems: "center",
+};
+
+const calendarNavButton = {
+  width: 22,
+  height: 22,
+  display: "grid",
+  placeItems: "center",
 };
