@@ -49,9 +49,9 @@ export default function Tasks() {
       >
         <Box>
           <Typography sx={eyebrow}>Task workspace</Typography>
-          <Typography sx={pageTitle}>Organize execution work as a premium multi-stage board.</Typography>
+          <Typography sx={pageTitle}>Task Board</Typography>
           <Typography sx={pageSubtitle}>
-            {summary.total} total tasks / {summary.open} open / {summary.done} completed
+            Manage tasks across event stages. {summary.total} total / {summary.open} open / {summary.done} completed
           </Typography>
         </Box>
 

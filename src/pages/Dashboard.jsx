@@ -2,6 +2,7 @@ import { Suspense, lazy, useMemo, useState } from "react";
 import {
   Alert,
   Box,
+  ButtonBase,
   Button,
   Card,
   Chip,
@@ -16,7 +17,6 @@ import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-import MoreHorizRoundedIcon from "@mui/icons-material/MoreHorizRounded";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
@@ -294,7 +294,9 @@ export default function Dashboard() {
         <Card sx={panelCard}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
             <Typography sx={sectionTitle}>Needs Attention</Typography>
-            <Typography sx={linkText}>View all</Typography>
+            <ButtonBase onClick={() => navigate("/events")} sx={inlineLinkButton}>
+              <Typography sx={linkText}>View all</Typography>
+            </ButtonBase>
           </Stack>
           <Stack spacing={0.85}>
             {stats.needsAttention.length > 0 ? (
@@ -425,7 +427,7 @@ export default function Dashboard() {
         <Card sx={{ ...panelCard, gridColumn: { xs: "1 / -1", xl: "span 1" } }}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
             <Typography sx={sectionTitle}>Event Pipeline</Typography>
-            <IconButtonShell />
+            <Chip label="Coming soon" size="small" sx={comingSoonChip} />
           </Stack>
           <Box sx={pipelineStats}>
             <PipelineStat label="Confirmed" value={events.filter((item) => item.status === "Confirmed").length} />
@@ -463,7 +465,7 @@ export default function Dashboard() {
         <Card sx={panelCard}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 1.1 }}>
             <Typography sx={sectionTitle}>Recent Activity</Typography>
-            <Typography sx={linkText}>View all</Typography>
+            <Chip label="Coming soon" size="small" sx={comingSoonChip} />
           </Stack>
           <Stack spacing={0.75}>
             {activityRows.length > 0 ? (
@@ -533,14 +535,6 @@ function LegendDot({ color, label }) {
       <Box sx={{ width: 7, height: 7, borderRadius: 999, bgcolor: color }} />
       <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>{label}</Typography>
     </Stack>
-  );
-}
-
-function IconButtonShell() {
-  return (
-    <Box sx={iconShell}>
-      <MoreHorizRoundedIcon sx={{ fontSize: 18, color: "#9ca3b7" }} />
-    </Box>
   );
 }
 
@@ -771,6 +765,12 @@ const arrowText = {
 const linkText = {
   fontSize: 11.5,
   color: "#aeb7cb",
+};
+
+const inlineLinkButton = {
+  px: 0,
+  py: 0,
+  borderRadius: 1,
 };
 
 const subtleText = {
@@ -1053,20 +1053,17 @@ const activityTime = {
   flexShrink: 0,
 };
 
-const iconShell = (theme) => ({
-  width: 30,
-  height: 30,
-  borderRadius: 1.7,
-  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.04) : "#0c1421",
-  border: `1px solid ${theme.palette.divider}`,
-  display: "grid",
-  placeItems: "center",
-});
-
 const softChip = (theme) => ({
   background: theme.palette.mode === "light" ? "#f4f7ff" : "#141c2c",
   color: theme.palette.text.primary,
   border: `1px solid ${theme.palette.divider}`,
+});
+
+const comingSoonChip = (theme) => ({
+  background: theme.palette.mode === "light" ? alpha(theme.palette.primary.main, 0.06) : "#141c2c",
+  color: theme.palette.text.secondary,
+  border: `1px solid ${theme.palette.divider}`,
+  fontWeight: 600,
 });
 
 const statusChip = (status) => ({
