@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Card,
-  Divider,
   Stack,
   TextField,
   Typography,
@@ -30,6 +29,14 @@ const AUTH_COPY = {
     footerPrompt: "Already have an account?",
     footerAction: "Back to sign in",
   },
+};
+
+const fieldLabel = {
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "rgba(191, 219, 254, 0.78)",
 };
 
 export default function Login() {
@@ -99,19 +106,70 @@ export default function Login() {
         }}
       />
 
+      <Box
+        sx={{
+          position: "absolute",
+          top: "12%",
+          left: "50%",
+          width: 460,
+          height: 460,
+          transform: "translateX(-50%)",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.08) 30%, transparent 72%)",
+          filter: "blur(12px)",
+          pointerEvents: "none",
+        }}
+      />
+
       <Card
         sx={{
           position: "relative",
           width: "100%",
-          maxWidth: 500,
-          p: { xs: 2.5, md: 3 },
-          borderRadius: 6,
-          background: "#101826",
-          border: "1px solid rgba(109, 107, 255, 0.18)",
-          boxShadow: "0 18px 40px rgba(2, 6, 23, 0.32)",
+          maxWidth: 520,
+          px: { xs: 2.5, md: 3.25 },
+          py: { xs: 3, md: 3.5 },
+          borderRadius: 7,
+          background:
+            "linear-gradient(180deg, rgba(17,24,39,0.96) 0%, rgba(15,23,36,0.98) 100%)",
+          border: "1px solid rgba(109, 107, 255, 0.14)",
+          boxShadow:
+            "0 28px 60px rgba(2, 6, 23, 0.46), inset 0 1px 0 rgba(255,255,255,0.03)",
+          overflow: "hidden",
         }}
       >
-        <Stack spacing={1} sx={{ textAlign: "center", alignItems: "center" }}>
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at top right, rgba(99,102,241,0.14), transparent 28%), radial-gradient(circle at bottom left, rgba(59,130,246,0.08), transparent 24%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <Stack spacing={1.25} sx={{ position: "relative", textAlign: "center", alignItems: "center" }}>
+          <Box
+            sx={{
+              px: 1.25,
+              py: 0.55,
+              borderRadius: 999,
+              border: "1px solid rgba(99,102,241,0.18)",
+              background: "rgba(99,102,241,0.08)",
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 11,
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                fontWeight: 700,
+                color: "#8f98ff",
+              }}
+            >
+              Event Operations
+            </Typography>
+          </Box>
+
           <Box
             component="img"
             src={partyScriptLogoLight}
@@ -119,18 +177,19 @@ export default function Login() {
             sx={{
               display: "block",
               width: "100%",
-              maxWidth: 208,
+              maxWidth: 210,
               height: "auto",
               objectFit: "contain",
-              mb: 0,
+              mt: 0.5,
             }}
           />
           <Typography
             sx={{
-              fontSize: { xs: 24, md: 34 },
-              lineHeight: 1.02,
+              fontSize: { xs: 30, md: 42 },
+              lineHeight: 0.98,
               letterSpacing: "-0.06em",
               fontWeight: 800,
+              color: "#f8fafc",
             }}
           >
             {copy.title}
@@ -139,7 +198,7 @@ export default function Login() {
             sx={{
               maxWidth: 340,
               fontSize: 14,
-              lineHeight: 1.45,
+              lineHeight: 1.6,
               color: "rgba(226, 232, 240, 0.72)",
             }}
           >
@@ -147,9 +206,16 @@ export default function Login() {
           </Typography>
         </Stack>
 
-        <Divider sx={{ my: 1.75, borderColor: "rgba(148, 163, 184, 0.14)" }} />
-
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: 1 }}>
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            position: "relative",
+            display: "grid",
+            gap: 1.15,
+            mt: 2.25,
+          }}
+        >
           {!isConfigured ? (
             <Alert severity="warning">
               Supabase isn&apos;t configured yet. Add `VITE_SUPABASE_URL` and
@@ -157,8 +223,8 @@ export default function Login() {
             </Alert>
           ) : null}
 
+          <Typography sx={fieldLabel}>Email</Typography>
           <TextField
-            label="Email"
             value={form.email}
             onChange={handleChange("email")}
             fullWidth
@@ -167,16 +233,17 @@ export default function Login() {
             InputLabelProps={{ shrink: false, sx: { display: "none" } }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                minHeight: 54,
-                borderRadius: 2.2,
+                minHeight: 58,
+                borderRadius: 2.5,
                 bgcolor: "rgba(248, 250, 252, 0.98)",
                 color: "#0f172a",
+                boxShadow: "0 8px 18px rgba(15, 23, 42, 0.08)",
               },
             }}
           />
 
+          <Typography sx={{ ...fieldLabel, mt: 0.4 }}>Password</Typography>
           <TextField
-            label="Password"
             type="password"
             value={form.password}
             onChange={handleChange("password")}
@@ -186,10 +253,11 @@ export default function Login() {
             InputLabelProps={{ shrink: false, sx: { display: "none" } }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                minHeight: 54,
-                borderRadius: 2.2,
+                minHeight: 58,
+                borderRadius: 2.5,
                 bgcolor: "rgba(248, 250, 252, 0.98)",
                 color: "#0f172a",
+                boxShadow: "0 8px 18px rgba(15, 23, 42, 0.08)",
               },
             }}
           />
@@ -223,10 +291,10 @@ export default function Login() {
             variant="contained"
             disabled={submitting || !isConfigured}
             sx={{
-              mt: 0.25,
-              minHeight: 56,
+              mt: 0.8,
+              minHeight: 58,
               borderRadius: 999,
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: 700,
               background: "linear-gradient(135deg, #5b61ff 0%, #6366f1 100%)",
               boxShadow: "0 18px 30px rgba(79, 70, 229, 0.28)",
@@ -246,7 +314,7 @@ export default function Login() {
         <Stack
           direction="row"
           spacing={1}
-          mt={1.25}
+          mt={1.75}
           sx={{ alignItems: "center", justifyContent: "space-between" }}
         >
           <Typography fontSize={13} color="rgba(226, 232, 240, 0.62)">
