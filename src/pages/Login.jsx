@@ -103,15 +103,15 @@ export default function Login() {
         sx={{
           position: "relative",
           width: "100%",
-          maxWidth: 540,
-          p: { xs: 2.5, md: 3.5 },
+          maxWidth: 500,
+          p: { xs: 2.5, md: 3 },
           borderRadius: 6,
           background: "#101826",
           border: "1px solid rgba(109, 107, 255, 0.18)",
           boxShadow: "0 18px 40px rgba(2, 6, 23, 0.32)",
         }}
       >
-        <Stack spacing={0.75} sx={{ textAlign: "center", alignItems: "center" }}>
+        <Stack spacing={1} sx={{ textAlign: "center", alignItems: "center" }}>
           <Box
             component="img"
             src={partyScriptLogoLight}
@@ -119,16 +119,16 @@ export default function Login() {
             sx={{
               display: "block",
               width: "100%",
-              maxWidth: 238,
+              maxWidth: 208,
               height: "auto",
               objectFit: "contain",
-              mb: 0.25,
+              mb: 0,
             }}
           />
           <Typography
             sx={{
-              fontSize: { xs: 30, md: 42 },
-              lineHeight: 1,
+              fontSize: { xs: 24, md: 34 },
+              lineHeight: 1.02,
               letterSpacing: "-0.06em",
               fontWeight: 800,
             }}
@@ -137,9 +137,9 @@ export default function Login() {
           </Typography>
           <Typography
             sx={{
-              maxWidth: 360,
+              maxWidth: 340,
               fontSize: 14,
-              lineHeight: 1.55,
+              lineHeight: 1.45,
               color: "rgba(226, 232, 240, 0.72)",
             }}
           >
@@ -147,9 +147,9 @@ export default function Login() {
           </Typography>
         </Stack>
 
-        <Divider sx={{ my: 2.25, borderColor: "rgba(148, 163, 184, 0.14)" }} />
+        <Divider sx={{ my: 1.75, borderColor: "rgba(148, 163, 184, 0.14)" }} />
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: 1.25 }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: "grid", gap: 1 }}>
           {!isConfigured ? (
             <Alert severity="warning">
               Supabase isn&apos;t configured yet. Add `VITE_SUPABASE_URL` and
@@ -163,18 +163,11 @@ export default function Login() {
             onChange={handleChange("email")}
             fullWidth
             variant="outlined"
-            InputLabelProps={{
-              shrink: false,
-              sx: {
-                color: "rgba(148, 163, 184, 0.78)",
-                "&.Mui-focused, &.MuiFormLabel-filled": {
-                  display: "none",
-                },
-              },
-            }}
+            placeholder="Email"
+            InputLabelProps={{ shrink: false, sx: { display: "none" } }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                minHeight: 56,
+                minHeight: 54,
                 borderRadius: 2.2,
                 bgcolor: "rgba(248, 250, 252, 0.98)",
                 color: "#0f172a",
@@ -189,18 +182,11 @@ export default function Login() {
             onChange={handleChange("password")}
             fullWidth
             variant="outlined"
-            InputLabelProps={{
-              shrink: false,
-              sx: {
-                color: "rgba(148, 163, 184, 0.78)",
-                "&.Mui-focused, &.MuiFormLabel-filled": {
-                  display: "none",
-                },
-              },
-            }}
+            placeholder="Password"
+            InputLabelProps={{ shrink: false, sx: { display: "none" } }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                minHeight: 56,
+                minHeight: 54,
                 borderRadius: 2.2,
                 bgcolor: "rgba(248, 250, 252, 0.98)",
                 color: "#0f172a",
@@ -237,10 +223,10 @@ export default function Login() {
             variant="contained"
             disabled={submitting || !isConfigured}
             sx={{
-              mt: 0.5,
-              minHeight: 58,
+              mt: 0.25,
+              minHeight: 56,
               borderRadius: 999,
-              fontSize: 17,
+              fontSize: 16,
               fontWeight: 700,
               background: "linear-gradient(135deg, #5b61ff 0%, #6366f1 100%)",
               boxShadow: "0 18px 30px rgba(79, 70, 229, 0.28)",
@@ -260,7 +246,7 @@ export default function Login() {
         <Stack
           direction="row"
           spacing={1}
-          mt={1.5}
+          mt={1.25}
           sx={{ alignItems: "center", justifyContent: "space-between" }}
         >
           <Typography fontSize={13} color="rgba(226, 232, 240, 0.62)">
