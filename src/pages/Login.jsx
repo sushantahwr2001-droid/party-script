@@ -147,7 +147,7 @@ export default function Login() {
           }}
         />
 
-        <Stack spacing={1.25} sx={{ position: "relative", textAlign: "center", alignItems: "center" }}>
+        <Stack spacing={0.7} sx={{ position: "relative", textAlign: "center", alignItems: "center" }}>
           <Box
             sx={{
               px: 1.25,
@@ -176,20 +176,22 @@ export default function Login() {
             alt="Party Script"
             sx={{
               display: "block",
-              width: "100%",
-              maxWidth: 210,
-              height: "auto",
+              width: "auto",
+              maxWidth: { xs: 176, md: 196 },
+              maxHeight: 34,
+              height: "100%",
               objectFit: "contain",
-              mt: 0.5,
+              mt: 0.1,
             }}
           />
           <Typography
             sx={{
-              fontSize: { xs: 30, md: 42 },
+              fontSize: { xs: 28, md: 40 },
               lineHeight: 0.98,
               letterSpacing: "-0.06em",
               fontWeight: 800,
               color: "#f8fafc",
+              mt: 0.2,
             }}
           >
             {copy.title}
@@ -197,8 +199,8 @@ export default function Login() {
           <Typography
             sx={{
               maxWidth: 340,
-              fontSize: 14,
-              lineHeight: 1.6,
+              fontSize: 13,
+              lineHeight: 1.5,
               color: "rgba(226, 232, 240, 0.72)",
             }}
           >
@@ -213,7 +215,7 @@ export default function Login() {
             position: "relative",
             display: "grid",
             gap: 1.15,
-            mt: 2.25,
+            mt: 1.6,
           }}
         >
           {!isConfigured ? (
