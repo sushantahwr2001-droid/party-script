@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth-context";
+import partyScriptLogoLight from "../assets/party-script-logo-light.png";
 
 const AUTH_COPY = {
   signin: {
@@ -111,21 +112,19 @@ export default function Login() {
         }}
       >
         <Stack spacing={1.25} sx={{ textAlign: "center", alignItems: "center" }}>
-          <Typography
+          <Box
+            component="img"
+            src={partyScriptLogoLight}
+            alt="Party Script"
             sx={{
-              fontSize: { xs: 24, md: 28 },
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-              color: "#f8fafc",
-              fontFamily: "Poppins, Inter, sans-serif",
+              display: "block",
+              width: "100%",
+              maxWidth: 270,
+              height: "auto",
+              objectFit: "contain",
+              mb: 0.5,
             }}
-          >
-            P
-            <Box component="span" sx={{ color: "#4f63ff" }}>
-              @
-            </Box>
-            RTY SCRIPT
-          </Typography>
+          />
           <Typography
             sx={{
               fontSize: { xs: 36, md: 48 },

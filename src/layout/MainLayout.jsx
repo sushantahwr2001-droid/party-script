@@ -29,6 +29,7 @@ import { useAuth } from "../context/auth-context";
 import { useEvents } from "../hooks/useEvents";
 import { useTasks } from "../hooks/useTasks";
 import { useVendors } from "../hooks/useVendors";
+import partyScriptLogoLight from "../assets/party-script-logo-light.png";
 
 const menuGroups = [
   {
@@ -174,25 +175,21 @@ export default function MainLayout() {
             alignItems: "center",
             px: 1,
             mb: 1.6,
-            minHeight: 38,
+            minHeight: 42,
           }}
         >
-          <Typography
+          <Box
+            component="img"
+            src={partyScriptLogoLight}
+            alt="Party Script"
             sx={{
-              fontSize: 17,
-              fontWeight: 800,
-              letterSpacing: "-0.03em",
-              fontFamily: "Poppins, Inter, sans-serif",
-              color: theme.palette.text.primary,
-              lineHeight: 1,
+              display: "block",
+              width: "100%",
+              maxWidth: 170,
+              height: "auto",
+              objectFit: "contain",
             }}
-          >
-            P
-            <Box component="span" sx={{ color: isLight ? "#2563eb" : "#4f63ff" }}>
-              @
-            </Box>
-            RTY SCRIPT
-          </Typography>
+          />
         </Box>
 
         <Box
