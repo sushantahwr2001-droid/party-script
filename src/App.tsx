@@ -1,5 +1,7 @@
-import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom";
+import { AlertTriangle } from "lucide-react";
+import { Navigate, RouterProvider, createBrowserRouter, isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { Button, Card } from "./components/ui";
 import { AppShell } from "./layout/AppShell";
 import {
   AssetsPage,
@@ -22,6 +24,31 @@ import {
 } from "./pages/AppPages";
 import { LoginPage } from "./pages/LoginPage";
 
+function RouteErrorPage() {
+  const error = useRouteError();
+  const message = isRouteErrorResponse(error)
+    ? `${error.status} ${error.statusText}`
+    : error instanceof Error
+      ? error.message
+      : "Something unexpected happened while loading Party Script.";
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-app px-6 text-text">
+      <Card className="w-full max-w-xl p-8">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/5 bg-white/[0.04]">
+          <AlertTriangle className="h-5 w-5 text-warning" />
+        </div>
+        <h1 className="mt-5 text-3xl font-bold">Party Script hit a page error</h1>
+        <p className="mt-3 text-sm text-textSecondary">{message}</p>
+        <div className="mt-6 flex gap-3">
+          <Button onClick={() => window.location.assign("/login")}>Go to Login</Button>
+          <Button variant="secondary" onClick={() => window.location.reload()}>Reload</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function ProtectedApp() {
   const { user, loading } = useAuth();
 
@@ -37,11 +64,12 @@ function ProtectedApp() {
 }
 
 const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/app/dashboard" replace /> },
-  { path: "/login", element: <LoginPage /> },
+  { path: "/", element: <Navigate to="/app/dashboard" replace />, errorElement: <RouteErrorPage /> },
+  { path: "/login", element: <LoginPage />, errorElement: <RouteErrorPage /> },
   {
     path: "/app",
     element: <ProtectedApp />,
+    errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <Navigate to="/app/dashboard" replace /> },
       { path: "dashboard", element: <DashboardPage /> },

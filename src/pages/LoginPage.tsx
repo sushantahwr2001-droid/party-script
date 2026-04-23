@@ -17,10 +17,6 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingSetup, setLoadingSetup] = useState(true);
 
-  if (user) {
-    return <Navigate to="/app/dashboard" replace />;
-  }
-
   useEffect(() => {
     async function loadSetupStatus() {
       try {
@@ -38,6 +34,10 @@ export function LoginPage() {
 
     void loadSetupStatus();
   }, []);
+
+  if (user) {
+    return <Navigate to="/app/dashboard" replace />;
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
