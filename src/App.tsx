@@ -14,13 +14,17 @@ import {
   EventOverviewPage,
   EventsPage,
   LeadsPage,
+  LeadDetailPage,
   OpportunitiesPage,
+  OpportunityDetailPage,
   ReportsPage,
   SettingsPage,
   TasksPage,
+  TaskDetailPage,
   TeamPage,
   TicketsPage,
-  VendorsPage
+  VendorsPage,
+  VendorDetailPage
 } from "./pages/AppPages";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -82,15 +86,19 @@ const router = createBrowserRouter([
       { path: "events", element: <EventsPage /> },
       { path: "events/:eventId", element: <EventOverviewPage /> },
       { path: "opportunities", element: <OpportunitiesPage /> },
+      { path: "opportunities/:opportunityId", element: <OpportunityDetailPage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "tasks", element: <TasksPage /> },
+      { path: "tasks/:taskId", element: <TaskDetailPage /> },
       { path: "attendees", element: <AttendeesPage /> },
       { path: "tickets", element: <TicketsPage /> },
       { path: "checkins", element: <CheckinsPage /> },
       { path: "vendors", element: <VendorsPage /> },
+      { path: "vendors/:vendorId", element: <VendorDetailPage /> },
       { path: "booth", element: <BoothPage /> },
       { path: "budget", element: <BudgetPage /> },
       { path: "leads", element: <LeadsPage /> },
+      { path: "leads/:leadId", element: <LeadDetailPage /> },
       { path: "reports", element: <ReportsPage /> },
       { path: "assets", element: <AssetsPage /> },
       { path: "team", element: <TeamPage /> },

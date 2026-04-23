@@ -56,6 +56,9 @@ export async function buildBootstrap(organizationId) {
     leads: store.leads,
     booths: store.booths,
     boothChecklistItems: store.boothChecklistItems.filter((item) => store.booths.some((booth) => booth.id === item.boothId)),
+    attendees: store.attendees,
+    checkins: store.checkins,
+    assets: store.assets,
     activities,
     persistenceMode: persistenceMode(),
     dashboard: {

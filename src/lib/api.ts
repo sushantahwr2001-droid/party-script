@@ -172,6 +172,108 @@ export const api = {
       body: JSON.stringify(payload)
     }, token);
   },
+  updateEvent(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ event: unknown }>(`/events/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteEvent(token: string, id: string) {
+    return request<{ ok: true }>(`/events/${id}`, { method: "DELETE" }, token);
+  },
+  updateOpportunity(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ opportunity: unknown }>(`/opportunities/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteOpportunity(token: string, id: string) {
+    return request<{ ok: true }>(`/opportunities/${id}`, { method: "DELETE" }, token);
+  },
+  updateTask(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ task: unknown }>(`/tasks/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteTask(token: string, id: string) {
+    return request<{ ok: true }>(`/tasks/${id}`, { method: "DELETE" }, token);
+  },
+  updateVendor(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ vendor: unknown }>(`/vendors/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteVendor(token: string, id: string) {
+    return request<{ ok: true }>(`/vendors/${id}`, { method: "DELETE" }, token);
+  },
+  updateBudgetItem(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ budget: unknown }>(`/budgets/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteBudgetItem(token: string, id: string) {
+    return request<{ ok: true }>(`/budgets/${id}`, { method: "DELETE" }, token);
+  },
+  updateLead(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ lead: unknown }>(`/leads/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteLead(token: string, id: string) {
+    return request<{ ok: true }>(`/leads/${id}`, { method: "DELETE" }, token);
+  },
+  createAttendee(
+    token: string,
+    payload: {
+      eventId: string;
+      fullName: string;
+      email: string;
+      phone: string;
+      company: string;
+      city: string;
+      ticketType: string;
+      registrationStatus: string;
+      checkInStatus: string;
+      source: string;
+      tags: string[];
+    },
+  ) {
+    return request<{ attendee: unknown }>("/attendees", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createCheckin(
+    token: string,
+    payload: {
+      attendeeId: string;
+      eventId: string;
+      status: string;
+    },
+  ) {
+    return request<{ checkin: unknown }>("/checkins", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createAsset(
+    token: string,
+    payload: {
+      eventId: string;
+      name: string;
+      category: string;
+      fileUrl: string;
+    },
+  ) {
+    return request<{ asset: unknown }>("/assets", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
   convertOpportunity(token: string, id: string) {
     return request<{ event: unknown }>("/opportunities/" + id + "/convert", { method: "POST" }, token);
   }

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from "react";
 import {
   Activity,
   ArrowRightLeft,
@@ -832,19 +832,44 @@ function eventOverviewTabs() {
 
 export function EventOverviewPage() {
   const context = useConsoleData();
+  const { token } = useAuth();
   const { eventId } = useParams();
+  const navigate = useNavigate();
   const [tab, setTab] = useState("Overview");
   const event = context.data.events.find((item) => item.id === eventId);
+  const [form, setForm] = useState(() => (event ? { ...event } : null));
 
-  if (!event) {
+  if (!event || !form) {
     return <EmptyState title="Event not found" description="This event record is missing or no longer available in the workspace." action={<Link to="/app/events"><Button>Back to Events</Button></Link>} />;
   }
 
-  const eventTasks = context.data.tasks.filter((item) => item.eventId === event.id);
-  const eventLeads = context.data.leads.filter((item) => item.eventId === event.id);
-  const eventVendors = context.data.vendors.filter((item) => item.eventId === event.id);
-  const eventBudget = context.data.budgets.filter((item) => item.eventId === event.id);
-  const booth = context.data.booths.find((item) => item.eventId === event.id);
+  const currentEvent = event;
+  const currentForm = form;
+
+  async function saveEvent() {
+    if (!token) return;
+    await api.updateEvent(token, currentEvent.id, currentForm);
+    await context.refresh();
+  }
+
+  async function archiveEvent() {
+    if (!token) return;
+    await api.updateEvent(token, currentEvent.id, { status: "Archived" });
+    await context.refresh();
+  }
+
+  async function deleteEventRecord() {
+    if (!token) return;
+    await api.deleteEvent(token, currentEvent.id);
+    await context.refresh();
+    navigate("/app/events");
+  }
+
+  const eventTasks = context.data.tasks.filter((item) => item.eventId === currentEvent.id);
+  const eventLeads = context.data.leads.filter((item) => item.eventId === currentEvent.id);
+  const eventVendors = context.data.vendors.filter((item) => item.eventId === currentEvent.id);
+  const eventBudget = context.data.budgets.filter((item) => item.eventId === currentEvent.id);
+  const booth = context.data.booths.find((item) => item.eventId === currentEvent.id);
   const checklist = context.data.boothChecklistItems.filter((item) => item.boothId === booth?.id);
   const spent = eventBudget.reduce((sum, item) => sum + item.actual, 0);
   const committed = eventBudget.reduce((sum, item) => sum + item.committed, 0);
@@ -852,42 +877,45 @@ export function EventOverviewPage() {
   return (
     <div className="space-y-6">
       <PageIntro
-        title={event.name}
+        title={currentForm.name}
         description={`${event.type} • ${formatDateRange(event.startDate, event.endDate)} • ${event.venue}, ${event.city}`}
         actions={
           <>
-            <Badge label={event.status} tone={statusTone(event.status)} />
-            <Button variant="secondary">
-              <Plus className="h-4 w-4" />
-              Quick Action
-            </Button>
+            <Badge label={currentForm.status} tone={statusTone(currentForm.status)} />
+            <Button variant="secondary" onClick={() => void archiveEvent()}>Archive</Button>
+            <Button variant="secondary" onClick={() => void deleteEventRecord()}>Delete</Button>
+            <Button onClick={() => void saveEvent()}>Save Event</Button>
           </>
         }
       />
 
       <Card className="p-5">
-        <div className="grid gap-5 xl:grid-cols-[1.4fr_0.6fr]">
+        <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <Badge label={`Owner: ${userName(event.ownerUserId, context)}`} tone="info" />
-              <Badge label={`${event.health}% health`} tone={event.health > 80 ? "success" : event.health > 60 ? "accent" : "warning"} />
-              <Badge label={`${event.expectedLeads} expected leads`} tone="accent" />
+              <Badge label={`Owner: ${userName(currentEvent.ownerUserId, context)}`} tone="info" />
+              <Badge label={`${currentEvent.health}% health`} tone={currentEvent.health > 80 ? "success" : currentEvent.health > 60 ? "accent" : "warning"} />
+              <Badge label={`${currentEvent.expectedLeads} expected leads`} tone="accent" />
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-4">
-              <MetricTile label="Readiness" value={`${event.health}%`} detail="Event health score" tone={event.health > 80 ? "success" : "warning"} />
+              <MetricTile label="Readiness" value={`${currentEvent.health}%`} detail="Event health score" tone={currentEvent.health > 80 ? "success" : "warning"} />
               <MetricTile label="Tasks" value={`${eventTasks.filter((item) => item.status !== "Done").length}`} detail={`${eventTasks.length} total`} tone="accent" />
               <MetricTile label="Vendors" value={`${eventVendors.length}`} detail={`${eventVendors.filter((item) => item.status === "At Risk").length} at risk`} tone="warning" />
-              <MetricTile label="Budget" value={formatCurrency(event.budgetTotal)} detail={`${formatCurrency(spent)} spent`} tone="info" />
+              <MetricTile label="Budget" value={formatCurrency(currentEvent.budgetTotal)} detail={`${formatCurrency(spent)} spent`} tone="info" />
             </div>
           </div>
           <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-            <p className="text-xs uppercase tracking-[0.14em] text-textMuted">Quick actions</p>
-            <div className="mt-4 grid gap-3">
-              {["Add attendee", "Create task", "Open booth", "Add expense", "Add lead", "Run report"].map((label) => (
-                <button key={label} className="rounded-xl border border-white/5 bg-app/40 px-3 py-3 text-left text-sm font-semibold text-textSecondary transition hover:bg-hover hover:text-text">
-                  {label}
-                </button>
-              ))}
+            <p className="text-xs uppercase tracking-[0.14em] text-textMuted">Event settings</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2"><Label>Event name</Label><Input value={currentForm.name} onChange={(event) => setForm({ ...currentForm, name: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Status</Label><Input value={currentForm.status} onChange={(event) => setForm({ ...currentForm, status: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Type</Label><Input value={currentForm.type} onChange={(event) => setForm({ ...currentForm, type: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Start date</Label><Input type="date" value={currentForm.startDate} onChange={(event) => setForm({ ...currentForm, startDate: event.target.value })} /></div>
+              <div className="space-y-2"><Label>End date</Label><Input type="date" value={currentForm.endDate} onChange={(event) => setForm({ ...currentForm, endDate: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Venue</Label><Input value={currentForm.venue} onChange={(event) => setForm({ ...currentForm, venue: event.target.value })} /></div>
+              <div className="space-y-2"><Label>City</Label><Input value={currentForm.city} onChange={(event) => setForm({ ...currentForm, city: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Expected attendees</Label><Input type="number" value={currentForm.expectedAttendees} onChange={(event) => setForm({ ...currentForm, expectedAttendees: Number(event.target.value) })} /></div>
+              <div className="space-y-2"><Label>Expected leads</Label><Input type="number" value={currentForm.expectedLeads} onChange={(event) => setForm({ ...currentForm, expectedLeads: Number(event.target.value) })} /></div>
             </div>
           </div>
         </div>
@@ -1024,10 +1052,10 @@ const opportunityColumns = (context: ConsoleOutletContext): TableColumn<Opportun
     key: "name",
     label: "Opportunity",
     render: (row) => (
-      <div>
-        <div className="font-semibold text-text">{row.name}</div>
+      <Link to={`/app/opportunities/${row.id}`} className="block">
+        <div className="font-semibold text-text transition hover:text-[#C9BDFF]">{row.name}</div>
         <div className="mt-1 text-xs text-textMuted">{row.industry}</div>
-      </div>
+      </Link>
     ),
   },
   { key: "city", label: "City" },
@@ -1187,6 +1215,10 @@ const budgetColumns: TableColumn<BudgetItem>[] = [
 
 export function BudgetPage() {
   const context = useConsoleData();
+  const { token } = useAuth();
+  const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(context.data.budgets[0]?.id ?? null);
+  const selectedBudget = context.data.budgets.find((item) => item.id === selectedBudgetId) ?? context.data.budgets[0] ?? null;
+  const [budgetForm, setBudgetForm] = useState(() => (selectedBudget ? { ...selectedBudget } : null));
   const budgetByEvent = context.data.events.map((event) => {
     const lines = context.data.budgets.filter((item) => item.eventId === event.id);
     const budgeted = lines.reduce((sum, item) => sum + item.budgeted, 0);
@@ -1194,6 +1226,24 @@ export function BudgetPage() {
     const committed = lines.reduce((sum, item) => sum + item.committed, 0);
     return { event, budgeted, actual, committed };
   });
+
+  useEffect(() => {
+    const nextBudget = context.data.budgets.find((item) => item.id === selectedBudgetId) ?? context.data.budgets[0] ?? null;
+    setBudgetForm(nextBudget ? { ...nextBudget } : null);
+  }, [context.data.budgets, selectedBudgetId]);
+
+  async function saveBudget() {
+    if (!token || !budgetForm) return;
+    await api.updateBudgetItem(token, budgetForm.id, budgetForm);
+    await context.refresh();
+  }
+
+  async function removeBudget() {
+    if (!token || !budgetForm) return;
+    await api.deleteBudgetItem(token, budgetForm.id);
+    await context.refresh();
+    setSelectedBudgetId(null);
+  }
 
   return (
     <div className="space-y-6">
@@ -1235,12 +1285,49 @@ export function BudgetPage() {
           </div>
         </Card>
       </div>
+
+      <Card className="p-5">
+        <SectionTitle title="Manage Budget Lines" detail="Edit and delete real budget records without leaving the financial workspace" />
+        {!budgetForm ? (
+          <div className="mt-5">
+            <EmptyState title="No budget lines yet" description="Create the first budget line from dashboard quick actions or the global Quick Create menu." />
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+            <div className="space-y-3">
+              {context.data.budgets.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setSelectedBudgetId(item.id)}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${item.id === budgetForm.id ? "border-[#7C5CFF] bg-[#7C5CFF]/10" : "border-white/5 bg-white/[0.03] hover:bg-hover"}`}
+                >
+                  <p className="text-sm font-semibold text-text">{item.category}</p>
+                  <p className="mt-1 text-xs text-textSecondary">{eventName(item.eventId, context)}</p>
+                  <p className="mt-2 text-xs text-textMuted">{formatCurrency(item.actual)} actual | {formatCurrency(item.committed)} committed</p>
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2"><Label>Category</Label><Input value={budgetForm.category} onChange={(event) => setBudgetForm({ ...budgetForm, category: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Event ID</Label><Input value={budgetForm.eventId} onChange={(event) => setBudgetForm({ ...budgetForm, eventId: event.target.value })} /></div>
+              <div className="space-y-2"><Label>Budgeted</Label><Input type="number" value={budgetForm.budgeted} onChange={(event) => setBudgetForm({ ...budgetForm, budgeted: Number(event.target.value) })} /></div>
+              <div className="space-y-2"><Label>Actual</Label><Input type="number" value={budgetForm.actual} onChange={(event) => setBudgetForm({ ...budgetForm, actual: Number(event.target.value) })} /></div>
+              <div className="space-y-2"><Label>Committed</Label><Input type="number" value={budgetForm.committed} onChange={(event) => setBudgetForm({ ...budgetForm, committed: Number(event.target.value) })} /></div>
+              <div className="md:col-span-2 flex gap-3">
+                <Button variant="secondary" onClick={() => void removeBudget()}>Delete Line</Button>
+                <Button onClick={() => void saveBudget()}>Save Budget Line</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
 
 const leadColumns = (context: ConsoleOutletContext): TableColumn<LeadRecord>[] => [
-  { key: "fullName", label: "Lead", render: (row) => <div><div className="font-semibold text-text">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></div> },
+  { key: "fullName", label: "Lead", render: (row) => <Link to={`/app/leads/${row.id}`} className="block"><div className="font-semibold text-text transition hover:text-[#C9BDFF]">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></Link> },
   { key: "event", label: "Event", render: (row) => eventName(row.eventId, context) },
   { key: "owner", label: "Owner", render: (row) => userName(row.ownerUserId, context) },
   { key: "status", label: "Stage", render: (row) => <Badge label={row.qualificationStatus} tone={statusTone(row.qualificationStatus)} /> },
@@ -1568,7 +1655,7 @@ export function BoothPage() {
 }
 
 const vendorColumns = (context: ConsoleOutletContext): TableColumn<VendorRecord>[] => [
-  { key: "name", label: "Vendor", render: (row) => <div><div className="font-semibold text-text">{row.name}</div><div className="mt-1 text-xs text-textMuted">{row.category}</div></div> },
+  { key: "name", label: "Vendor", render: (row) => <Link to={`/app/vendors/${row.id}`} className="block"><div className="font-semibold text-text transition hover:text-[#C9BDFF]">{row.name}</div><div className="mt-1 text-xs text-textMuted">{row.category}</div></Link> },
   { key: "event", label: "Event", render: (row) => eventName(row.eventId, context) },
   { key: "deliverable", label: "Deliverable" },
   { key: "owner", label: "Owner", render: (row) => userName(row.ownerUserId, context) },
@@ -1591,7 +1678,7 @@ export function VendorsPage() {
 }
 
 const taskColumns = (context: ConsoleOutletContext): TableColumn<TaskRecord>[] => [
-  { key: "title", label: "Task" },
+  { key: "title", label: "Task", render: (row) => <Link to={`/app/tasks/${row.id}`} className="font-semibold text-text transition hover:text-[#C9BDFF]">{row.title}</Link> },
   { key: "event", label: "Event", render: (row) => eventName(row.eventId, context) },
   { key: "assignee", label: "Assignee", render: (row) => userName(row.assigneeUserId, context) },
   { key: "dueDate", label: "Due" },
@@ -1712,19 +1799,90 @@ export function TasksPage() {
 }
 
 export function AttendeesPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const [form, setForm] = useState({
+    eventId: context.data.events[0]?.id ?? "",
+    fullName: "",
+    email: "",
+    phone: "",
+    company: "",
+    city: "",
+    ticketType: "General",
+    registrationStatus: "Confirmed",
+    checkInStatus: "Pending",
+    source: "Manual",
+    tags: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  async function createAttendee() {
+    if (!token) return;
+    setSubmitting(true);
+    try {
+      await api.createAttendee(token, {
+        ...form,
+        tags: form.tags.split(",").map((item) => item.trim()).filter(Boolean),
+      });
+      await context.refresh();
+      setForm({
+        eventId: context.data.events[0]?.id ?? "",
+        fullName: "",
+        email: "",
+        phone: "",
+        company: "",
+        city: "",
+        ticketType: "General",
+        registrationStatus: "Confirmed",
+        checkInStatus: "Pending",
+        source: "Manual",
+        tags: "",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <GenericModulePage
-      title="Attendees"
-      description="The attendee source of truth sits naturally on top of the event core, ticketing, and check-in operations."
-      moduleId="attendees"
-      blocks={[
-        { title: "People system", description: "Registration status, check-in status, ticket type, and source fields fit the same structured data model.", icon: Users },
-        { title: "Segments and VIPs", description: "Operational groups, VIP lists, and confirmation filters belong here rather than in sheets.", icon: BadgeCheck },
-        { title: "Messaging and merge flows", description: "Import, export, tagging, dedupe, and operator messaging can layer on cleanly.", icon: MailPlus },
-      ]}
-    >
-      <EmptyState title="Attendee module foundation is in place" description="The routed customer-facing shell is ready. The next implementation step is adding attendee tables, CSV import, and check-in linkage on top of the existing event model." />
-    </GenericModulePage>
+    <div className="space-y-6">
+      <PageIntro
+        title="Attendees"
+        description="The source of truth for event people, registration state, ticket context, and check-in readiness."
+        actions={<Button onClick={() => void createAttendee()}><Plus className="h-4 w-4" />Add Attendee</Button>}
+      />
+      <Card className="p-5">
+        <SectionTitle title="Attendee Directory" detail="Stored attendee records linked directly to events" />
+        <div className="mt-5">
+          <SimpleTable
+            columns={[
+              { key: "fullName", label: "Name", render: (row: any) => <div><div className="font-semibold text-text">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></div> },
+              { key: "event", label: "Event", render: (row: any) => eventName(row.eventId, context) },
+              { key: "ticketType", label: "Ticket" },
+              { key: "registrationStatus", label: "Registration", render: (row: any) => <Badge label={row.registrationStatus} tone={statusTone(row.registrationStatus)} /> },
+              { key: "checkInStatus", label: "Check-in", render: (row: any) => <Badge label={row.checkInStatus} tone={statusTone(row.checkInStatus)} /> },
+              { key: "source", label: "Source" },
+            ]}
+            rows={context.data.attendees}
+          />
+        </div>
+      </Card>
+      <Card className="p-5">
+        <SectionTitle title="Add Attendee" detail="Manual attendee capture until CSV import lands" />
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2"><Label>Full name</Label><Input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Company</Label><Input value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></div>
+          <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Ticket Type</Label><Input value={form.ticketType} onChange={(event) => setForm({ ...form, ticketType: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Source</Label><Input value={form.source} onChange={(event) => setForm({ ...form, source: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Tags</Label><Input value={form.tags} onChange={(event) => setForm({ ...form, tags: event.target.value })} placeholder="VIP, Founder" /></div>
+        </div>
+        <div className="mt-4">
+          <Button onClick={() => void createAttendee()} disabled={submitting}>{submitting ? "Saving..." : "Save attendee"}</Button>
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -1746,19 +1904,61 @@ export function TicketsPage() {
 }
 
 export function CheckinsPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const [query, setQuery] = useState("");
+  const candidates = context.data.attendees.filter((attendee) =>
+    attendee.fullName.toLowerCase().includes(query.toLowerCase()) ||
+    attendee.email.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  async function checkIn(attendeeId: string, eventId: string) {
+    if (!token) return;
+    await api.createCheckin(token, { attendeeId, eventId, status: "success" });
+    await context.refresh();
+  }
+
   return (
-    <GenericModulePage
-      title="Check-ins"
-      description="Fast gate operations with scanner/search workflows, live feed, duplicate detection, and issue tracking."
-      moduleId="checkins"
-      blocks={[
-        { title: "Scanner / search", description: "The left-side fast operator flow is ready for QR and search-based check-ins.", icon: ScanLine },
-        { title: "Live stats", description: "Checked-in count, no-show estimate, VIP arrivals, and issue logs belong in this module.", icon: Gauge },
-        { title: "Protected operator mode", description: "Auth and routing are already in place for staff-only execution surfaces.", icon: ShieldCheck },
-      ]}
-    >
-      <EmptyState title="Check-in mode is ready for the last-mile operator build" description="This module already sits inside the live authenticated console. The next pass is wiring attendee records, scanner input, and duplicate / VIP handling." />
-    </GenericModulePage>
+    <div className="space-y-6">
+      <PageIntro title="Check-ins" description="Manual gate operations for now, with attendee search, duplicate visibility, and scan-style logs." />
+      <div className="grid gap-6 xl:grid-cols-12">
+        <Card className="xl:col-span-7 p-5">
+          <SectionTitle title="Search Attendees" detail="Search by attendee name or email, then mark check-in" />
+          <div className="mt-5 space-y-4">
+            <Input placeholder="Search attendee..." value={query} onChange={(event) => setQuery(event.target.value)} />
+            <div className="space-y-3">
+              {(query ? candidates : context.data.attendees).slice(0, 8).map((attendee) => (
+                <div key={attendee.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                  <div>
+                    <p className="text-sm font-semibold text-text">{attendee.fullName}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{eventName(attendee.eventId, context)} • {attendee.ticketType}</p>
+                  </div>
+                  <Button variant="secondary" className="h-9 px-3" onClick={() => void checkIn(attendee.id, attendee.eventId)}>
+                    {attendee.checkInStatus === "Checked In" ? "Duplicate" : "Check In"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+        <Card className="xl:col-span-5 p-5">
+          <SectionTitle title="Scan Log" detail="Most recent check-in records" />
+          <div className="mt-5 space-y-3">
+            {context.data.checkins.map((checkin: any) => (
+              <div key={checkin.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                <p className="text-sm font-semibold text-text">{context.data.attendees.find((item) => item.id === checkin.attendeeId)?.fullName ?? "Attendee"}</p>
+                <p className="mt-1 text-xs text-textSecondary">{eventName(checkin.eventId, context)}</p>
+                <div className="mt-3 flex items-center justify-between">
+                  <Badge label={checkin.status} tone="success" />
+                  <span className="text-xs text-textMuted">{new Date(checkin.checkedInAt).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+            {!context.data.checkins.length ? <p className="text-sm text-textMuted">No check-ins recorded yet.</p> : null}
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
@@ -1813,19 +2013,245 @@ export function ReportsPage() {
 }
 
 export function AssetsPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const [form, setForm] = useState({
+    eventId: context.data.events[0]?.id ?? "",
+    name: "",
+    category: "branding",
+    fileUrl: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  async function createAsset() {
+    if (!token) return;
+    setSubmitting(true);
+    try {
+      await api.createAsset(token, form);
+      await context.refresh();
+      setForm({ eventId: context.data.events[0]?.id ?? "", name: "", category: "branding", fileUrl: "" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
-    <GenericModulePage
-      title="Assets"
-      description="Central file layer for venue docs, branding, vendor files, invoices, marketing creatives, booth designs, print files, and contracts."
-      moduleId="assets"
-      blocks={[
-        { title: "Event attachments", description: "Assets can attach directly to events, vendors, booths, and reports.", icon: FolderKanban },
-        { title: "Operational retrieval", description: "Search, preview, and linked-document workflows belong here.", icon: Search },
-        { title: "File governance", description: "Permissions, upload flows, and structured folders can build on the current auth foundation.", icon: ShieldCheck },
-      ]}
-    >
-      <EmptyState title="Asset module shell is live" description="The next implementation layer is file upload and attachment logic, but the routed customer-facing structure is already in place." />
-    </GenericModulePage>
+    <div className="space-y-6">
+      <PageIntro title="Assets" description="Central file register for event docs, booth files, contracts, invoices, and operational references." actions={<Button onClick={() => void createAsset()}><Plus className="h-4 w-4" />Add Asset</Button>} />
+      <Card className="p-5">
+        <SectionTitle title="Asset Library" detail="First-pass asset storage using linked file URLs" />
+        <div className="mt-5">
+          <SimpleTable
+            columns={[
+              { key: "name", label: "Asset" },
+              { key: "event", label: "Event", render: (row: any) => eventName(row.eventId, context) },
+              { key: "category", label: "Category" },
+              { key: "fileUrl", label: "Link", render: (row: any) => <a href={row.fileUrl} target="_blank" rel="noreferrer" className="text-[#C9BDFF] hover:underline">Open</a> },
+            ]}
+            rows={context.data.assets}
+          />
+        </div>
+      </Card>
+      <Card className="p-5">
+        <SectionTitle title="Add Asset Link" detail="Store an asset record while proper upload flows are still being expanded" />
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+          <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></div>
+          <div className="space-y-2 xl:col-span-2"><Label>File URL</Label><Input value={form.fileUrl} onChange={(event) => setForm({ ...form, fileUrl: event.target.value })} /></div>
+        </div>
+        <div className="mt-4">
+          <Button onClick={() => void createAsset()} disabled={submitting}>{submitting ? "Saving..." : "Save asset"}</Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function EntityDetailShell({
+  title,
+  description,
+  children,
+  actions,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="space-y-6">
+      <PageIntro title={title} description={description} actions={actions} />
+      <Card className="p-5">{children}</Card>
+    </div>
+  );
+}
+
+export function OpportunityDetailPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const { opportunityId } = useParams();
+  const navigate = useNavigate();
+  const opportunity = context.data.opportunities.find((item) => item.id === opportunityId);
+  const [form, setForm] = useState(() => (opportunity ? { ...opportunity } : null));
+
+  if (!opportunity || !form) {
+    return <EmptyState title="Opportunity not found" description="This opportunity is no longer available." action={<Link to="/app/opportunities"><Button>Back to Opportunities</Button></Link>} />;
+  }
+
+  const currentOpportunity = opportunity;
+  const currentOpportunityForm = form;
+
+  async function save() {
+    if (!token) return;
+    await api.updateOpportunity(token, currentOpportunity.id, currentOpportunityForm);
+    await context.refresh();
+  }
+
+  async function remove() {
+    if (!token) return;
+    await api.deleteOpportunity(token, currentOpportunity.id);
+    await context.refresh();
+    navigate("/app/opportunities");
+  }
+
+  return (
+    <EntityDetailShell title={form.name} description={`${form.organizer} • ${form.city}`} actions={<><Button variant="secondary" onClick={() => void remove()}>Delete</Button><Button onClick={() => void save()}>Save</Button></>}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Decision</Label><Input value={form.decision} onChange={(event) => setForm({ ...form, decision: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Organizer</Label><Input value={form.organizer} onChange={(event) => setForm({ ...form, organizer: event.target.value })} /></div>
+        <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Strategic Fit</Label><Input type="number" value={form.strategicFitScore} onChange={(event) => setForm({ ...form, strategicFitScore: Number(event.target.value) })} /></div>
+        <div className="space-y-2"><Label>Estimated Cost</Label><Input type="number" value={form.estimatedCost} onChange={(event) => setForm({ ...form, estimatedCost: Number(event.target.value) })} /></div>
+        <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></div>
+      </div>
+    </EntityDetailShell>
+  );
+}
+
+export function TaskDetailPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const { taskId } = useParams();
+  const navigate = useNavigate();
+  const task = context.data.tasks.find((item) => item.id === taskId);
+  const [form, setForm] = useState(() => (task ? { ...task } : null));
+
+  if (!task || !form) {
+    return <EmptyState title="Task not found" description="This task is no longer available." action={<Link to="/app/tasks"><Button>Back to Tasks</Button></Link>} />;
+  }
+
+  const currentTask = task;
+  const currentTaskForm = form;
+
+  async function save() {
+    if (!token) return;
+    await api.updateTask(token, currentTask.id, currentTaskForm);
+    await context.refresh();
+  }
+
+  async function remove() {
+    if (!token) return;
+    await api.deleteTask(token, currentTask.id);
+    await context.refresh();
+    navigate("/app/tasks");
+  }
+
+  return (
+    <EntityDetailShell title={form.title} description={`${eventName(form.eventId, context)} • ${form.dueDate}`} actions={<><Button variant="secondary" onClick={() => void remove()}>Delete</Button><Button onClick={() => void save()}>Save</Button></>}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2 md:col-span-2"><Label>Title</Label><Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Status</Label><Input value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Priority</Label><Input value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Due Date</Label><Input type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Assignee</Label><Input value={form.assigneeUserId} onChange={(event) => setForm({ ...form, assigneeUserId: event.target.value })} /></div>
+        <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></div>
+      </div>
+    </EntityDetailShell>
+  );
+}
+
+export function VendorDetailPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const { vendorId } = useParams();
+  const navigate = useNavigate();
+  const vendor = context.data.vendors.find((item) => item.id === vendorId);
+  const [form, setForm] = useState(() => (vendor ? { ...vendor } : null));
+
+  if (!vendor || !form) {
+    return <EmptyState title="Vendor not found" description="This vendor is no longer available." action={<Link to="/app/vendors"><Button>Back to Vendors</Button></Link>} />;
+  }
+
+  const currentVendor = vendor;
+  const currentVendorForm = form;
+
+  async function save() {
+    if (!token) return;
+    await api.updateVendor(token, currentVendor.id, currentVendorForm);
+    await context.refresh();
+  }
+
+  async function remove() {
+    if (!token) return;
+    await api.deleteVendor(token, currentVendor.id);
+    await context.refresh();
+    navigate("/app/vendors");
+  }
+
+  return (
+    <EntityDetailShell title={form.name} description={`${form.category} • ${eventName(form.eventId, context)}`} actions={<><Button variant="secondary" onClick={() => void remove()}>Delete</Button><Button onClick={() => void save()}>Save</Button></>}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></div>
+        <div className="space-y-2 md:col-span-2"><Label>Deliverable</Label><Input value={form.deliverable} onChange={(event) => setForm({ ...form, deliverable: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Status</Label><Input value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Payment Status</Label><Input value={form.paymentStatus} onChange={(event) => setForm({ ...form, paymentStatus: event.target.value })} /></div>
+      </div>
+    </EntityDetailShell>
+  );
+}
+
+export function LeadDetailPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const { leadId } = useParams();
+  const navigate = useNavigate();
+  const lead = context.data.leads.find((item) => item.id === leadId);
+  const [form, setForm] = useState(() => (lead ? { ...lead } : null));
+
+  if (!lead || !form) {
+    return <EmptyState title="Lead not found" description="This lead is no longer available." action={<Link to="/app/leads"><Button>Back to Leads</Button></Link>} />;
+  }
+
+  const currentLead = lead;
+  const currentLeadForm = form;
+
+  async function save() {
+    if (!token) return;
+    await api.updateLead(token, currentLead.id, currentLeadForm);
+    await context.refresh();
+  }
+
+  async function remove() {
+    if (!token) return;
+    await api.deleteLead(token, currentLead.id);
+    await context.refresh();
+    navigate("/app/leads");
+  }
+
+  return (
+    <EntityDetailShell title={form.fullName} description={`${form.company} • ${eventName(form.eventId, context)}`} actions={<><Button variant="secondary" onClick={() => void remove()}>Delete</Button><Button onClick={() => void save()}>Save</Button></>}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2"><Label>Full Name</Label><Input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Company</Label><Input value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Qualification</Label><Input value={form.qualificationStatus} onChange={(event) => setForm({ ...form, qualificationStatus: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Priority</Label><Input value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })} /></div>
+        <div className="space-y-2 md:col-span-2"><Label>Next Action</Label><Input value={form.nextAction} onChange={(event) => setForm({ ...form, nextAction: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Next Follow-up</Label><Input type="date" value={form.nextFollowUpDate} onChange={(event) => setForm({ ...form, nextFollowUpDate: event.target.value })} /></div>
+        <div className="space-y-2 md:col-span-2"><Label>Notes</Label><Textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></div>
+      </div>
+    </EntityDetailShell>
   );
 }
 

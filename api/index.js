@@ -3,7 +3,10 @@ import jwt from "jsonwebtoken";
 import { buildBootstrap, JWT_SECRET, json, sanitizeUser, verifyAuth } from "./_lib.js";
 import {
   convertOpportunity,
+  createAssetForOrg,
+  createAttendeeForOrg,
   createBudgetForOrg,
+  createCheckinForOrg,
   createEventForOrg,
   createLeadForOrg,
   createOpportunityForOrg,
@@ -11,11 +14,23 @@ import {
   createTaskForOrg,
   createUser,
   createVendorForOrg,
+  deleteBudgetForOrg,
+  deleteEventForOrg,
+  deleteLeadForOrg,
+  deleteOpportunityForOrg,
+  deleteTaskForOrg,
+  deleteVendorForOrg,
   findUserByEmail,
   findUserById,
   getSetupStatus,
   persistenceMode,
+  updateBudgetForOrg,
+  updateEventForOrg,
+  updateLeadForOrg,
+  updateOpportunityForOrg,
+  updateTaskForOrg,
   updateUserPassword,
+  updateVendorForOrg,
 } from "./persistence.js";
 
 function signUser(user) {
@@ -175,6 +190,111 @@ export default async function handler(req, res) {
     if (req.method === "POST" && route === "budgets") {
       json(res, 201, { budget: await createBudgetForOrg(auth, body) });
       return;
+    }
+
+    if (req.method === "POST" && route === "attendees") {
+      json(res, 201, { attendee: await createAttendeeForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "checkins") {
+      json(res, 201, { checkin: await createCheckinForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "assets") {
+      json(res, 201, { asset: await createAssetForOrg(auth, body) });
+      return;
+    }
+
+    const eventMatch = route.match(/^events\/([^/]+)$/);
+    if (eventMatch) {
+      const eventId = decodeURIComponent(eventMatch[1]);
+      if (req.method === "PUT") {
+        const event = await updateEventForOrg(auth, eventId, body);
+        json(res, event ? 200 : 404, event ? { event } : { message: "Event not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteEventForOrg(auth, eventId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Event not found." });
+        return;
+      }
+    }
+
+    const opportunityMatch = route.match(/^opportunities\/([^/]+)$/);
+    if (opportunityMatch) {
+      const opportunityId = decodeURIComponent(opportunityMatch[1]);
+      if (req.method === "PUT") {
+        const opportunity = await updateOpportunityForOrg(auth, opportunityId, body);
+        json(res, opportunity ? 200 : 404, opportunity ? { opportunity } : { message: "Opportunity not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteOpportunityForOrg(auth, opportunityId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Opportunity not found." });
+        return;
+      }
+    }
+
+    const taskMatch = route.match(/^tasks\/([^/]+)$/);
+    if (taskMatch) {
+      const taskId = decodeURIComponent(taskMatch[1]);
+      if (req.method === "PUT") {
+        const task = await updateTaskForOrg(auth, taskId, body);
+        json(res, task ? 200 : 404, task ? { task } : { message: "Task not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteTaskForOrg(auth, taskId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Task not found." });
+        return;
+      }
+    }
+
+    const vendorMatch = route.match(/^vendors\/([^/]+)$/);
+    if (vendorMatch) {
+      const vendorId = decodeURIComponent(vendorMatch[1]);
+      if (req.method === "PUT") {
+        const vendor = await updateVendorForOrg(auth, vendorId, body);
+        json(res, vendor ? 200 : 404, vendor ? { vendor } : { message: "Vendor not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteVendorForOrg(auth, vendorId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Vendor not found." });
+        return;
+      }
+    }
+
+    const budgetMatch = route.match(/^budgets\/([^/]+)$/);
+    if (budgetMatch) {
+      const budgetId = decodeURIComponent(budgetMatch[1]);
+      if (req.method === "PUT") {
+        const budget = await updateBudgetForOrg(auth, budgetId, body);
+        json(res, budget ? 200 : 404, budget ? { budget } : { message: "Budget item not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteBudgetForOrg(auth, budgetId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Budget item not found." });
+        return;
+      }
+    }
+
+    const leadMatch = route.match(/^leads\/([^/]+)$/);
+    if (leadMatch) {
+      const leadId = decodeURIComponent(leadMatch[1]);
+      if (req.method === "PUT") {
+        const lead = await updateLeadForOrg(auth, leadId, body);
+        json(res, lead ? 200 : 404, lead ? { lead } : { message: "Lead not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteLeadForOrg(auth, leadId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Lead not found." });
+        return;
+      }
     }
 
     const convertMatch = route.match(/^opportunities\/([^/]+)\/convert$/);

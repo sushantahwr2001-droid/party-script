@@ -176,6 +176,44 @@ export interface BoothChecklistItem {
   status: string;
 }
 
+export interface AttendeeRecord {
+  id: string;
+  organizationId: string;
+  eventId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  company: string;
+  city: string;
+  ticketType: string;
+  registrationStatus: string;
+  checkInStatus: string;
+  source: string;
+  tags: string[];
+  createdAt: string;
+}
+
+export interface CheckinRecord {
+  id: string;
+  organizationId: string;
+  attendeeId: string;
+  eventId: string;
+  status: string;
+  checkedInAt: string;
+  createdAt: string;
+}
+
+export interface AssetRecord {
+  id: string;
+  organizationId: string;
+  eventId: string;
+  name: string;
+  category: string;
+  fileUrl: string;
+  createdByUserId: string;
+  createdAt: string;
+}
+
 export interface ActivityRecord {
   id: string;
   organizationId: string;
@@ -224,6 +262,9 @@ export interface BootstrapPayload {
   leads: LeadRecord[];
   booths: BoothRecord[];
   boothChecklistItems: BoothChecklistItem[];
+  attendees: AttendeeRecord[];
+  checkins: CheckinRecord[];
+  assets: AssetRecord[];
   activities: ActivityRecord[];
   dashboard: DashboardPayload;
 }
