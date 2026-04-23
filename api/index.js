@@ -23,7 +23,10 @@ import {
   findUserByEmail,
   findUserById,
   getSetupStatus,
+  importAttendeesForOrg,
+  mergeAttendeesForOrg,
   persistenceMode,
+  uploadAssetForOrg,
   updateBudgetForOrg,
   updateEventForOrg,
   updateLeadForOrg,
@@ -197,6 +200,17 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (req.method === "POST" && route === "attendees/import") {
+      json(res, 201, { attendees: await importAttendeesForOrg(auth, Array.isArray(body.rows) ? body.rows : []) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "attendees/merge") {
+      const attendee = await mergeAttendeesForOrg(auth, String(body.sourceAttendeeId || ""), String(body.targetAttendeeId || ""));
+      json(res, attendee ? 200 : 404, attendee ? { attendee } : { message: "Attendee not found." });
+      return;
+    }
+
     if (req.method === "POST" && route === "checkins") {
       json(res, 201, { checkin: await createCheckinForOrg(auth, body) });
       return;
@@ -204,6 +218,11 @@ export default async function handler(req, res) {
 
     if (req.method === "POST" && route === "assets") {
       json(res, 201, { asset: await createAssetForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "assets/upload") {
+      json(res, 201, { asset: await uploadAssetForOrg(auth, body) });
       return;
     }
 

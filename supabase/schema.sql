@@ -136,6 +136,44 @@ create table if not exists booth_checklist_items (
   status text not null
 );
 
+create table if not exists attendees (
+  id text primary key,
+  organization_id text not null references organizations(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  full_name text not null,
+  email text not null,
+  phone text not null default '',
+  company text not null default '',
+  city text not null default '',
+  ticket_type text not null default 'General',
+  registration_status text not null default 'Confirmed',
+  check_in_status text not null default 'Pending',
+  source text not null default 'Manual',
+  tags text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists checkins (
+  id text primary key,
+  organization_id text not null references organizations(id) on delete cascade,
+  attendee_id text not null references attendees(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  status text not null,
+  checked_in_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists assets (
+  id text primary key,
+  organization_id text not null references organizations(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  name text not null,
+  category text not null,
+  file_url text not null,
+  created_by_user_id text not null references users(id),
+  created_at timestamptz not null default now()
+);
+
 create table if not exists activities (
   id text primary key,
   organization_id text not null references organizations(id) on delete cascade,

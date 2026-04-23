@@ -28,6 +28,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Upload,
   Ticket,
   TrendingUp,
   UserPlus,
@@ -56,9 +57,12 @@ import { api } from "../lib/api";
 import { formatCurrency, formatDateRange } from "../lib/format";
 import { cn } from "../lib/utils";
 import type {
+  AssetRecord,
+  AttendeeRecord,
   BoothChecklistItem,
   BoothRecord,
   BudgetItem,
+  CheckinRecord,
   ConsoleOutletContext,
   EventRecord,
   LeadRecord,
@@ -96,6 +100,90 @@ function sortByDateAsc<T>(items: T[], getter: (item: T) => string) {
 
 function ringOffset(value: number, circumference: number) {
   return circumference - (Math.max(0, Math.min(100, value)) / 100) * circumference;
+}
+
+function checkinTone(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "vip") return "accent";
+  if (normalized === "duplicate") return "warning";
+  if (normalized === "invalid") return "danger";
+  return "success";
+}
+
+function csvEscape(value: string | number | null | undefined) {
+  const raw = String(value ?? "");
+  if (raw.includes(",") || raw.includes("\"") || raw.includes("\n")) {
+    return `"${raw.replace(/"/g, "\"\"")}"`;
+  }
+  return raw;
+}
+
+function downloadTextFile(filename: string, content: string, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+
+    if (char === "\"") {
+      if (inQuotes && next === "\"") {
+        current += "\"";
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
+}
+
+function parseCsv(text: string) {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (!lines.length) {
+    return [];
+  }
+
+  const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+  return lines.slice(1).map((line) => {
+    const cells = parseCsvLine(line);
+    return Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""]));
+  });
+}
+
+async function fileToBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
 }
 
 function InsightCard({
@@ -869,6 +957,9 @@ export function EventOverviewPage() {
   const eventLeads = context.data.leads.filter((item) => item.eventId === currentEvent.id);
   const eventVendors = context.data.vendors.filter((item) => item.eventId === currentEvent.id);
   const eventBudget = context.data.budgets.filter((item) => item.eventId === currentEvent.id);
+  const eventAttendees = context.data.attendees.filter((item) => item.eventId === currentEvent.id);
+  const eventCheckins = context.data.checkins.filter((item) => item.eventId === currentEvent.id);
+  const eventAssets = context.data.assets.filter((item) => item.eventId === currentEvent.id);
   const booth = context.data.booths.find((item) => item.eventId === currentEvent.id);
   const checklist = context.data.boothChecklistItems.filter((item) => item.boothId === booth?.id);
   const spent = eventBudget.reduce((sum, item) => sum + item.actual, 0);
@@ -1010,6 +1101,41 @@ export function EventOverviewPage() {
         </Card>
       ) : null}
 
+      {tab === "Attendees" ? (
+        <Card className="p-5">
+          <SectionTitle title="Event Attendees" detail="Registrations, ticket state, and duplicate-ready attendee records for this event" />
+          <div className="mt-5">
+            <SimpleTable
+              columns={[
+                { key: "fullName", label: "Name", render: (row: AttendeeRecord) => <div><div className="font-semibold text-text">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></div> },
+                { key: "email", label: "Email" },
+                { key: "ticketType", label: "Ticket" },
+                { key: "registrationStatus", label: "Registration", render: (row: AttendeeRecord) => <Badge label={row.registrationStatus} tone={statusTone(row.registrationStatus)} /> },
+                { key: "checkInStatus", label: "Check-in", render: (row: AttendeeRecord) => <Badge label={row.checkInStatus} tone={statusTone(row.checkInStatus)} /> },
+                { key: "tags", label: "Tags", render: (row: AttendeeRecord) => row.tags.join(", ") || "—" },
+              ]}
+              rows={eventAttendees}
+            />
+          </div>
+        </Card>
+      ) : null}
+
+      {tab === "Check-ins" ? (
+        <Card className="p-5">
+          <SectionTitle title="Event Check-ins" detail="Live gate logs with duplicate and VIP awareness" />
+          <div className="mt-5">
+            <SimpleTable
+              columns={[
+                { key: "attendee", label: "Attendee", render: (row: CheckinRecord) => context.data.attendees.find((item) => item.id === row.attendeeId)?.fullName ?? "Attendee" },
+                { key: "status", label: "Status", render: (row: CheckinRecord) => <Badge label={row.status} tone={checkinTone(row.status)} /> },
+                { key: "checkedInAt", label: "Checked in", render: (row: CheckinRecord) => new Date(row.checkedInAt).toLocaleString() },
+              ]}
+              rows={eventCheckins}
+            />
+          </div>
+        </Card>
+      ) : null}
+
       {tab === "Vendors" ? (
         <Card className="p-5">
           <SectionTitle title="Event Vendors" detail="All suppliers, staffing, and external deliverables linked to this event" />
@@ -1037,7 +1163,23 @@ export function EventOverviewPage() {
         </Card>
       ) : null}
 
-      {!["Overview", "Tasks", "Vendors", "Budget", "Leads"].includes(tab) ? (
+      {tab === "Assets" ? (
+        <Card className="p-5">
+          <SectionTitle title="Event Assets" detail="Files uploaded and linked to this event" />
+          <div className="mt-5">
+            <SimpleTable
+              columns={[
+                { key: "name", label: "Asset" },
+                { key: "category", label: "Category" },
+                { key: "fileUrl", label: "Link", render: (row: AssetRecord) => <a href={row.fileUrl} target="_blank" rel="noreferrer" className="text-[#C9BDFF] hover:underline">Open</a> },
+              ]}
+              rows={eventAssets}
+            />
+          </div>
+        </Card>
+      ) : null}
+
+      {!["Overview", "Attendees", "Check-ins", "Tasks", "Vendors", "Budget", "Leads", "Assets"].includes(tab) ? (
         <EmptyState
           title={`${tab} view is ready for the next layer`}
           description={`This event-level route is now in place for ${tab.toLowerCase()} and already inherits the connected event data core. The customer-ready execution layers are polished first on Overview, Tasks, Vendors, Budget, and Leads.`}
@@ -1801,6 +1943,7 @@ export function TasksPage() {
 export function AttendeesPage() {
   const context = useConsoleData();
   const { token } = useAuth();
+  const [selectedEventId, setSelectedEventId] = useState(context.data.events[0]?.id ?? "");
   const [form, setForm] = useState({
     eventId: context.data.events[0]?.id ?? "",
     fullName: "",
@@ -1815,6 +1958,19 @@ export function AttendeesPage() {
     tags: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [importing, setImporting] = useState(false);
+
+  const attendeeRows = selectedEventId ? context.data.attendees.filter((item) => item.eventId === selectedEventId) : context.data.attendees;
+  const duplicateGroups = useMemo(() => {
+    const groups = new Map<string, AttendeeRecord[]>();
+    attendeeRows.forEach((attendee) => {
+      const emailKey = attendee.email.trim().toLowerCase();
+      if (!emailKey) return;
+      const key = `${attendee.eventId}:${emailKey}`;
+      groups.set(key, [...(groups.get(key) ?? []), attendee]);
+    });
+    return Array.from(groups.values()).filter((group) => group.length > 1);
+  }, [attendeeRows]);
 
   async function createAttendee() {
     if (!token) return;
@@ -1826,10 +1982,10 @@ export function AttendeesPage() {
       });
       await context.refresh();
       setForm({
-        eventId: context.data.events[0]?.id ?? "",
-        fullName: "",
-        email: "",
-        phone: "",
+          eventId: selectedEventId || (context.data.events[0]?.id ?? ""),
+          fullName: "",
+          email: "",
+          phone: "",
         company: "",
         city: "",
         ticketType: "General",
@@ -1843,34 +1999,145 @@ export function AttendeesPage() {
     }
   }
 
+  async function importCsv(file: File) {
+    if (!token) return;
+    setImporting(true);
+    try {
+      const parsedRows = parseCsv(await file.text()).map((row) => ({
+        eventId: row.eventid || row["event id"] || selectedEventId || context.data.events[0]?.id || "",
+        fullName: row.fullname || row["full name"] || row.name || "",
+        email: row.email || "",
+        phone: row.phone || "",
+        company: row.company || "",
+        city: row.city || "",
+        ticketType: row.tickettype || row["ticket type"] || "General",
+        registrationStatus: row.registrationstatus || row["registration status"] || "Confirmed",
+        checkInStatus: row.checkinstatus || row["check-in status"] || "Pending",
+        source: row.source || "CSV Import",
+        tags: String(row.tags || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      }));
+      await api.importAttendees(token, parsedRows);
+      await context.refresh();
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function exportCsv() {
+    const header = ["Full Name", "Email", "Phone", "Company", "City", "Event ID", "Ticket Type", "Registration Status", "Check-In Status", "Source", "Tags"];
+    const rows = attendeeRows.map((attendee) => [
+      attendee.fullName,
+      attendee.email,
+      attendee.phone,
+      attendee.company,
+      attendee.city,
+      attendee.eventId,
+      attendee.ticketType,
+      attendee.registrationStatus,
+      attendee.checkInStatus,
+      attendee.source,
+      attendee.tags.join(", "),
+    ]);
+    const csv = [header, ...rows].map((row) => row.map((cell) => csvEscape(cell)).join(",")).join("\n");
+    downloadTextFile("party-script-attendees.csv", csv, "text/csv;charset=utf-8");
+  }
+
+  async function mergeDuplicateGroup(group: AttendeeRecord[]) {
+    if (!token || group.length < 2) return;
+    const [primary, ...duplicates] = group;
+    for (const duplicate of duplicates) {
+      await api.mergeAttendees(token, duplicate.id, primary.id);
+    }
+    await context.refresh();
+  }
+
   return (
     <div className="space-y-6">
       <PageIntro
         title="Attendees"
         description="The source of truth for event people, registration state, ticket context, and check-in readiness."
-        actions={<Button onClick={() => void createAttendee()}><Plus className="h-4 w-4" />Add Attendee</Button>}
+        actions={
+          <>
+            <Button variant="secondary" onClick={exportCsv}>Export CSV</Button>
+            <Button onClick={() => void createAttendee()}><Plus className="h-4 w-4" />Add Attendee</Button>
+          </>
+        }
       />
       <Card className="p-5">
         <SectionTitle title="Attendee Directory" detail="Stored attendee records linked directly to events" />
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <select
+            value={selectedEventId}
+            onChange={(event) => {
+              setSelectedEventId(event.target.value);
+              setForm((current) => ({ ...current, eventId: event.target.value }));
+            }}
+            className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none"
+          >
+            {context.data.events.map((event) => (
+              <option key={event.id} value={event.id}>{event.name}</option>
+            ))}
+          </select>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm font-semibold text-textSecondary transition hover:bg-hover hover:text-text">
+            <Upload className="h-4 w-4" />
+            {importing ? "Importing..." : "Import CSV"}
+            <input type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                void importCsv(file);
+              }
+              event.currentTarget.value = "";
+            }} />
+          </label>
+        </div>
         <div className="mt-5">
           <SimpleTable
             columns={[
-              { key: "fullName", label: "Name", render: (row: any) => <div><div className="font-semibold text-text">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></div> },
-              { key: "event", label: "Event", render: (row: any) => eventName(row.eventId, context) },
-              { key: "ticketType", label: "Ticket" },
-              { key: "registrationStatus", label: "Registration", render: (row: any) => <Badge label={row.registrationStatus} tone={statusTone(row.registrationStatus)} /> },
-              { key: "checkInStatus", label: "Check-in", render: (row: any) => <Badge label={row.checkInStatus} tone={statusTone(row.checkInStatus)} /> },
-              { key: "source", label: "Source" },
-            ]}
-            rows={context.data.attendees}
-          />
-        </div>
-      </Card>
-      <Card className="p-5">
-        <SectionTitle title="Add Attendee" detail="Manual attendee capture until CSV import lands" />
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-2"><Label>Full name</Label><Input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></div>
-          <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+                { key: "fullName", label: "Name", render: (row: AttendeeRecord) => <div><div className="font-semibold text-text">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></div> },
+                { key: "event", label: "Event", render: (row: AttendeeRecord) => eventName(row.eventId, context) },
+                { key: "ticketType", label: "Ticket" },
+                { key: "registrationStatus", label: "Registration", render: (row: AttendeeRecord) => <Badge label={row.registrationStatus} tone={statusTone(row.registrationStatus)} /> },
+                { key: "checkInStatus", label: "Check-in", render: (row: AttendeeRecord) => <Badge label={row.checkInStatus} tone={statusTone(row.checkInStatus)} /> },
+                { key: "source", label: "Source" },
+              ]}
+              rows={attendeeRows}
+            />
+          </div>
+        </Card>
+        <Card className="p-5">
+          <SectionTitle title="Duplicate Review" detail="Merge duplicate attendees by email within the same event" />
+          <div className="mt-5 space-y-4">
+            {duplicateGroups.length ? duplicateGroups.map((group) => (
+              <div key={`${group[0].eventId}-${group[0].email}`} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-text">{group[0].email}</p>
+                    <p className="mt-1 text-xs text-textSecondary">{eventName(group[0].eventId, context)} • {group.length} duplicates</p>
+                  </div>
+                  <Button variant="secondary" className="h-9 px-3" onClick={() => void mergeDuplicateGroup(group)}>
+                    <ArrowRightLeft className="h-4 w-4" />
+                    Merge into first record
+                  </Button>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {group.map((attendee) => (
+                    <div key={attendee.id} className="rounded-xl border border-white/5 bg-app/30 px-3 py-2 text-sm text-textSecondary">
+                      <span className="font-semibold text-text">{attendee.fullName}</span> • {attendee.company || "No company"} • {attendee.ticketType}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )) : <p className="text-sm text-textMuted">No duplicates detected in the selected event.</p>}
+          </div>
+        </Card>
+        <Card className="p-5">
+          <SectionTitle title="Add Attendee" detail="Manual attendee capture for walk-ins, VIPs, and quick desk fixes" />
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2"><Label>Full name</Label><Input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
           <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></div>
           <div className="space-y-2"><Label>Company</Label><Input value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></div>
           <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></div>
@@ -1906,58 +2173,88 @@ export function TicketsPage() {
 export function CheckinsPage() {
   const context = useConsoleData();
   const { token } = useAuth();
+  const [selectedEventId, setSelectedEventId] = useState(context.data.events[0]?.id ?? "");
   const [query, setQuery] = useState("");
-  const candidates = context.data.attendees.filter((attendee) =>
-    attendee.fullName.toLowerCase().includes(query.toLowerCase()) ||
-    attendee.email.toLowerCase().includes(query.toLowerCase()),
+  const [lastScanMessage, setLastScanMessage] = useState<string | null>(null);
+  const attendees = context.data.attendees.filter((attendee) =>
+    !selectedEventId || attendee.eventId === selectedEventId,
   );
+  const candidates = attendees.filter((attendee) =>
+      attendee.fullName.toLowerCase().includes(query.toLowerCase()) ||
+      attendee.email.toLowerCase().includes(query.toLowerCase()) ||
+      attendee.phone.toLowerCase().includes(query.toLowerCase()),
+    );
+  const checkins = context.data.checkins.filter((checkin) => !selectedEventId || checkin.eventId === selectedEventId);
+  const successCount = checkins.filter((item) => item.status === "success").length;
+  const vipCount = checkins.filter((item) => item.status === "VIP").length;
+  const duplicateCount = checkins.filter((item) => item.status === "duplicate").length;
 
   async function checkIn(attendeeId: string, eventId: string) {
     if (!token) return;
-    await api.createCheckin(token, { attendeeId, eventId, status: "success" });
+    const response = await api.createCheckin(token, { attendeeId, eventId, status: "success" });
     await context.refresh();
+    const status = String((response as { checkin?: { status?: string } }).checkin?.status || "success");
+    setLastScanMessage(`Latest result: ${status.toUpperCase()}`);
   }
 
   return (
     <div className="space-y-6">
-      <PageIntro title="Check-ins" description="Manual gate operations for now, with attendee search, duplicate visibility, and scan-style logs." />
-      <div className="grid gap-6 xl:grid-cols-12">
-        <Card className="xl:col-span-7 p-5">
-          <SectionTitle title="Search Attendees" detail="Search by attendee name or email, then mark check-in" />
-          <div className="mt-5 space-y-4">
-            <Input placeholder="Search attendee..." value={query} onChange={(event) => setQuery(event.target.value)} />
-            <div className="space-y-3">
-              {(query ? candidates : context.data.attendees).slice(0, 8).map((attendee) => (
-                <div key={attendee.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
-                  <div>
-                    <p className="text-sm font-semibold text-text">{attendee.fullName}</p>
-                    <p className="mt-1 text-xs text-textSecondary">{eventName(attendee.eventId, context)} • {attendee.ticketType}</p>
-                  </div>
-                  <Button variant="secondary" className="h-9 px-3" onClick={() => void checkIn(attendee.id, attendee.eventId)}>
-                    {attendee.checkInStatus === "Checked In" ? "Duplicate" : "Check In"}
+        <PageIntro title="Check-ins" description="Manual gate operations for now, with attendee search, duplicate visibility, and scan-style logs." />
+        <div className="grid gap-4 md:grid-cols-3">
+          <MetricTile label="Successful" value={`${successCount}`} detail="New attendees admitted" tone="success" />
+          <MetricTile label="VIP" value={`${vipCount}`} detail="VIP arrivals handled with priority" tone="accent" />
+          <MetricTile label="Duplicates" value={`${duplicateCount}`} detail="Repeat scan attempts caught safely" tone="warning" />
+        </div>
+        <div className="grid gap-6 xl:grid-cols-12">
+          <Card className="xl:col-span-7 p-5">
+            <SectionTitle title="Search Attendees" detail="Search by attendee name or email, then mark check-in" />
+            <div className="mt-5 space-y-4">
+              <select
+                value={selectedEventId}
+                onChange={(event) => setSelectedEventId(event.target.value)}
+                className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none"
+              >
+                {context.data.events.map((event) => (
+                  <option key={event.id} value={event.id}>{event.name}</option>
+                ))}
+              </select>
+              <Input placeholder="Search attendee..." value={query} onChange={(event) => setQuery(event.target.value)} />
+              {lastScanMessage ? <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-textSecondary">{lastScanMessage}</div> : null}
+              <div className="space-y-3">
+                {(query ? candidates : attendees).slice(0, 8).map((attendee) => (
+                  <div key={attendee.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.03] px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold text-text">{attendee.fullName}</p>
+                      <p className="mt-1 text-xs text-textSecondary">{eventName(attendee.eventId, context)} • {attendee.ticketType}</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {attendee.tags.map((tag) => <Badge key={tag} label={tag} tone={tag.toLowerCase() === "vip" ? "accent" : "info"} />)}
+                      </div>
+                    </div>
+                    <Button variant="secondary" className="h-9 px-3" onClick={() => void checkIn(attendee.id, attendee.eventId)}>
+                      {attendee.checkInStatus === "Checked In" ? "Duplicate" : "Check In"}
                   </Button>
                 </div>
               ))}
             </div>
           </div>
         </Card>
-        <Card className="xl:col-span-5 p-5">
-          <SectionTitle title="Scan Log" detail="Most recent check-in records" />
-          <div className="mt-5 space-y-3">
-            {context.data.checkins.map((checkin: any) => (
-              <div key={checkin.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-                <p className="text-sm font-semibold text-text">{context.data.attendees.find((item) => item.id === checkin.attendeeId)?.fullName ?? "Attendee"}</p>
-                <p className="mt-1 text-xs text-textSecondary">{eventName(checkin.eventId, context)}</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <Badge label={checkin.status} tone="success" />
-                  <span className="text-xs text-textMuted">{new Date(checkin.checkedInAt).toLocaleString()}</span>
+          <Card className="xl:col-span-5 p-5">
+            <SectionTitle title="Scan Log" detail="Most recent check-in records" />
+            <div className="mt-5 space-y-3">
+              {checkins.map((checkin: CheckinRecord) => (
+                <div key={checkin.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                  <p className="text-sm font-semibold text-text">{context.data.attendees.find((item) => item.id === checkin.attendeeId)?.fullName ?? "Attendee"}</p>
+                  <p className="mt-1 text-xs text-textSecondary">{eventName(checkin.eventId, context)}</p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <Badge label={checkin.status} tone={checkinTone(checkin.status)} />
+                    <span className="text-xs text-textMuted">{new Date(checkin.checkedInAt).toLocaleString()}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {!context.data.checkins.length ? <p className="text-sm text-textMuted">No check-ins recorded yet.</p> : null}
-          </div>
-        </Card>
-      </div>
+              ))}
+              {!checkins.length ? <p className="text-sm text-textMuted">No check-ins recorded yet.</p> : null}
+            </div>
+          </Card>
+        </div>
     </div>
   );
 }
@@ -2015,21 +2312,31 @@ export function ReportsPage() {
 export function AssetsPage() {
   const context = useConsoleData();
   const { token } = useAuth();
+  const [selectedEventId, setSelectedEventId] = useState(context.data.events[0]?.id ?? "");
   const [form, setForm] = useState({
     eventId: context.data.events[0]?.id ?? "",
     name: "",
     category: "branding",
-    fileUrl: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const assets = selectedEventId ? context.data.assets.filter((item) => item.eventId === selectedEventId) : context.data.assets;
 
   async function createAsset() {
-    if (!token) return;
+    if (!token || !selectedFile) return;
     setSubmitting(true);
     try {
-      await api.createAsset(token, form);
+      await api.uploadAsset(token, {
+        eventId: form.eventId,
+        name: form.name || selectedFile.name,
+        category: form.category,
+        fileName: selectedFile.name,
+        mimeType: selectedFile.type || "application/octet-stream",
+        contentBase64: await fileToBase64(selectedFile),
+      });
       await context.refresh();
-      setForm({ eventId: context.data.events[0]?.id ?? "", name: "", category: "branding", fileUrl: "" });
+      setSelectedFile(null);
+      setForm({ eventId: selectedEventId || (context.data.events[0]?.id ?? ""), name: "", category: "branding" });
     } finally {
       setSubmitting(false);
     }
@@ -2037,33 +2344,47 @@ export function AssetsPage() {
 
   return (
     <div className="space-y-6">
-      <PageIntro title="Assets" description="Central file register for event docs, booth files, contracts, invoices, and operational references." actions={<Button onClick={() => void createAsset()}><Plus className="h-4 w-4" />Add Asset</Button>} />
+      <PageIntro title="Assets" description="Central file register for event docs, booth files, contracts, invoices, and operational references." actions={<Button onClick={() => void createAsset()} disabled={!selectedFile || submitting}><Upload className="h-4 w-4" />{submitting ? "Uploading..." : "Upload Asset"}</Button>} />
       <Card className="p-5">
-        <SectionTitle title="Asset Library" detail="First-pass asset storage using linked file URLs" />
+        <SectionTitle title="Asset Library" detail="Uploaded files are stored in Supabase Storage and linked back to events" />
         <div className="mt-5">
-          <SimpleTable
-            columns={[
-              { key: "name", label: "Asset" },
-              { key: "event", label: "Event", render: (row: any) => eventName(row.eventId, context) },
-              { key: "category", label: "Category" },
-              { key: "fileUrl", label: "Link", render: (row: any) => <a href={row.fileUrl} target="_blank" rel="noreferrer" className="text-[#C9BDFF] hover:underline">Open</a> },
-            ]}
-            rows={context.data.assets}
-          />
+          <select
+            value={selectedEventId}
+            onChange={(event) => {
+              setSelectedEventId(event.target.value);
+              setForm((current) => ({ ...current, eventId: event.target.value }));
+            }}
+            className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none"
+          >
+            {context.data.events.map((event) => (
+              <option key={event.id} value={event.id}>{event.name}</option>
+            ))}
+          </select>
         </div>
-      </Card>
-      <Card className="p-5">
-        <SectionTitle title="Add Asset Link" detail="Store an asset record while proper upload flows are still being expanded" />
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
-          <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></div>
-          <div className="space-y-2 xl:col-span-2"><Label>File URL</Label><Input value={form.fileUrl} onChange={(event) => setForm({ ...form, fileUrl: event.target.value })} /></div>
-        </div>
-        <div className="mt-4">
-          <Button onClick={() => void createAsset()} disabled={submitting}>{submitting ? "Saving..." : "Save asset"}</Button>
-        </div>
-      </Card>
-    </div>
+        <div className="mt-5">
+            <SimpleTable
+              columns={[
+                { key: "name", label: "Asset" },
+                { key: "event", label: "Event", render: (row: AssetRecord) => eventName(row.eventId, context) },
+                { key: "category", label: "Category" },
+                { key: "fileUrl", label: "Link", render: (row: AssetRecord) => <a href={row.fileUrl} target="_blank" rel="noreferrer" className="text-[#C9BDFF] hover:underline">Open</a> },
+              ]}
+              rows={assets}
+            />
+          </div>
+        </Card>
+        <Card className="p-5">
+          <SectionTitle title="Upload Asset" detail="Upload files directly to Supabase Storage and attach them to the selected event" />
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="space-y-2"><Label>Name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} /></div>
+            <div className="space-y-2 xl:col-span-2"><Label>File</Label><Input type="file" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} /></div>
+          </div>
+          <div className="mt-4">
+            <Button onClick={() => void createAsset()} disabled={!selectedFile || submitting}>{submitting ? "Uploading..." : "Upload asset"}</Button>
+          </div>
+        </Card>
+      </div>
   );
 }
 

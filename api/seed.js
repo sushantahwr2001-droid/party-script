@@ -46,9 +46,10 @@ export function createSeedStore() {
       { id: "check_4", boothId: "booth_startup_expo", ownerUserId: "user_aarav", label: "Lead capture tablets tested", dueDate: "2026-04-28", status: "In Progress" }
     ],
     attendees: [
-      { id: "attendee_1", organizationId: "org_partyscript", eventId: "evt_gtm_summit", fullName: "Meera Joshi", email: "meera@revpilot.io", phone: "+91 9000001111", company: "RevPilot", city: "Bengaluru", ticketType: "VIP", registrationStatus: "Confirmed", checkInStatus: "Pending", source: "LinkedIn", tags: ["VIP", "Founder"], createdAt: now },
-      { id: "attendee_2", organizationId: "org_partyscript", eventId: "evt_fintech_meetup", fullName: "Kabir Malhotra", email: "kabir@paymesh.com", phone: "+91 9000002222", company: "PayMesh", city: "Delhi", ticketType: "General", registrationStatus: "Confirmed", checkInStatus: "Checked In", source: "Community", tags: ["Fintech"], createdAt: now }
-    ],
+        { id: "attendee_1", organizationId: "org_partyscript", eventId: "evt_gtm_summit", fullName: "Meera Joshi", email: "meera@revpilot.io", phone: "+91 9000001111", company: "RevPilot", city: "Bengaluru", ticketType: "VIP", registrationStatus: "Confirmed", checkInStatus: "Pending", source: "LinkedIn", tags: ["VIP", "Founder"], createdAt: now },
+        { id: "attendee_1b", organizationId: "org_partyscript", eventId: "evt_gtm_summit", fullName: "Meera J.", email: "meera@revpilot.io", phone: "+91 9000001111", company: "RevPilot", city: "Bengaluru", ticketType: "VIP", registrationStatus: "Confirmed", checkInStatus: "Pending", source: "CSV Import", tags: ["VIP"], createdAt: now },
+        { id: "attendee_2", organizationId: "org_partyscript", eventId: "evt_fintech_meetup", fullName: "Kabir Malhotra", email: "kabir@paymesh.com", phone: "+91 9000002222", company: "PayMesh", city: "Delhi", ticketType: "General", registrationStatus: "Confirmed", checkInStatus: "Checked In", source: "Community", tags: ["Fintech"], createdAt: now }
+      ],
     checkins: [
       { id: "checkin_1", organizationId: "org_partyscript", attendeeId: "attendee_2", eventId: "evt_fintech_meetup", status: "success", checkedInAt: now, createdAt: now }
     ],

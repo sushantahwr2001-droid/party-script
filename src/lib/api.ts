@@ -247,6 +247,33 @@ export const api = {
       body: JSON.stringify(payload)
     }, token);
   },
+  importAttendees(
+    token: string,
+    rows: Array<{
+      eventId: string;
+      fullName: string;
+      email: string;
+      phone?: string;
+      company?: string;
+      city?: string;
+      ticketType?: string;
+      registrationStatus?: string;
+      checkInStatus?: string;
+      source?: string;
+      tags?: string[];
+    }>,
+  ) {
+    return request<{ attendees: unknown[] }>("/attendees/import", {
+      method: "POST",
+      body: JSON.stringify({ rows })
+    }, token);
+  },
+  mergeAttendees(token: string, sourceAttendeeId: string, targetAttendeeId: string) {
+    return request<{ attendee: unknown }>("/attendees/merge", {
+      method: "POST",
+      body: JSON.stringify({ sourceAttendeeId, targetAttendeeId })
+    }, token);
+  },
   createCheckin(
     token: string,
     payload: {
@@ -270,6 +297,22 @@ export const api = {
     },
   ) {
     return request<{ asset: unknown }>("/assets", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  uploadAsset(
+    token: string,
+    payload: {
+      eventId: string;
+      name: string;
+      category: string;
+      fileName: string;
+      mimeType: string;
+      contentBase64: string;
+    },
+  ) {
+    return request<{ asset: unknown }>("/assets/upload", {
       method: "POST",
       body: JSON.stringify(payload)
     }, token);

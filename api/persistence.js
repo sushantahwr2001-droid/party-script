@@ -8,11 +8,11 @@ const supabaseEnabled = process.env.SUPABASE_ENABLED === "true";
 const memoryStore = globalThis.__partyScriptDb || createSeedStore();
 globalThis.__partyScriptDb = memoryStore;
 
-function hasSupabase() {
+export function hasSupabase() {
   return Boolean(supabaseEnabled && supabaseUrl && supabaseServiceRoleKey);
 }
 
-function supabase() {
+export function supabase() {
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
@@ -43,6 +43,14 @@ function mapCollection(rows, mapping) {
 
 function uuid(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function hasVipTag(attendee) {
+  return (attendee.tags || []).some((tag) => String(tag).trim().toLowerCase() === "vip");
 }
 
 export function persistenceMode() {
@@ -768,7 +776,7 @@ export async function createAttendeeForOrg(auth, body) {
     organizationId: auth.organizationId,
     eventId: body.eventId,
     fullName: body.fullName,
-    email: body.email,
+    email: normalizeEmail(body.email),
     phone: body.phone || "-",
     company: body.company || "",
     city: body.city || "",
@@ -805,24 +813,98 @@ export async function createAttendeeForOrg(auth, body) {
   return { ...mapRow(data, attendeeMap), tags: Array.isArray(data.tags) ? data.tags : [] };
 }
 
+export async function importAttendeesForOrg(auth, rows) {
+  const created = [];
+  for (const row of rows) {
+    if (!row.fullName || !row.email || !row.eventId) continue;
+    created.push(await createAttendeeForOrg(auth, row));
+  }
+  return created;
+}
+
+export async function mergeAttendeesForOrg(auth, sourceAttendeeId, targetAttendeeId) {
+  if (sourceAttendeeId === targetAttendeeId) return null;
+
+  if (!hasSupabase()) {
+    const source = memoryStore.attendees.find((item) => item.id === sourceAttendeeId && item.organizationId === auth.organizationId);
+    const target = memoryStore.attendees.find((item) => item.id === targetAttendeeId && item.organizationId === auth.organizationId);
+    if (!source || !target) return null;
+
+    target.phone = target.phone || source.phone;
+    target.company = target.company || source.company;
+    target.city = target.city || source.city;
+    target.tags = Array.from(new Set([...(target.tags || []), ...(source.tags || [])]));
+    if (source.checkInStatus === "Checked In") {
+      target.checkInStatus = "Checked In";
+    }
+
+    for (const checkin of memoryStore.checkins.filter((item) => item.attendeeId === source.id)) {
+      checkin.attendeeId = target.id;
+    }
+
+    memoryStore.attendees = memoryStore.attendees.filter((item) => item.id !== source.id);
+    globalThis.__partyScriptDb = memoryStore;
+    return target;
+  }
+
+  const client = supabase();
+  const { data: sourceRow, error: sourceError } = await client.from("attendees").select("*").eq("id", sourceAttendeeId).eq("organization_id", auth.organizationId).maybeSingle();
+  if (sourceError) throw sourceError;
+  const { data: targetRow, error: targetError } = await client.from("attendees").select("*").eq("id", targetAttendeeId).eq("organization_id", auth.organizationId).maybeSingle();
+  if (targetError) throw targetError;
+  if (!sourceRow || !targetRow) return null;
+
+  const mergedTags = Array.from(new Set([...(targetRow.tags || []), ...(sourceRow.tags || [])]));
+  const { data: updatedTarget, error: updateError } = await client.from("attendees").update({
+    phone: targetRow.phone || sourceRow.phone || "",
+    company: targetRow.company || sourceRow.company || "",
+    city: targetRow.city || sourceRow.city || "",
+    tags: mergedTags,
+    check_in_status: sourceRow.check_in_status === "Checked In" ? "Checked In" : targetRow.check_in_status
+  }).eq("id", targetAttendeeId).eq("organization_id", auth.organizationId).select("*").maybeSingle();
+  if (updateError) throw updateError;
+
+  const { error: reassignError } = await client.from("checkins").update({ attendee_id: targetAttendeeId }).eq("attendee_id", sourceAttendeeId).eq("organization_id", auth.organizationId);
+  if (reassignError) throw reassignError;
+
+  const { error: deleteError } = await client.from("attendees").delete().eq("id", sourceAttendeeId).eq("organization_id", auth.organizationId);
+  if (deleteError) throw deleteError;
+
+  return updatedTarget ? { ...mapRow(updatedTarget, attendeeMap), tags: Array.isArray(updatedTarget.tags) ? updatedTarget.tags : [] } : null;
+}
+
 export async function createCheckinForOrg(auth, body) {
-  const checkin = {
+  const baseCheckin = {
     id: uuid("checkin"),
     organizationId: auth.organizationId,
     attendeeId: body.attendeeId,
     eventId: body.eventId,
-    status: body.status || "success",
+    status: "success",
     checkedInAt: new Date().toISOString(),
     createdAt: new Date().toISOString()
   };
 
   if (!hasSupabase()) {
+    const attendee = memoryStore.attendees.find((item) => item.id === baseCheckin.attendeeId && item.organizationId === auth.organizationId);
+    const alreadyCheckedIn = memoryStore.checkins.some((item) => item.attendeeId === baseCheckin.attendeeId && item.eventId === baseCheckin.eventId && item.status !== "duplicate");
+    const checkin = {
+      ...baseCheckin,
+      status: alreadyCheckedIn ? "duplicate" : hasVipTag(attendee || { tags: [] }) ? "VIP" : "success"
+    };
     memoryStore.checkins.unshift(checkin);
-    const attendee = memoryStore.attendees.find((item) => item.id === checkin.attendeeId);
-    if (attendee) attendee.checkInStatus = "Checked In";
+    if (attendee && checkin.status !== "duplicate") attendee.checkInStatus = "Checked In";
     return checkin;
   }
   const client = supabase();
+  const { data: attendeeRow, error: attendeeError } = await client.from("attendees").select("*").eq("id", baseCheckin.attendeeId).eq("organization_id", auth.organizationId).maybeSingle();
+  if (attendeeError) throw attendeeError;
+  const { data: existingCheckinRows, error: existingCheckinError } = await client.from("checkins").select("id,status").eq("attendee_id", baseCheckin.attendeeId).eq("event_id", baseCheckin.eventId).eq("organization_id", auth.organizationId);
+  if (existingCheckinError) throw existingCheckinError;
+  const alreadyCheckedIn = (existingCheckinRows || []).some((item) => item.status !== "duplicate");
+  const checkin = {
+    ...baseCheckin,
+    status: alreadyCheckedIn ? "duplicate" : hasVipTag({ tags: attendeeRow?.tags || [] }) ? "VIP" : "success"
+  };
   const { data, error } = await client.from("checkins").insert({
     id: checkin.id,
     organization_id: checkin.organizationId,
@@ -833,6 +915,10 @@ export async function createCheckinForOrg(auth, body) {
     created_at: checkin.createdAt
   }).select("*").single();
   if (error) throw error;
+  if (attendeeRow && checkin.status !== "duplicate") {
+    const { error: attendeeUpdateError } = await client.from("attendees").update({ check_in_status: "Checked In" }).eq("id", attendeeRow.id).eq("organization_id", auth.organizationId);
+    if (attendeeUpdateError) throw attendeeUpdateError;
+  }
   return mapRow(data, checkinMap);
 }
 
@@ -865,6 +951,49 @@ export async function createAssetForOrg(auth, body) {
   }).select("*").single();
   if (error) throw error;
   return mapRow(data, assetMap);
+}
+
+export async function uploadAssetForOrg(auth, body) {
+  const fileName = String(body.fileName || "asset.bin");
+  const mimeType = String(body.mimeType || "application/octet-stream");
+  const contentBase64 = String(body.contentBase64 || "");
+  const assetName = String(body.name || fileName);
+  const category = String(body.category || "general");
+  const eventId = String(body.eventId || "");
+  const bucketName = "party-script-assets";
+  const path = `${auth.organizationId}/${eventId || "unassigned"}/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+
+  if (!hasSupabase()) {
+    return createAssetForOrg(auth, {
+      eventId,
+      name: assetName,
+      category,
+      fileUrl: `data:${mimeType};base64,${contentBase64}`
+    });
+  }
+
+  const client = supabase();
+  const { data: buckets, error: bucketsError } = await client.storage.listBuckets();
+  if (bucketsError) throw bucketsError;
+  if (!(buckets || []).some((bucket) => bucket.name === bucketName)) {
+    const { error: createBucketError } = await client.storage.createBucket(bucketName, { public: true });
+    if (createBucketError && !String(createBucketError.message || "").toLowerCase().includes("already")) throw createBucketError;
+  }
+
+  const fileBuffer = Buffer.from(contentBase64, "base64");
+  const { error: uploadError } = await client.storage.from(bucketName).upload(path, fileBuffer, {
+    contentType: mimeType,
+    upsert: false
+  });
+  if (uploadError) throw uploadError;
+
+  const { data: publicUrlData } = client.storage.from(bucketName).getPublicUrl(path);
+  return createAssetForOrg(auth, {
+    eventId,
+    name: assetName,
+    category,
+    fileUrl: publicUrlData.publicUrl
+  });
 }
 
 export async function convertOpportunity(auth, opportunityId) {
