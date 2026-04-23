@@ -3,12 +3,13 @@ import { createSeedStore } from "./seed.js";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseEnabled = process.env.SUPABASE_ENABLED === "true";
 
 const memoryStore = globalThis.__partyScriptDb || createSeedStore();
 globalThis.__partyScriptDb = memoryStore;
 
 function hasSupabase() {
-  return Boolean(supabaseUrl && supabaseServiceRoleKey);
+  return Boolean(supabaseEnabled && supabaseUrl && supabaseServiceRoleKey);
 }
 
 function supabase() {

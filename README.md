@@ -34,7 +34,8 @@ The production API reads from Supabase automatically once those environment vari
 1. Create a Supabase project.
 2. Run [supabase/schema.sql](/C:/Users/susha/Documents/Codex/2026-04-23-we-will-work-on-our-actual/supabase/schema.sql).
 3. Add the values from [.env.example](/C:/Users/susha/Documents/Codex/2026-04-23-we-will-work-on-our-actual/.env.example) to local env and Vercel project env.
-4. Redeploy.
+4. Set `SUPABASE_ENABLED=true`.
+5. Redeploy.
 
 ## GitHub Push
 
