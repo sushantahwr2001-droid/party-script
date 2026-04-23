@@ -284,7 +284,7 @@ export function SimpleTable<T>({
 export function MiniList({
   items
 }: {
-  items: Array<{ title: string; meta: string; trailing?: ReactNode }>;
+  items: ReadonlyArray<{ title: string; meta: string; trailing?: ReactNode }>;
 }) {
   return (
     <div className="space-y-3">
