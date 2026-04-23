@@ -24,6 +24,10 @@ function signUser(user) {
 
 function pathOf(req) {
   const url = new URL(req.url, `https://${req.headers.host || "console.partyscript.in"}`);
+  const rewrittenPath = url.searchParams.get("path");
+  if (rewrittenPath) {
+    return rewrittenPath.replace(/^\/+|\/+$/g, "");
+  }
   return url.pathname.replace(/^\/api\/?/, "").replace(/\/$/, "");
 }
 
