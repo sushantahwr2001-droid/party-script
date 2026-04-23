@@ -22,7 +22,10 @@ import {
   TicketsPage,
   VendorsPage
 } from "./pages/AppPages";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { SignupPage } from "./pages/SignupPage";
 
 function RouteErrorPage() {
   const error = useRouteError();
@@ -66,6 +69,9 @@ function ProtectedApp() {
 const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/app/dashboard" replace />, errorElement: <RouteErrorPage /> },
   { path: "/login", element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  { path: "/signup", element: <SignupPage />, errorElement: <RouteErrorPage /> },
+  { path: "/forgot-password", element: <ForgotPasswordPage />, errorElement: <RouteErrorPage /> },
+  { path: "/reset-password", element: <ResetPasswordPage />, errorElement: <RouteErrorPage /> },
   {
     path: "/app",
     element: <ProtectedApp />,

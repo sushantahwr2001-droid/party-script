@@ -405,7 +405,7 @@ export function DashboardPage() {
                   <Users className="h-4 w-4" />
                   Add attendee
                 </Button>
-                <Button variant="secondary" className="justify-start" onClick={() => navigate("/app/tasks")}>
+                <Button variant="secondary" className="justify-start" onClick={() => context.openCreate("task", heroEvent ? { eventId: heroEvent.id } : {})}>
                   <ListTodo className="h-4 w-4" />
                   Create task
                 </Button>
@@ -413,11 +413,11 @@ export function DashboardPage() {
                   <ScanLine className="h-4 w-4" />
                   Open check-in
                 </Button>
-                <Button variant="secondary" className="justify-start" onClick={() => navigate("/app/budget")}>
+                <Button variant="secondary" className="justify-start" onClick={() => context.openCreate("expense", heroEvent ? { eventId: heroEvent.id } : {})}>
                   <Receipt className="h-4 w-4" />
                   Add expense
                 </Button>
-                <Button variant="secondary" className="justify-start" onClick={() => navigate("/app/leads")}>
+                <Button variant="secondary" className="justify-start" onClick={() => context.openCreate("lead", heroEvent ? { eventId: heroEvent.id } : {})}>
                   <MailPlus className="h-4 w-4" />
                   Add lead
                 </Button>

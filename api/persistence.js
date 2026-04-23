@@ -78,10 +78,11 @@ export async function getPrimaryOrganization() {
 }
 
 export async function createOrganization(name) {
+  const baseSlug = slugify(name);
   const organization = {
     id: uuid("org"),
     name,
-    slug: slugify(name),
+    slug: `${baseSlug}-${Math.random().toString(36).slice(2, 7)}`,
     createdAt: new Date().toISOString()
   };
 
@@ -144,6 +145,25 @@ export async function createUser({ name, email, passwordHash, organizationId, ro
   }).select("*").single();
   if (error) throw error;
   return mapRow(data, userMap);
+}
+
+export async function updateUserPassword(userId, passwordHash) {
+  if (!hasSupabase()) {
+    const user = memoryStore.users.find((item) => item.id === userId);
+    if (!user) return null;
+    user.passwordHash = passwordHash;
+    return user;
+  }
+
+  const client = supabase();
+  const { data, error } = await client
+    .from("users")
+    .update({ password_hash: passwordHash })
+    .eq("id", userId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, userMap) : null;
 }
 
 export async function fetchStore(organizationId) {
@@ -313,6 +333,168 @@ export async function createLeadForOrg(auth, body) {
   }).select("*").single();
   if (error) throw error;
   return mapRow(data, leadMap);
+}
+
+export async function createOpportunityForOrg(auth, body) {
+  const opportunity = {
+    id: uuid("opp"),
+    organizationId: auth.organizationId,
+    name: body.name,
+    eventType: body.eventType,
+    industry: body.industry,
+    organizer: body.organizer,
+    city: body.city,
+    country: body.country,
+    startDate: body.startDate,
+    endDate: body.endDate,
+    participationType: body.participationType,
+    boothNeeded: Boolean(body.boothNeeded),
+    expectedReach: Number(body.expectedReach || 0),
+    expectedLeads: Number(body.expectedLeads || 0),
+    strategicFitScore: Number(body.strategicFitScore || 0),
+    estimatedCost: Number(body.estimatedCost || 0),
+    priority: body.priority || "Medium",
+    decision: body.decision || "Proposed",
+    ownerUserId: auth.userId,
+    notes: body.notes || "",
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.opportunities.unshift(opportunity);
+    return opportunity;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("opportunities").insert({
+    id: opportunity.id,
+    organization_id: opportunity.organizationId,
+    name: opportunity.name,
+    event_type: opportunity.eventType,
+    industry: opportunity.industry,
+    organizer: opportunity.organizer,
+    city: opportunity.city,
+    country: opportunity.country,
+    start_date: opportunity.startDate,
+    end_date: opportunity.endDate,
+    participation_type: opportunity.participationType,
+    booth_needed: opportunity.boothNeeded,
+    expected_reach: opportunity.expectedReach,
+    expected_leads: opportunity.expectedLeads,
+    strategic_fit_score: opportunity.strategicFitScore,
+    estimated_cost: opportunity.estimatedCost,
+    priority: opportunity.priority,
+    decision: opportunity.decision,
+    owner_user_id: opportunity.ownerUserId,
+    notes: opportunity.notes,
+    created_at: opportunity.createdAt
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, opportunityMap);
+}
+
+export async function createTaskForOrg(auth, body) {
+  const task = {
+    id: uuid("task"),
+    organizationId: auth.organizationId,
+    title: body.title,
+    eventId: body.eventId,
+    assigneeUserId: body.assigneeUserId || auth.userId,
+    dueDate: body.dueDate,
+    priority: body.priority || "Medium",
+    status: body.status || "Planned",
+    notes: body.notes || "",
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.tasks.unshift(task);
+    return task;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("tasks").insert({
+    id: task.id,
+    organization_id: task.organizationId,
+    title: task.title,
+    event_id: task.eventId,
+    assignee_user_id: task.assigneeUserId,
+    due_date: task.dueDate,
+    priority: task.priority,
+    status: task.status,
+    notes: task.notes,
+    created_at: task.createdAt
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, taskMap);
+}
+
+export async function createVendorForOrg(auth, body) {
+  const vendor = {
+    id: uuid("vendor"),
+    organizationId: auth.organizationId,
+    eventId: body.eventId,
+    name: body.name,
+    category: body.category,
+    deliverable: body.deliverable,
+    ownerUserId: body.ownerUserId || auth.userId,
+    status: body.status || "Planning",
+    paymentStatus: body.paymentStatus || "Pending",
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.vendors.unshift(vendor);
+    return vendor;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("vendors").insert({
+    id: vendor.id,
+    organization_id: vendor.organizationId,
+    event_id: vendor.eventId,
+    name: vendor.name,
+    category: vendor.category,
+    deliverable: vendor.deliverable,
+    owner_user_id: vendor.ownerUserId,
+    status: vendor.status,
+    payment_status: vendor.paymentStatus,
+    created_at: vendor.createdAt
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, vendorMap);
+}
+
+export async function createBudgetForOrg(auth, body) {
+  const budget = {
+    id: uuid("budget"),
+    organizationId: auth.organizationId,
+    eventId: body.eventId,
+    category: body.category,
+    budgeted: Number(body.budgeted || 0),
+    actual: Number(body.actual || 0),
+    committed: Number(body.committed || 0),
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.budgets.unshift(budget);
+    return budget;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("budgets").insert({
+    id: budget.id,
+    organization_id: budget.organizationId,
+    event_id: budget.eventId,
+    category: budget.category,
+    budgeted: budget.budgeted,
+    actual: budget.actual,
+    committed: budget.committed,
+    created_at: budget.createdAt
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, budgetMap);
 }
 
 export async function convertOpportunity(auth, opportunityId) {

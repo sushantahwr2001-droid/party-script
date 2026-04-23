@@ -1,4 +1,4 @@
-import type { AuthResponse, BootstrapPayload, SetupStatusResponse } from "../types";
+import type { AuthResponse, BootstrapPayload, ForgotPasswordResponse, SetupStatusResponse } from "../types";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
@@ -33,6 +33,18 @@ export const api = {
     return request<AuthResponse>("/auth/register", {
       method: "POST",
       body: JSON.stringify({ name, email, password, organizationName })
+    });
+  },
+  forgotPassword(email: string) {
+    return request<ForgotPasswordResponse>("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email })
+    });
+  },
+  resetPassword(token: string, password: string) {
+    return request<{ ok: true }>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password })
     });
   },
   setupStatus() {
@@ -80,6 +92,82 @@ export const api = {
     },
   ) {
     return request<{ lead: unknown }>("/leads", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createOpportunity(
+    token: string,
+    payload: {
+      name: string;
+      eventType: string;
+      industry: string;
+      organizer: string;
+      city: string;
+      country: string;
+      startDate: string;
+      endDate: string;
+      participationType: string;
+      boothNeeded: boolean;
+      expectedReach: number;
+      expectedLeads: number;
+      strategicFitScore: number;
+      estimatedCost: number;
+      priority: string;
+      decision: string;
+      notes: string;
+    },
+  ) {
+    return request<{ opportunity: unknown }>("/opportunities", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createTask(
+    token: string,
+    payload: {
+      title: string;
+      eventId: string;
+      assigneeUserId?: string;
+      dueDate: string;
+      priority: string;
+      status: string;
+      notes: string;
+    },
+  ) {
+    return request<{ task: unknown }>("/tasks", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createVendor(
+    token: string,
+    payload: {
+      eventId: string;
+      name: string;
+      category: string;
+      deliverable: string;
+      ownerUserId?: string;
+      status: string;
+      paymentStatus: string;
+    },
+  ) {
+    return request<{ vendor: unknown }>("/vendors", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createBudgetItem(
+    token: string,
+    payload: {
+      eventId: string;
+      category: string;
+      budgeted: number;
+      actual: number;
+      committed: number;
+    },
+  ) {
+    return request<{ budget: unknown }>("/budgets", {
       method: "POST",
       body: JSON.stringify(payload)
     }, token);

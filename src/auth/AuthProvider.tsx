@@ -47,13 +47,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   }
 
+  function forgotPassword(email: string) {
+    return api.forgotPassword(email);
+  }
+
+  async function resetPassword(resetToken: string, password: string) {
+    await api.resetPassword(resetToken, password);
+  }
+
   function logout() {
     localStorage.removeItem(STORAGE_KEY);
     setToken(null);
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ token, user, loading, login, register, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ token, user, loading, login, register, forgotPassword, resetPassword, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

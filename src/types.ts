@@ -240,16 +240,46 @@ export interface SetupStatusResponse {
   persistence: string;
 }
 
+export interface ForgotPasswordResponse {
+  ok: boolean;
+  resetUrl?: string;
+}
+
 export interface AuthContextValue {
   token: string | null;
   user: UserSummary | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, organizationName?: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
+  resetPassword: (token: string, password: string) => Promise<void>;
   logout: () => void;
+}
+
+export type QuickCreateType = "event" | "opportunity" | "task" | "vendor" | "expense" | "lead";
+
+export interface SearchResult {
+  id: string;
+  title: string;
+  subtitle: string;
+  type: "event" | "opportunity" | "task" | "vendor" | "lead";
+  href: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  href: string;
+  tone: StatusTone;
+  createdAt: string;
 }
 
 export interface ConsoleOutletContext {
   data: BootstrapPayload;
   refresh: () => Promise<void>;
+  openCreate: (type: QuickCreateType, defaults?: Record<string, string>) => void;
+  openSearch: () => void;
+  openCommand: () => void;
+  openNotifications: () => void;
 }
