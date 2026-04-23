@@ -1,4 +1,4 @@
-import type { AuthResponse, BootstrapPayload } from "../types";
+import type { AuthResponse, BootstrapPayload, SetupStatusResponse } from "../types";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
@@ -29,11 +29,14 @@ export const api = {
       body: JSON.stringify({ email, password })
     });
   },
-  register(name: string, email: string, password: string) {
+  register(name: string, email: string, password: string, organizationName?: string) {
     return request<AuthResponse>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ name, email, password })
+      body: JSON.stringify({ name, email, password, organizationName })
     });
+  },
+  setupStatus() {
+    return request<SetupStatusResponse>("/auth/setup-status", { method: "GET" });
   },
   me(token: string) {
     return request<{ user: AuthResponse["user"] }>("/auth/me", { method: "GET" }, token);

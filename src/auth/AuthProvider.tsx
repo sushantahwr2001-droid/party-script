@@ -40,8 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   }
 
-  async function register(name: string, email: string, password: string) {
-    const response = await api.register(name, email, password);
+  async function register(name: string, email: string, password: string, organizationName?: string) {
+    const response = await api.register(name, email, password, organizationName);
     localStorage.setItem(STORAGE_KEY, response.token);
     setToken(response.token);
     setUser(response.user);

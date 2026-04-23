@@ -233,12 +233,19 @@ export interface AuthResponse {
   user: UserSummary;
 }
 
+export interface SetupStatusResponse {
+  setupRequired: boolean;
+  organizationName: string | null;
+  existingUsers: number;
+  persistence: string;
+}
+
 export interface AuthContextValue {
   token: string | null;
   user: UserSummary | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, organizationName?: string) => Promise<void>;
   logout: () => void;
 }
 

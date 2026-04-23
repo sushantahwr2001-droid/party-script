@@ -46,6 +46,61 @@ export function persistenceMode() {
   return hasSupabase() ? "supabase" : "seed";
 }
 
+function slugify(value) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "party-script-org";
+}
+
+export async function countUsers() {
+  if (!hasSupabase()) {
+    return memoryStore.users.length;
+  }
+
+  const client = supabase();
+  const { count, error } = await client.from("users").select("*", { count: "exact", head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
+export async function getPrimaryOrganization() {
+  if (!hasSupabase()) {
+    return memoryStore.organizations[0] ?? null;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("organizations").select("*").order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, orgMap) : null;
+}
+
+export async function createOrganization(name) {
+  const organization = {
+    id: uuid("org"),
+    name,
+    slug: slugify(name),
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.organizations.push(organization);
+    return organization;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("organizations").insert({
+    id: organization.id,
+    name: organization.name,
+    slug: organization.slug,
+    created_at: organization.createdAt
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, orgMap);
+}
+
 export async function findUserByEmail(email) {
   if (!hasSupabase()) {
     return memoryStore.users.find((item) => item.email.toLowerCase() === email.toLowerCase()) ?? null;
@@ -68,10 +123,9 @@ export async function findUserById(id) {
   return data ? mapRow(data, userMap) : null;
 }
 
-export async function createUser({ name, email, passwordHash }) {
+export async function createUser({ name, email, passwordHash, organizationId, role = "Admin" }) {
   const createdAt = new Date().toISOString();
-  const organizationId = "org_partyscript";
-  const user = { id: uuid("user"), organizationId, name, email: email.toLowerCase(), role: "Admin", passwordHash, createdAt };
+  const user = { id: uuid("user"), organizationId, name, email: email.toLowerCase(), role, passwordHash, createdAt };
 
   if (!hasSupabase()) {
     memoryStore.users.push(user);
@@ -152,6 +206,16 @@ export async function fetchStore(organizationId) {
     booths: mapCollection(boothsResult.data, boothMap),
     boothChecklistItems: mapCollection(checklistResult.data, checklistMap),
     activities: mapCollection(activitiesResult.data, activityMap)
+  };
+}
+
+export async function getSetupStatus() {
+  const existingUsers = await countUsers();
+  const organization = await getPrimaryOrganization();
+  return {
+    setupRequired: existingUsers === 0,
+    organizationName: organization?.name ?? null,
+    existingUsers
   };
 }
 

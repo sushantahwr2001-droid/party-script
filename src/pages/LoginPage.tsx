@@ -1,21 +1,43 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
 import { Input, Label } from "../components/forms";
 import { Button, Card } from "../components/ui";
+import { api } from "../lib/api";
+import type { SetupStatusResponse } from "../types";
 
 export function LoginPage() {
   const { user, login, register } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [setupStatus, setSetupStatus] = useState<SetupStatusResponse | null>(null);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("founder@partyscript.app");
-  const [password, setPassword] = useState("partyscript123");
+  const [organizationName, setOrganizationName] = useState("Party Script Workspace");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingSetup, setLoadingSetup] = useState(true);
 
   if (user) {
     return <Navigate to="/app/dashboard" replace />;
   }
+
+  useEffect(() => {
+    async function loadSetupStatus() {
+      try {
+        const status = await api.setupStatus();
+        setSetupStatus(status);
+        if (status.organizationName) {
+          setOrganizationName(status.organizationName);
+        }
+      } catch (requestError) {
+        setError(requestError instanceof Error ? requestError.message : "Unable to load authentication status.");
+      } finally {
+        setLoadingSetup(false);
+      }
+    }
+
+    void loadSetupStatus();
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,10 +45,10 @@ export function LoginPage() {
     setSubmitting(true);
 
     try {
-      if (mode === "login") {
-        await login(email, password);
+      if (setupStatus?.setupRequired) {
+        await register(name, email, password, organizationName);
       } else {
-        await register(name, email, password);
+        await login(email, password);
       }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Authentication failed.");
@@ -60,16 +82,28 @@ export function LoginPage() {
 
         <div className="flex items-center">
           <Card className="w-full p-6">
+            {loadingSetup ? (
+              <div className="py-10 text-sm text-textSecondary">Checking workspace setup...</div>
+            ) : (
+              <>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-textMuted">
-              {mode === "login" ? "Sign in" : "Create account"}
+              {setupStatus?.setupRequired ? "Create admin account" : "Sign in"}
             </p>
-            <h2 className="mt-3 text-3xl font-bold">{mode === "login" ? "Welcome back" : "Start running the system"}</h2>
+            <h2 className="mt-3 text-3xl font-bold">{setupStatus?.setupRequired ? "Set up your workspace" : "Welcome back"}</h2>
             <p className="mt-2 text-sm text-textSecondary">
-              Demo credentials: `founder@partyscript.app` / `partyscript123`
+              {setupStatus?.setupRequired
+                ? "Create the first admin account for this Party Script workspace. Self-serve signup closes automatically after setup."
+                : "Sign in with your workspace credentials. If you need access, ask a workspace admin."}
             </p>
 
             <form className="mt-6 space-y-4" onSubmit={onSubmit}>
-              {mode === "register" ? (
+              {setupStatus?.setupRequired ? (
+                <div className="space-y-2">
+                  <Label>Organization</Label>
+                  <Input value={organizationName} onChange={(event) => setOrganizationName(event.target.value)} placeholder="Party Script Workspace" required />
+                </div>
+              ) : null}
+              {setupStatus?.setupRequired ? (
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Aarav Mehta" required />
@@ -85,16 +119,16 @@ export function LoginPage() {
               </div>
               {error ? <p className="text-sm text-danger">{error}</p> : null}
               <Button className="w-full" type="submit" disabled={submitting}>
-                {submitting ? "Working..." : mode === "login" ? "Sign In" : "Create Account"}
+                {submitting ? "Working..." : setupStatus?.setupRequired ? "Create Admin Account" : "Sign In"}
               </Button>
             </form>
-
-            <button
-              onClick={() => setMode((current) => (current === "login" ? "register" : "login"))}
-              className="mt-4 text-sm font-semibold text-textSecondary transition hover:text-text"
-            >
-              {mode === "login" ? "Need an account? Register" : "Already have an account? Sign in"}
-            </button>
+            {!setupStatus?.setupRequired ? (
+              <p className="mt-4 text-sm text-textMuted">
+                Admin onboarding is complete for this workspace.
+              </p>
+            ) : null}
+            </>
+            )}
           </Card>
         </div>
       </div>
