@@ -177,11 +177,12 @@ export default function Login() {
             sx={{
               display: "block",
               width: "auto",
-              maxWidth: { xs: 232, md: 272 },
-              maxHeight: { xs: 30, md: 36 },
+              maxWidth: { xs: 208, md: 244 },
+              maxHeight: { xs: 27, md: 32 },
               height: "100%",
               objectFit: "contain",
               mt: 0.15,
+              mx: "auto",
             }}
           />
           <Typography
