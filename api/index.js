@@ -5,6 +5,7 @@ import {
   convertOpportunity,
   createAssetForOrg,
   createAttendeeForOrg,
+  createBoothChecklistItemForOrg,
   createBudgetForOrg,
   createCheckinForOrg,
   createEventForOrg,
@@ -18,6 +19,7 @@ import {
   deleteTicketForOrg,
   deleteUserForOrg,
   deleteBudgetForOrg,
+  deleteBoothChecklistItemForOrg,
   deleteEventForOrg,
   deleteLeadForOrg,
   deleteOpportunityForOrg,
@@ -34,6 +36,8 @@ import {
   updateTicketForOrg,
   updateUserRoleForOrg,
   updateBudgetForOrg,
+  updateBoothChecklistItemForOrg,
+  updateBoothForOrg,
   updateEventForOrg,
   updateLeadForOrg,
   updateOpportunityForOrg,
@@ -211,6 +215,11 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (req.method === "POST" && route === "booth-checklist") {
+      json(res, 201, { item: await createBoothChecklistItemForOrg(auth, body) });
+      return;
+    }
+
     if (req.method === "POST" && route === "team/invite") {
       const existing = await findUserByEmail(String(body.email || ""));
       if (existing) {
@@ -366,6 +375,31 @@ export default async function handler(req, res) {
       if (req.method === "DELETE") {
         const ok = await deleteBudgetForOrg(auth, budgetId);
         json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Budget item not found." });
+        return;
+      }
+    }
+
+    const boothMatch = route.match(/^booths\/([^/]+)$/);
+    if (boothMatch) {
+      const boothId = decodeURIComponent(boothMatch[1]);
+      if (req.method === "PUT") {
+        const booth = await updateBoothForOrg(auth, boothId, body);
+        json(res, booth ? 200 : 404, booth ? { booth } : { message: "Booth not found." });
+        return;
+      }
+    }
+
+    const boothChecklistMatch = route.match(/^booth-checklist\/([^/]+)$/);
+    if (boothChecklistMatch) {
+      const checklistId = decodeURIComponent(boothChecklistMatch[1]);
+      if (req.method === "PUT") {
+        const item = await updateBoothChecklistItemForOrg(auth, checklistId, body);
+        json(res, item ? 200 : 404, item ? { item } : { message: "Checklist item not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteBoothChecklistItemForOrg(auth, checklistId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Checklist item not found." });
         return;
       }
     }

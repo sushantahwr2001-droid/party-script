@@ -272,6 +272,36 @@ export const api = {
   deleteTicket(token: string, id: string) {
     return request<{ ok: true }>(`/tickets/${id}`, { method: "DELETE" }, token);
   },
+  updateBooth(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ booth: unknown }>(`/booths/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  createBoothChecklistItem(
+    token: string,
+    payload: {
+      boothId: string;
+      ownerUserId?: string;
+      label: string;
+      dueDate: string;
+      status: string;
+    },
+  ) {
+    return request<{ item: unknown }>("/booth-checklist", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateBoothChecklistItem(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>(`/booth-checklist/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteBoothChecklistItem(token: string, id: string) {
+    return request<{ ok: true }>(`/booth-checklist/${id}`, { method: "DELETE" }, token);
+  },
   inviteTeamMember(
     token: string,
     payload: {

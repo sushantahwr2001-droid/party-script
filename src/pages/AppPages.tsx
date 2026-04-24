@@ -1660,18 +1660,56 @@ export function LeadsPage() {
 
 export function BoothPage() {
   const context = useConsoleData();
+  const { token } = useAuth();
   const [section, setSection] = useState("Overview");
   const booth = context.data.booths[0];
+  const [boothForm, setBoothForm] = useState(() => (booth ? { ...booth } : null));
+  const [checklistForm, setChecklistForm] = useState({ label: "", dueDate: "", status: "Pending" });
   const checklist = context.data.boothChecklistItems.filter((item) => item.boothId === booth?.id);
   const linkedLeads = context.data.leads.filter((lead) => lead.eventId === booth?.eventId);
 
+  useEffect(() => {
+    setBoothForm(booth ? { ...booth } : null);
+  }, [booth]);
+
+  async function saveBooth() {
+    if (!token || !boothForm) return;
+    await api.updateBooth(token, boothForm.id, boothForm);
+    await context.refresh();
+  }
+
+  async function createChecklistItem() {
+    if (!token || !booth) return;
+    await api.createBoothChecklistItem(token, {
+      boothId: booth.id,
+      label: checklistForm.label,
+      dueDate: checklistForm.dueDate,
+      status: checklistForm.status,
+    });
+    await context.refresh();
+    setChecklistForm({ label: "", dueDate: "", status: "Pending" });
+  }
+
+  async function cycleChecklistStatus(item: BoothChecklistItem) {
+    if (!token) return;
+    const nextStatus = item.status === "Done" ? "Pending" : item.status === "Pending" ? "In Progress" : "Done";
+    await api.updateBoothChecklistItem(token, item.id, { status: nextStatus });
+    await context.refresh();
+  }
+
+  async function removeChecklistItem(itemId: string) {
+    if (!token) return;
+    await api.deleteBoothChecklistItem(token, itemId);
+    await context.refresh();
+  }
+
   return (
     <div className="space-y-6">
-      <PageIntro
-        title="Booth"
-        description="Booth planning and booth-day execution for teams that still usually run this through sheets, WhatsApp, and scattered docs."
-        actions={<SegmentedTabs tabs={["Overview", "Checklist", "Staffing", "Inventory", "Meetings", "Issues", "Leads"]} active={section} onChange={setSection} />}
-      />
+        <PageIntro
+          title="Booth"
+          description="Booth planning and booth-day execution for teams that still usually run this through sheets, WhatsApp, and scattered docs."
+          actions={<><SegmentedTabs tabs={["Overview", "Checklist", "Staffing", "Inventory", "Meetings", "Issues", "Leads"]} active={section} onChange={setSection} />{boothForm ? <Button onClick={() => void saveBooth()}>Save Booth</Button> : null}</>}
+        />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricTile label="Booth Status" value={booth?.status ?? "Planned"} detail="Current execution phase" tone="accent" />
@@ -1684,9 +1722,19 @@ export function BoothPage() {
         <Card className="xl:col-span-7 p-5">
           <SectionTitle title={section} detail="Structured booth execution instead of spreadsheet chaos" />
           <div className="mt-5">
-            {section === "Overview" ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <InsightCard title="Logistics" detail="Shipping, transport, and on-site readiness" icon={Boxes}>
+              {section === "Overview" ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Card className="p-4 md:col-span-2">
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="space-y-2"><Label>Status</Label><Input value={boothForm?.status ?? ""} onChange={(event) => setBoothForm((current) => current ? { ...current, status: event.target.value } : current)} /></div>
+                      <div className="space-y-2"><Label>Setup %</Label><Input type="number" value={boothForm?.setupCompletion ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, setupCompletion: Number(event.target.value) } : current)} /></div>
+                      <div className="space-y-2"><Label>Material %</Label><Input type="number" value={boothForm?.materialReadiness ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, materialReadiness: Number(event.target.value) } : current)} /></div>
+                      <div className="space-y-2"><Label>Staff Assigned</Label><Input type="number" value={boothForm?.staffAssigned ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, staffAssigned: Number(event.target.value) } : current)} /></div>
+                      <div className="space-y-2"><Label>Meetings Booked</Label><Input type="number" value={boothForm?.meetingsBooked ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, meetingsBooked: Number(event.target.value) } : current)} /></div>
+                      <div className="space-y-2"><Label>Leads Captured</Label><Input type="number" value={boothForm?.leadsCaptured ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, leadsCaptured: Number(event.target.value) } : current)} /></div>
+                    </div>
+                  </Card>
+                  <InsightCard title="Logistics" detail="Shipping, transport, and on-site readiness" icon={Boxes}>
                   <MiniList
                     items={[
                       { title: "Organizer formalities", meta: "Badges, booth forms, and venue deadlines", trailing: <Badge label="Ready" tone="success" /> },
@@ -1707,17 +1755,29 @@ export function BoothPage() {
               </div>
             ) : null}
 
-            {section === "Checklist" ? (
-              <SimpleTable
-                columns={[
-                  { key: "label", label: "Checklist item" },
-                  { key: "owner", label: "Owner", render: (row: BoothChecklistItem) => userName(row.ownerUserId, context) },
-                  { key: "due", label: "Due", render: (row: BoothChecklistItem) => row.dueDate },
-                  { key: "status", label: "Status", render: (row: BoothChecklistItem) => <Badge label={row.status} tone={statusTone(row.status)} /> },
-                ]}
-                rows={checklist}
-              />
-            ) : null}
+              {section === "Checklist" ? (
+                <div className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-[1.4fr_0.8fr_0.6fr_auto]">
+                    <div className="space-y-2"><Label>Checklist item</Label><Input value={checklistForm.label} onChange={(event) => setChecklistForm({ ...checklistForm, label: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Due date</Label><Input type="date" value={checklistForm.dueDate} onChange={(event) => setChecklistForm({ ...checklistForm, dueDate: event.target.value })} /></div>
+                    <div className="space-y-2"><Label>Status</Label><Input value={checklistForm.status} onChange={(event) => setChecklistForm({ ...checklistForm, status: event.target.value })} /></div>
+                    <div className="flex items-end"><Button onClick={() => void createChecklistItem()}>Add Item</Button></div>
+                  </div>
+                  <div className="space-y-3">
+                    {checklist.map((item) => (
+                      <div key={item.id} className="grid gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-4 md:grid-cols-[1.2fr_0.6fr_0.5fr_auto] md:items-center">
+                        <div>
+                          <p className="text-sm font-semibold text-text">{item.label}</p>
+                          <p className="mt-1 text-xs text-textSecondary">{userName(item.ownerUserId, context)} • due {item.dueDate}</p>
+                        </div>
+                        <Badge label={item.status} tone={statusTone(item.status)} />
+                        <Button variant="secondary" className="h-9 px-3" onClick={() => void cycleChecklistStatus(item)}>Advance</Button>
+                        <Button variant="secondary" className="h-9 px-3" onClick={() => void removeChecklistItem(item.id)}>Remove</Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
             {section === "Staffing" ? (
               <div className="grid gap-4 md:grid-cols-2">
@@ -2367,8 +2427,83 @@ export function ReportsPage() {
     { title: "Exhibition ROI Report", description: "Opportunity scoring, event conversion, booth outcomes, and lead capture.", icon: TrendingUp },
     { title: "Vendor Readiness Report", description: "Supplier confidence and blocker coverage before event day.", icon: BriefcaseBusiness },
     { title: "Budget Report", description: "Category control, event summary, actuals, commitments, and margin.", icon: Wallet },
-    { title: "Booth Performance Report", description: "Setup readiness, staffing, meetings, and leads captured.", icon: Boxes },
-  ];
+      { title: "Booth Performance Report", description: "Setup readiness, staffing, meetings, and leads captured.", icon: Boxes },
+    ];
+
+  function exportExecutiveSummary() {
+    const lines = [
+      ["Metric", "Value"],
+      ["Events", context.data.events.length],
+      ["Leads", context.data.leads.length],
+      ["Tasks Open", context.data.tasks.filter((item) => item.status !== "Done").length],
+      ["At-risk Vendors", context.data.vendors.filter((item) => item.status === "At Risk").length],
+      ["Total Budget", context.data.dashboard.metrics.totalBudget],
+      ["Total Actual", context.data.dashboard.metrics.totalActual],
+    ];
+    downloadTextFile("party-script-executive-summary.csv", lines.map((row) => row.map((cell) => csvEscape(cell)).join(",")).join("\n"), "text/csv;charset=utf-8");
+  }
+
+  function exportLeadPerformance() {
+    const lines = [
+      ["Lead", "Company", "Status", "Owner", "Event", "Next Action", "Follow-up"],
+      ...context.data.leads.map((lead) => [
+        lead.fullName,
+        lead.company,
+        lead.qualificationStatus,
+        userName(lead.ownerUserId, context),
+        eventName(lead.eventId, context),
+        lead.nextAction,
+        lead.nextFollowUpDate,
+      ]),
+    ];
+    downloadTextFile("party-script-lead-performance.csv", lines.map((row) => row.map((cell) => csvEscape(cell)).join(",")).join("\n"), "text/csv;charset=utf-8");
+  }
+
+  function exportBudgetReport() {
+    const lines = [
+      ["Event", "Category", "Budgeted", "Actual", "Committed"],
+      ...context.data.budgets.map((budget) => [
+        eventName(budget.eventId, context),
+        budget.category,
+        budget.budgeted,
+        budget.actual,
+        budget.committed,
+      ]),
+    ];
+    downloadTextFile("party-script-budget-report.csv", lines.map((row) => row.map((cell) => csvEscape(cell)).join(",")).join("\n"), "text/csv;charset=utf-8");
+  }
+
+  function exportReport(title: string) {
+    if (title === "Executive Summary") {
+      exportExecutiveSummary();
+      return;
+    }
+    if (title === "Lead Performance Report") {
+      exportLeadPerformance();
+      return;
+    }
+    if (title === "Budget Report") {
+      exportBudgetReport();
+      return;
+    }
+
+    downloadTextFile(
+      `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`,
+      JSON.stringify(
+        {
+          title,
+          generatedAt: new Date().toISOString(),
+          events: context.data.events,
+          vendors: context.data.vendors,
+          leads: context.data.leads,
+          booths: context.data.booths,
+        },
+        null,
+        2,
+      ),
+      "application/json;charset=utf-8",
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -2385,14 +2520,14 @@ export function ReportsPage() {
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             {reports.map((report) => (
               <div key={report.title} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-                <report.icon className="h-5 w-5 text-[#C9BDFF]" />
-                <h3 className="mt-4 text-lg font-semibold text-text">{report.title}</h3>
-                <p className="mt-2 text-sm text-textSecondary">{report.description}</p>
-                <div className="mt-4">
-                  <Button variant="secondary" className="h-9 px-3">Open report</Button>
+                  <report.icon className="h-5 w-5 text-[#C9BDFF]" />
+                  <h3 className="mt-4 text-lg font-semibold text-text">{report.title}</h3>
+                  <p className="mt-2 text-sm text-textSecondary">{report.description}</p>
+                  <div className="mt-4">
+                    <Button variant="secondary" className="h-9 px-3" onClick={() => exportReport(report.title)}>Export report</Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         </Card>
         <Card className="xl:col-span-4 p-5">

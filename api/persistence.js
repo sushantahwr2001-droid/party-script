@@ -821,6 +821,89 @@ export async function deleteLeadForOrg(auth, leadId) {
   return Boolean(count);
 }
 
+export async function updateBoothForOrg(auth, boothId, body) {
+  if (!hasSupabase()) {
+    const booth = memoryStore.booths.find((item) => item.id === boothId && item.organizationId === auth.organizationId);
+    if (!booth) return null;
+    mergeUpdate(booth, body, ["status", "setupCompletion", "materialReadiness", "staffAssigned", "meetingsBooked", "leadsCaptured"]);
+    return booth;
+  }
+
+  const client = supabase();
+  const payload = {
+    ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.setupCompletion !== undefined ? { setup_completion: Number(body.setupCompletion) } : {}),
+    ...(body.materialReadiness !== undefined ? { material_readiness: Number(body.materialReadiness) } : {}),
+    ...(body.staffAssigned !== undefined ? { staff_assigned: Number(body.staffAssigned) } : {}),
+    ...(body.meetingsBooked !== undefined ? { meetings_booked: Number(body.meetingsBooked) } : {}),
+    ...(body.leadsCaptured !== undefined ? { leads_captured: Number(body.leadsCaptured) } : {})
+  };
+  const { data, error } = await client.from("booths").update(payload).eq("id", boothId).eq("organization_id", auth.organizationId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, boothMap) : null;
+}
+
+export async function createBoothChecklistItemForOrg(auth, body) {
+  const item = {
+    id: uuid("booth_check"),
+    boothId: body.boothId,
+    ownerUserId: body.ownerUserId || auth.userId,
+    label: body.label,
+    dueDate: body.dueDate,
+    status: body.status || "Pending"
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.boothChecklistItems.unshift(item);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_checklist_items").insert({
+    id: item.id,
+    booth_id: item.boothId,
+    owner_user_id: item.ownerUserId,
+    label: item.label,
+    due_date: item.dueDate,
+    status: item.status
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, checklistMap);
+}
+
+export async function updateBoothChecklistItemForOrg(auth, checklistId, body) {
+  if (!hasSupabase()) {
+    const item = memoryStore.boothChecklistItems.find((entry) => entry.id === checklistId);
+    if (!item) return null;
+    mergeUpdate(item, body, ["ownerUserId", "label", "dueDate", "status"]);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_checklist_items").update({
+    ...(body.ownerUserId !== undefined ? { owner_user_id: body.ownerUserId } : {}),
+    ...(body.label !== undefined ? { label: body.label } : {}),
+    ...(body.dueDate !== undefined ? { due_date: body.dueDate } : {}),
+    ...(body.status !== undefined ? { status: body.status } : {})
+  }).eq("id", checklistId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, checklistMap) : null;
+}
+
+export async function deleteBoothChecklistItemForOrg(auth, checklistId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.boothChecklistItems.findIndex((entry) => entry.id === checklistId);
+    if (index === -1) return false;
+    memoryStore.boothChecklistItems.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("booth_checklist_items").delete({ count: "exact" }).eq("id", checklistId);
+  if (error) throw error;
+  return Boolean(count);
+}
+
 export async function createAttendeeForOrg(auth, body) {
   const attendee = {
     id: uuid("attendee"),
