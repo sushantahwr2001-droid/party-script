@@ -153,6 +153,18 @@ create table if not exists attendees (
   created_at timestamptz not null default now()
 );
 
+create table if not exists tickets (
+  id text primary key,
+  organization_id text not null references organizations(id) on delete cascade,
+  event_id text not null references events(id) on delete cascade,
+  name text not null,
+  price bigint not null default 0,
+  inventory integer not null default 0,
+  sold_count integer not null default 0,
+  status text not null default 'Active',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists checkins (
   id text primary key,
   organization_id text not null references organizations(id) on delete cascade,

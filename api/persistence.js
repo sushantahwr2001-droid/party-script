@@ -33,6 +33,7 @@ const leadMap = { id: "id", organizationId: "organization_id", fullName: "full_n
 const boothMap = { id: "id", organizationId: "organization_id", eventId: "event_id", status: "status", setupCompletion: "setup_completion", materialReadiness: "material_readiness", staffAssigned: "staff_assigned", meetingsBooked: "meetings_booked", leadsCaptured: "leads_captured", createdAt: "created_at" };
 const checklistMap = { id: "id", boothId: "booth_id", ownerUserId: "owner_user_id", label: "label", dueDate: "due_date", status: "status" };
 const attendeeMap = { id: "id", organizationId: "organization_id", eventId: "event_id", fullName: "full_name", email: "email", phone: "phone", company: "company", city: "city", ticketType: "ticket_type", registrationStatus: "registration_status", checkInStatus: "check_in_status", source: "source", tags: "tags", createdAt: "created_at" };
+const ticketMap = { id: "id", organizationId: "organization_id", eventId: "event_id", name: "name", price: "price", inventory: "inventory", soldCount: "sold_count", status: "status", createdAt: "created_at" };
 const checkinMap = { id: "id", organizationId: "organization_id", attendeeId: "attendee_id", eventId: "event_id", status: "status", checkedInAt: "checked_in_at", createdAt: "created_at" };
 const assetMap = { id: "id", organizationId: "organization_id", eventId: "event_id", name: "name", category: "category", fileUrl: "file_url", createdByUserId: "created_by_user_id", createdAt: "created_at" };
 const activityMap = { id: "id", organizationId: "organization_id", actorUserId: "actor_user_id", kind: "kind", message: "message", createdAt: "created_at" };
@@ -177,6 +178,52 @@ export async function updateUserPassword(userId, passwordHash) {
   return data ? mapRow(data, userMap) : null;
 }
 
+export async function updateOrganizationForOrg(organizationId, body) {
+  if (!hasSupabase()) {
+    const organization = memoryStore.organizations.find((item) => item.id === organizationId);
+    if (!organization) return null;
+    mergeUpdate(organization, body, ["name", "slug"]);
+    return organization;
+  }
+
+  const client = supabase();
+  const payload = {
+    ...(body.name !== undefined ? { name: body.name } : {}),
+    ...(body.slug !== undefined ? { slug: body.slug } : {})
+  };
+  const { data, error } = await client.from("organizations").update(payload).eq("id", organizationId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, orgMap) : null;
+}
+
+export async function updateUserRoleForOrg(organizationId, userId, role) {
+  if (!hasSupabase()) {
+    const user = memoryStore.users.find((item) => item.id === userId && item.organizationId === organizationId);
+    if (!user) return null;
+    user.role = role;
+    return user;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("users").update({ role }).eq("id", userId).eq("organization_id", organizationId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, userMap) : null;
+}
+
+export async function deleteUserForOrg(organizationId, userId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.users.findIndex((item) => item.id === userId && item.organizationId === organizationId);
+    if (index === -1) return false;
+    memoryStore.users.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("users").delete({ count: "exact" }).eq("id", userId).eq("organization_id", organizationId);
+  if (error) throw error;
+  return Boolean(count);
+}
+
 export async function fetchStore(organizationId) {
   if (!hasSupabase()) {
     return {
@@ -191,6 +238,7 @@ export async function fetchStore(organizationId) {
       booths: memoryStore.booths.filter((item) => item.organizationId === organizationId),
       boothChecklistItems: memoryStore.boothChecklistItems,
       attendees: memoryStore.attendees.filter((item) => item.organizationId === organizationId),
+      tickets: memoryStore.tickets.filter((item) => item.organizationId === organizationId),
       checkins: memoryStore.checkins.filter((item) => item.organizationId === organizationId),
       assets: memoryStore.assets.filter((item) => item.organizationId === organizationId),
       activities: memoryStore.activities.filter((item) => item.organizationId === organizationId)
@@ -216,8 +264,9 @@ export async function fetchStore(organizationId) {
     leadsResult,
     boothsResult,
     checklistResult,
-    attendeesResult,
-    checkinsResult,
+      attendeesResult,
+      ticketsResult,
+      checkinsResult,
     assetsResult,
     activitiesResult
   ] = await Promise.all([
@@ -232,12 +281,13 @@ export async function fetchStore(organizationId) {
     client.from("booths").select("*").eq("organization_id", organizationId),
     client.from("booth_checklist_items").select("*"),
     safeSelect("attendees", (query) => query.select("*").eq("organization_id", organizationId)),
+    safeSelect("tickets", (query) => query.select("*").eq("organization_id", organizationId)),
     safeSelect("checkins", (query) => query.select("*").eq("organization_id", organizationId)),
     safeSelect("assets", (query) => query.select("*").eq("organization_id", organizationId)),
     client.from("activities").select("*").eq("organization_id", organizationId)
   ]);
 
-  for (const result of [organizationsResult, usersResult, eventsResult, opportunitiesResult, tasksResult, vendorsResult, budgetsResult, leadsResult, boothsResult, checklistResult, attendeesResult, checkinsResult, assetsResult, activitiesResult]) {
+  for (const result of [organizationsResult, usersResult, eventsResult, opportunitiesResult, tasksResult, vendorsResult, budgetsResult, leadsResult, boothsResult, checklistResult, attendeesResult, ticketsResult, checkinsResult, assetsResult, activitiesResult]) {
     if (result.error) throw result.error;
   }
 
@@ -250,10 +300,11 @@ export async function fetchStore(organizationId) {
     vendors: mapCollection(vendorsResult.data, vendorMap),
     budgets: mapCollection(budgetsResult.data, budgetMap),
     leads: mapCollection(leadsResult.data, leadMap),
-    booths: mapCollection(boothsResult.data, boothMap),
-    boothChecklistItems: mapCollection(checklistResult.data, checklistMap),
-    attendees: mapCollection(attendeesResult.data, attendeeMap).map((item) => ({ ...item, tags: Array.isArray(item.tags) ? item.tags : [] })),
-    checkins: mapCollection(checkinsResult.data, checkinMap),
+      booths: mapCollection(boothsResult.data, boothMap),
+      boothChecklistItems: mapCollection(checklistResult.data, checklistMap),
+      attendees: mapCollection(attendeesResult.data, attendeeMap).map((item) => ({ ...item, tags: Array.isArray(item.tags) ? item.tags : [] })),
+      tickets: mapCollection(ticketsResult.data, ticketMap),
+      checkins: mapCollection(checkinsResult.data, checkinMap),
     assets: mapCollection(assetsResult.data, assetMap),
     activities: mapCollection(activitiesResult.data, activityMap)
   };
@@ -811,6 +862,76 @@ export async function createAttendeeForOrg(auth, body) {
   }).select("*").single();
   if (error) throw error;
   return { ...mapRow(data, attendeeMap), tags: Array.isArray(data.tags) ? data.tags : [] };
+}
+
+export async function createTicketForOrg(auth, body) {
+  const ticket = {
+    id: uuid("ticket"),
+    organizationId: auth.organizationId,
+    eventId: body.eventId,
+    name: body.name,
+    price: Number(body.price || 0),
+    inventory: Number(body.inventory || 0),
+    soldCount: Number(body.soldCount || 0),
+    status: body.status || "Active",
+    createdAt: new Date().toISOString()
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.tickets.unshift(ticket);
+    return ticket;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("tickets").insert({
+    id: ticket.id,
+    organization_id: ticket.organizationId,
+    event_id: ticket.eventId,
+    name: ticket.name,
+    price: ticket.price,
+    inventory: ticket.inventory,
+    sold_count: ticket.soldCount,
+    status: ticket.status,
+    created_at: ticket.createdAt
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, ticketMap);
+}
+
+export async function updateTicketForOrg(auth, ticketId, body) {
+  if (!hasSupabase()) {
+    const ticket = memoryStore.tickets.find((item) => item.id === ticketId && item.organizationId === auth.organizationId);
+    if (!ticket) return null;
+    mergeUpdate(ticket, body, ["eventId", "name", "price", "inventory", "soldCount", "status"]);
+    return ticket;
+  }
+
+  const client = supabase();
+  const payload = {
+    ...(body.eventId !== undefined ? { event_id: body.eventId } : {}),
+    ...(body.name !== undefined ? { name: body.name } : {}),
+    ...(body.price !== undefined ? { price: Number(body.price) } : {}),
+    ...(body.inventory !== undefined ? { inventory: Number(body.inventory) } : {}),
+    ...(body.soldCount !== undefined ? { sold_count: Number(body.soldCount) } : {}),
+    ...(body.status !== undefined ? { status: body.status } : {})
+  };
+  const { data, error } = await client.from("tickets").update(payload).eq("id", ticketId).eq("organization_id", auth.organizationId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, ticketMap) : null;
+}
+
+export async function deleteTicketForOrg(auth, ticketId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.tickets.findIndex((item) => item.id === ticketId && item.organizationId === auth.organizationId);
+    if (index === -1) return false;
+    memoryStore.tickets.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("tickets").delete({ count: "exact" }).eq("id", ticketId).eq("organization_id", auth.organizationId);
+  if (error) throw error;
+  return Boolean(count);
 }
 
 export async function importAttendeesForOrg(auth, rows) {

@@ -70,6 +70,7 @@ import type {
   OpportunityRecord,
   TableColumn,
   TaskRecord,
+  TicketRecord,
   VendorRecord,
 } from "../types";
 
@@ -2154,19 +2155,118 @@ export function AttendeesPage() {
 }
 
 export function TicketsPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(context.data.tickets[0]?.id ?? null);
+  const selectedTicket = context.data.tickets.find((item) => item.id === selectedTicketId) ?? context.data.tickets[0] ?? null;
+  const [ticketForm, setTicketForm] = useState(() => (selectedTicket ? { ...selectedTicket } : null));
+  const [createForm, setCreateForm] = useState({
+    eventId: context.data.events[0]?.id ?? "",
+    name: "",
+    price: "0",
+    inventory: "0",
+    soldCount: "0",
+    status: "Active",
+  });
+
+  useEffect(() => {
+    const nextTicket = context.data.tickets.find((item) => item.id === selectedTicketId) ?? context.data.tickets[0] ?? null;
+    setTicketForm(nextTicket ? { ...nextTicket } : null);
+  }, [context.data.tickets, selectedTicketId]);
+
+  async function createTicket() {
+    if (!token) return;
+    await api.createTicket(token, {
+      eventId: createForm.eventId,
+      name: createForm.name,
+      price: Number(createForm.price),
+      inventory: Number(createForm.inventory),
+      soldCount: Number(createForm.soldCount),
+      status: createForm.status,
+    });
+    await context.refresh();
+    setCreateForm({
+      eventId: context.data.events[0]?.id ?? "",
+      name: "",
+      price: "0",
+      inventory: "0",
+      soldCount: "0",
+      status: "Active",
+    });
+  }
+
+  async function saveTicket() {
+    if (!token || !ticketForm) return;
+    await api.updateTicket(token, ticketForm.id, ticketForm);
+    await context.refresh();
+  }
+
+  async function removeTicket() {
+    if (!token || !ticketForm) return;
+    await api.deleteTicket(token, ticketForm.id);
+    await context.refresh();
+    setSelectedTicketId(null);
+  }
+
+  const grossSales = context.data.tickets.reduce((sum, ticket) => sum + ticket.price * ticket.soldCount, 0);
+  const inventoryLeft = context.data.tickets.reduce((sum, ticket) => sum + Math.max(ticket.inventory - ticket.soldCount, 0), 0);
+
   return (
-    <GenericModulePage
-      title="Tickets"
-      description="Ticket products, sales analytics, and allocation controls for hosted events."
-      moduleId="tickets"
-      blocks={[
-        { title: "Ticket cards", description: "Ticket products, phases, and allocations can attach directly to event records.", icon: Ticket },
-        { title: "Sales analytics", description: "Gross sales, sold count, conversion, and refund tracking can share the same reporting layer.", icon: TrendingUp },
-        { title: "Revenue timeline", description: "Ticket sales can feed directly into budget, finance, and post-event reporting.", icon: Banknote },
-      ]}
-    >
-      <EmptyState title="Ticketing layer is ready for build-out" description="The event, budget, and reporting foundations are already live, so ticket inventory and sales analytics can now be added as the next monetization workflow." />
-    </GenericModulePage>
+    <div className="space-y-6">
+      <PageIntro title="Tickets" description="Ticket products, pricing, sales progress, and inventory control for hosted events." actions={<Button onClick={() => void createTicket()}><Plus className="h-4 w-4" />Create Ticket</Button>} />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricTile label="Ticket Types" value={`${context.data.tickets.length}`} detail="Live products across events" tone="accent" />
+        <MetricTile label="Gross Sales" value={formatCurrency(grossSales)} detail="Calculated from sold inventory" tone="success" />
+        <MetricTile label="Sold Count" value={`${context.data.tickets.reduce((sum, ticket) => sum + ticket.soldCount, 0)}`} detail="Confirmed seats sold" tone="info" />
+        <MetricTile label="Inventory Left" value={`${inventoryLeft}`} detail="Remaining across active products" tone="warning" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-12">
+        <Card className="xl:col-span-7 p-5">
+          <SectionTitle title="Ticket Inventory" detail="All ticket products linked to events" />
+          <div className="mt-5">
+            <SimpleTable
+              columns={[
+                { key: "name", label: "Ticket", render: (row: TicketRecord) => <button type="button" onClick={() => setSelectedTicketId(row.id)} className="text-left font-semibold text-text transition hover:text-[#C9BDFF]">{row.name}</button> },
+                { key: "event", label: "Event", render: (row: TicketRecord) => eventName(row.eventId, context) },
+                { key: "price", label: "Price", render: (row: TicketRecord) => formatCurrency(row.price) },
+                { key: "inventory", label: "Inventory" },
+                { key: "soldCount", label: "Sold" },
+                { key: "status", label: "Status", render: (row: TicketRecord) => <Badge label={row.status} tone={statusTone(row.status)} /> },
+              ]}
+              rows={context.data.tickets}
+            />
+          </div>
+        </Card>
+        <Card className="xl:col-span-5 p-5">
+          <SectionTitle title="Create Ticket" detail="Add price tiers and inventory phases" />
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2"><Label>Event</Label><select value={createForm.eventId} onChange={(event) => setCreateForm({ ...createForm, eventId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}</select></div>
+            <div className="space-y-2 md:col-span-2"><Label>Name</Label><Input value={createForm.name} onChange={(event) => setCreateForm({ ...createForm, name: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Price</Label><Input type="number" value={createForm.price} onChange={(event) => setCreateForm({ ...createForm, price: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Inventory</Label><Input type="number" value={createForm.inventory} onChange={(event) => setCreateForm({ ...createForm, inventory: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Sold Count</Label><Input type="number" value={createForm.soldCount} onChange={(event) => setCreateForm({ ...createForm, soldCount: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Status</Label><Input value={createForm.status} onChange={(event) => setCreateForm({ ...createForm, status: event.target.value })} /></div>
+          </div>
+        </Card>
+      </div>
+      <Card className="p-5">
+        <SectionTitle title="Edit Ticket" detail="Pause, close, or reprice existing ticket types" />
+        {!ticketForm ? <EmptyState title="No ticket selected" description="Pick a ticket from the inventory table to edit it here." /> : (
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="space-y-2"><Label>Name</Label><Input value={ticketForm.name} onChange={(event) => setTicketForm({ ...ticketForm, name: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Price</Label><Input type="number" value={ticketForm.price} onChange={(event) => setTicketForm({ ...ticketForm, price: Number(event.target.value) })} /></div>
+            <div className="space-y-2"><Label>Status</Label><Input value={ticketForm.status} onChange={(event) => setTicketForm({ ...ticketForm, status: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Inventory</Label><Input type="number" value={ticketForm.inventory} onChange={(event) => setTicketForm({ ...ticketForm, inventory: Number(event.target.value) })} /></div>
+            <div className="space-y-2"><Label>Sold Count</Label><Input type="number" value={ticketForm.soldCount} onChange={(event) => setTicketForm({ ...ticketForm, soldCount: Number(event.target.value) })} /></div>
+            <div className="space-y-2"><Label>Event ID</Label><Input value={ticketForm.eventId} onChange={(event) => setTicketForm({ ...ticketForm, eventId: event.target.value })} /></div>
+            <div className="xl:col-span-3 flex gap-3">
+              <Button variant="secondary" onClick={() => void removeTicket()}>Delete Ticket</Button>
+              <Button onClick={() => void saveTicket()}>Save Ticket</Button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
 
@@ -2578,62 +2678,123 @@ export function LeadDetailPage() {
 
 export function TeamPage() {
   const context = useConsoleData();
+  const { token, user: currentUser } = useAuth();
+  const [inviteForm, setInviteForm] = useState({ name: "", email: "", role: "Operator" });
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
+
+  async function inviteMember() {
+    if (!token) return;
+    const response = await api.inviteTeamMember(token, inviteForm);
+    await context.refresh();
+    setInviteNotice(`Invited ${inviteForm.email}. Temporary password: ${(response as { temporaryPassword: string }).temporaryPassword}`);
+    setInviteForm({ name: "", email: "", role: "Operator" });
+  }
+
+  async function updateRole(userId: string, role: string) {
+    if (!token) return;
+    await api.updateTeamMemberRole(token, userId, role);
+    await context.refresh();
+  }
+
+  async function removeMember(userId: string) {
+    if (!token) return;
+    await api.deleteTeamMember(token, userId);
+    await context.refresh();
+  }
+
   return (
-    <GenericModulePage
-      title="Team"
-      description="People, workload, assignments, permissions, and booth staffing visibility across the organization."
-      moduleId="team"
-      blocks={[
-        { title: "Directory", description: "Users are already real authenticated backend records with organization scope.", icon: Users },
-        { title: "Assignments", description: "Tasks, events, vendors, and leads already point back to owners.", icon: ClipboardList },
-        { title: "Permissions matrix", description: "The auth foundation is ready for role-based expansion beyond admin-only access.", icon: ShieldCheck },
-      ]}
-    >
-      <Card className="p-5">
-        <SectionTitle title="Team Directory" detail="Current workspace members" />
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {context.data.users.map((user) => (
-            <div key={user.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-              <p className="text-sm font-semibold text-text">{user.name}</p>
-              <p className="mt-1 text-xs text-textSecondary">{user.email}</p>
-              <div className="mt-4 flex items-center justify-between">
-                <Badge label={user.role} tone="accent" />
-                <span className="text-xs text-textMuted">Created {new Date(user.createdAt).toLocaleDateString()}</span>
+    <div className="space-y-6">
+      <PageIntro title="Team" description="Invite teammates, manage roles, and keep operator ownership visible across the workspace." actions={<Button onClick={() => void inviteMember()}><UserPlus className="h-4 w-4" />Invite teammate</Button>} />
+      <div className="grid gap-6 xl:grid-cols-12">
+        <Card className="xl:col-span-4 p-5">
+          <SectionTitle title="Invite Teammate" detail="Bootstrap-friendly team setup with a temporary password flow" />
+          <div className="mt-5 space-y-4">
+            <div className="space-y-2"><Label>Name</Label><Input value={inviteForm.name} onChange={(event) => setInviteForm({ ...inviteForm, name: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Email</Label><Input value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Role</Label><Input value={inviteForm.role} onChange={(event) => setInviteForm({ ...inviteForm, role: event.target.value })} /></div>
+            {inviteNotice ? <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-textSecondary">{inviteNotice}</div> : null}
+          </div>
+        </Card>
+        <Card className="xl:col-span-8 p-5">
+          <SectionTitle title="Team Directory" detail="Role edits and member management for the current workspace" />
+          <div className="mt-5 space-y-4">
+            {context.data.users.map((member) => (
+              <div key={member.id} className="grid gap-4 rounded-2xl border border-white/5 bg-white/[0.03] p-4 md:grid-cols-[1.1fr_0.7fr_0.5fr] md:items-center">
+                <div>
+                  <p className="text-sm font-semibold text-text">{member.name}</p>
+                  <p className="mt-1 text-xs text-textSecondary">{member.email}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Input value={member.role} onChange={(event) => void updateRole(member.id, event.target.value)} />
+                </div>
+                <div className="flex items-center justify-between gap-3 md:justify-end">
+                  <Badge label={member.role} tone="accent" />
+                  {member.id !== currentUser?.id ? <Button variant="secondary" className="h-9 px-3" onClick={() => void removeMember(member.id)}>Remove</Button> : null}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </GenericModulePage>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
 export function SettingsPage() {
   const context = useConsoleData();
+  const { token } = useAuth();
+  const [form, setForm] = useState({
+    name: context.data.organization?.name ?? "Party Script",
+    slug: context.data.organization?.slug ?? "party-script",
+  });
+
+  useEffect(() => {
+    setForm({
+      name: context.data.organization?.name ?? "Party Script",
+      slug: context.data.organization?.slug ?? "party-script",
+    });
+  }, [context.data.organization?.name, context.data.organization?.slug]);
+
+  async function saveSettings() {
+    if (!token) return;
+    await api.updateOrganization(token, form);
+    await context.refresh();
+  }
+
   return (
-    <GenericModulePage
-      title="Settings"
-      description="Organization profile, branding, roles, templates, notifications, integrations, and billing."
-      moduleId="settings"
-      blocks={[
-        { title: "Organization profile", description: "Workspace identity now sits on real organization records, not placeholder data.", icon: Sparkles },
-        { title: "Templates", description: "Starter packs, event templates, and repeatable actions can be added cleanly next.", icon: FolderKanban },
-        { title: "Integrations", description: "API-backed architecture is ready for future syncs and product integrations.", icon: HandCoins },
-      ]}
-    >
-      <Card className="p-5">
-        <SectionTitle title="Organization" detail="Current workspace identity" />
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-            <p className="text-xs uppercase tracking-[0.14em] text-textMuted">Organization name</p>
-            <p className="mt-2 text-lg font-semibold text-text">{context.data.organization?.name ?? "Party Script"}</p>
+    <div className="space-y-6">
+      <PageIntro title="Settings" description="Organization profile, roles, branding basics, templates, and notification posture." actions={<Button onClick={() => void saveSettings()}>Save Settings</Button>} />
+      <div className="grid gap-6 xl:grid-cols-12">
+        <Card className="xl:col-span-7 p-5">
+          <SectionTitle title="Organization Profile" detail="Edit the workspace identity customers see internally" />
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2"><Label>Organization name</Label><Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
+            <div className="space-y-2"><Label>Workspace slug</Label><Input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} /></div>
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-xs uppercase tracking-[0.14em] text-textMuted">Workspace size</p>
+              <p className="mt-2 text-lg font-semibold text-text">{context.data.users.length} users</p>
+            </div>
           </div>
-          <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
-            <p className="text-xs uppercase tracking-[0.14em] text-textMuted">Workspace size</p>
-            <p className="mt-2 text-lg font-semibold text-text">{context.data.users.length} users</p>
+        </Card>
+        <Card className="xl:col-span-5 p-5">
+          <SectionTitle title="Launch Controls" detail="The practical settings bootstrap teams change first" />
+          <div className="mt-5 space-y-4">
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-sm font-semibold text-text">Branding basics</p>
+              <p className="mt-2 text-sm text-textSecondary">Logo, name, and workspace identity are live. Custom theming can layer on top next.</p>
+            </div>
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-sm font-semibold text-text">Notification posture</p>
+              <p className="mt-2 text-sm text-textSecondary">Task, lead, vendor, and budget alerts are already generated from live workspace records.</p>
+            </div>
+            <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+              <p className="text-sm font-semibold text-text">Templates and integrations</p>
+              <p className="mt-2 text-sm text-textSecondary">These stay lightweight for launch while the core operating workflows mature.</p>
+            </div>
           </div>
-        </div>
-      </Card>
-    </GenericModulePage>
+        </Card>
+      </div>
+    </div>
   );
 }

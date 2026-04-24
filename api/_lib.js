@@ -57,6 +57,7 @@ export async function buildBootstrap(organizationId) {
     booths: store.booths,
     boothChecklistItems: store.boothChecklistItems.filter((item) => store.booths.some((booth) => booth.id === item.boothId)),
     attendees: store.attendees,
+    tickets: store.tickets,
     checkins: store.checkins,
     assets: store.assets,
     activities,

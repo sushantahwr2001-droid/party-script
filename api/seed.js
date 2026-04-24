@@ -50,9 +50,14 @@ export function createSeedStore() {
         { id: "attendee_1b", organizationId: "org_partyscript", eventId: "evt_gtm_summit", fullName: "Meera J.", email: "meera@revpilot.io", phone: "+91 9000001111", company: "RevPilot", city: "Bengaluru", ticketType: "VIP", registrationStatus: "Confirmed", checkInStatus: "Pending", source: "CSV Import", tags: ["VIP"], createdAt: now },
         { id: "attendee_2", organizationId: "org_partyscript", eventId: "evt_fintech_meetup", fullName: "Kabir Malhotra", email: "kabir@paymesh.com", phone: "+91 9000002222", company: "PayMesh", city: "Delhi", ticketType: "General", registrationStatus: "Confirmed", checkInStatus: "Checked In", source: "Community", tags: ["Fintech"], createdAt: now }
       ],
+    tickets: [
+        { id: "ticket_1", organizationId: "org_partyscript", eventId: "evt_gtm_summit", name: "VIP Pass", price: 12000, inventory: 120, soldCount: 84, status: "Active", createdAt: now },
+        { id: "ticket_2", organizationId: "org_partyscript", eventId: "evt_gtm_summit", name: "General Admission", price: 3500, inventory: 600, soldCount: 428, status: "Active", createdAt: now },
+        { id: "ticket_3", organizationId: "org_partyscript", eventId: "evt_fintech_meetup", name: "Community Seat", price: 999, inventory: 300, soldCount: 213, status: "Paused", createdAt: now }
+      ],
     checkins: [
-      { id: "checkin_1", organizationId: "org_partyscript", attendeeId: "attendee_2", eventId: "evt_fintech_meetup", status: "success", checkedInAt: now, createdAt: now }
-    ],
+        { id: "checkin_1", organizationId: "org_partyscript", attendeeId: "attendee_2", eventId: "evt_fintech_meetup", status: "success", checkedInAt: now, createdAt: now }
+      ],
     assets: [
       { id: "asset_1", organizationId: "org_partyscript", eventId: "evt_startup_expo", name: "Booth Layout v3", category: "booth designs", fileUrl: "https://example.com/booth-layout-v3.pdf", createdByUserId: "user_diya", createdAt: now },
       { id: "asset_2", organizationId: "org_partyscript", eventId: "evt_gtm_summit", name: "VIP Rundown", category: "venue docs", fileUrl: "https://example.com/vip-rundown.pdf", createdByUserId: "user_rhea", createdAt: now }

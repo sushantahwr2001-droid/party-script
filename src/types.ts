@@ -193,6 +193,18 @@ export interface AttendeeRecord {
   createdAt: string;
 }
 
+export interface TicketRecord {
+  id: string;
+  organizationId: string;
+  eventId: string;
+  name: string;
+  price: number;
+  inventory: number;
+  soldCount: number;
+  status: string;
+  createdAt: string;
+}
+
 export interface CheckinRecord {
   id: string;
   organizationId: string;
@@ -263,6 +275,7 @@ export interface BootstrapPayload {
   booths: BoothRecord[];
   boothChecklistItems: BoothChecklistItem[];
   attendees: AttendeeRecord[];
+  tickets: TicketRecord[];
   checkins: CheckinRecord[];
   assets: AssetRecord[];
   activities: ActivityRecord[];

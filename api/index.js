@@ -11,9 +11,12 @@ import {
   createLeadForOrg,
   createOpportunityForOrg,
   createOrganization,
+  createTicketForOrg,
   createTaskForOrg,
   createUser,
   createVendorForOrg,
+  deleteTicketForOrg,
+  deleteUserForOrg,
   deleteBudgetForOrg,
   deleteEventForOrg,
   deleteLeadForOrg,
@@ -27,6 +30,9 @@ import {
   mergeAttendeesForOrg,
   persistenceMode,
   uploadAssetForOrg,
+  updateOrganizationForOrg,
+  updateTicketForOrg,
+  updateUserRoleForOrg,
   updateBudgetForOrg,
   updateEventForOrg,
   updateLeadForOrg,
@@ -200,6 +206,35 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (req.method === "POST" && route === "tickets") {
+      json(res, 201, { ticket: await createTicketForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "team/invite") {
+      const existing = await findUserByEmail(String(body.email || ""));
+      if (existing) {
+        json(res, 409, { message: "A team member with that email already exists." });
+        return;
+      }
+      const password = String(body.password || "partyscript123");
+      const user = await createUser({
+        name: String(body.name || "New Teammate"),
+        email: String(body.email || ""),
+        passwordHash: await bcrypt.hash(password, 10),
+        organizationId: auth.organizationId,
+        role: String(body.role || "Operator"),
+      });
+      json(res, 201, { user: sanitizeUser(user), temporaryPassword: password });
+      return;
+    }
+
+    if (req.method === "PUT" && route === "settings/organization") {
+      const organization = await updateOrganizationForOrg(auth.organizationId, body);
+      json(res, organization ? 200 : 404, organization ? { organization } : { message: "Organization not found." });
+      return;
+    }
+
     if (req.method === "POST" && route === "attendees/import") {
       json(res, 201, { attendees: await importAttendeesForOrg(auth, Array.isArray(body.rows) ? body.rows : []) });
       return;
@@ -282,6 +317,40 @@ export default async function handler(req, res) {
       if (req.method === "DELETE") {
         const ok = await deleteVendorForOrg(auth, vendorId);
         json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Vendor not found." });
+        return;
+      }
+    }
+
+    const ticketMatch = route.match(/^tickets\/([^/]+)$/);
+    if (ticketMatch) {
+      const ticketId = decodeURIComponent(ticketMatch[1]);
+      if (req.method === "PUT") {
+        const ticket = await updateTicketForOrg(auth, ticketId, body);
+        json(res, ticket ? 200 : 404, ticket ? { ticket } : { message: "Ticket not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteTicketForOrg(auth, ticketId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Ticket not found." });
+        return;
+      }
+    }
+
+    const teamMatch = route.match(/^team\/([^/]+)$/);
+    if (teamMatch) {
+      const userId = decodeURIComponent(teamMatch[1]);
+      if (req.method === "PUT") {
+        const user = await updateUserRoleForOrg(auth.organizationId, userId, String(body.role || "Operator"));
+        json(res, user ? 200 : 404, user ? { user: sanitizeUser(user) } : { message: "User not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        if (userId === auth.userId) {
+          json(res, 400, { message: "You cannot remove yourself from the workspace." });
+          return;
+        }
+        const ok = await deleteUserForOrg(auth.organizationId, userId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "User not found." });
         return;
       }
     }

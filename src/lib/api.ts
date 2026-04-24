@@ -247,6 +247,66 @@ export const api = {
       body: JSON.stringify(payload)
     }, token);
   },
+  createTicket(
+    token: string,
+    payload: {
+      eventId: string;
+      name: string;
+      price: number;
+      inventory: number;
+      soldCount: number;
+      status: string;
+    },
+  ) {
+    return request<{ ticket: unknown }>("/tickets", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateTicket(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ ticket: unknown }>(`/tickets/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteTicket(token: string, id: string) {
+    return request<{ ok: true }>(`/tickets/${id}`, { method: "DELETE" }, token);
+  },
+  inviteTeamMember(
+    token: string,
+    payload: {
+      name: string;
+      email: string;
+      role: string;
+      password?: string;
+    },
+  ) {
+    return request<{ user: unknown; temporaryPassword: string }>("/team/invite", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateTeamMemberRole(token: string, id: string, role: string) {
+    return request<{ user: unknown }>(`/team/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ role })
+    }, token);
+  },
+  deleteTeamMember(token: string, id: string) {
+    return request<{ ok: true }>(`/team/${id}`, { method: "DELETE" }, token);
+  },
+  updateOrganization(
+    token: string,
+    payload: {
+      name?: string;
+      slug?: string;
+    },
+  ) {
+    return request<{ organization: unknown }>("/settings/organization", {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
   importAttendees(
     token: string,
     rows: Array<{
