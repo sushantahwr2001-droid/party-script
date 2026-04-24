@@ -45,6 +45,20 @@ export function createSeedStore() {
       { id: "check_3", boothId: "booth_startup_expo", ownerUserId: "user_rhea", label: "Shipping labels printed", dueDate: "2026-04-27", status: "Planned" },
       { id: "check_4", boothId: "booth_startup_expo", ownerUserId: "user_aarav", label: "Lead capture tablets tested", dueDate: "2026-04-28", status: "In Progress" }
     ],
+    boothStaffingItems: [
+      { id: "staff_1", boothId: "booth_startup_expo", userId: "user_aarav", role: "Founder Host", shiftStart: "2026-06-04T10:00:00.000Z", shiftEnd: "2026-06-04T14:00:00.000Z", onsiteResponsibility: "Investor and founder meetings", backupOwnerUserId: "user_diya", notes: "Handle anchor demos in morning block" },
+      { id: "staff_2", boothId: "booth_startup_expo", userId: "user_diya", role: "Ops Lead", shiftStart: "2026-06-04T14:00:00.000Z", shiftEnd: "2026-06-04T18:00:00.000Z", onsiteResponsibility: "Booth reset and logistics", backupOwnerUserId: "user_rhea", notes: "Own vendor escalation" }
+    ],
+    boothInventoryItems: [
+      { id: "inventory_1", boothId: "booth_startup_expo", name: "Backdrop panels", category: "Fabrication", quantityPlanned: 4, quantityPacked: 4, quantityOnsite: 0, ownerUserId: "user_diya", status: "Packed", notes: "Ship with fabrication vendor" },
+      { id: "inventory_2", boothId: "booth_startup_expo", name: "Lead capture tablets", category: "Tech", quantityPlanned: 6, quantityPacked: 5, quantityOnsite: 0, ownerUserId: "user_aarav", status: "At Risk", notes: "One tablet still in QA" }
+    ],
+    boothMeetings: [
+      { id: "meeting_1", boothId: "booth_startup_expo", leadId: "lead_2", company: "ScaleForge", contactName: "Arjun Bedi", meetingTime: "2026-06-04T11:30:00.000Z", ownerUserId: "user_aarav", objective: "Discuss post-expo rollout", status: "Scheduled", notes: "Show CRM and booth ops flow", followUpRequired: true }
+    ],
+    boothIssues: [
+      { id: "issue_1", boothId: "booth_startup_expo", title: "Primary backdrop shipment delayed", category: "Logistics", severity: "High", status: "Open", ownerUserId: "user_diya", notes: "Need backup print pickup if courier misses slot", createdAt: now }
+    ],
     attendees: [
         { id: "attendee_1", organizationId: "org_partyscript", eventId: "evt_gtm_summit", fullName: "Meera Joshi", email: "meera@revpilot.io", phone: "+91 9000001111", company: "RevPilot", city: "Bengaluru", ticketType: "VIP", registrationStatus: "Confirmed", checkInStatus: "Pending", source: "LinkedIn", tags: ["VIP", "Founder"], createdAt: now },
         { id: "attendee_1b", organizationId: "org_partyscript", eventId: "evt_gtm_summit", fullName: "Meera J.", email: "meera@revpilot.io", phone: "+91 9000001111", company: "RevPilot", city: "Bengaluru", ticketType: "VIP", registrationStatus: "Confirmed", checkInStatus: "Pending", source: "CSV Import", tags: ["VIP"], createdAt: now },

@@ -136,6 +136,57 @@ create table if not exists booth_checklist_items (
   status text not null
 );
 
+create table if not exists booth_staffing (
+  id text primary key,
+  booth_id text not null references booths(id) on delete cascade,
+  user_id text not null references users(id),
+  role text not null,
+  shift_start timestamptz not null,
+  shift_end timestamptz not null,
+  onsite_responsibility text not null default '',
+  backup_owner_user_id text not null references users(id),
+  notes text not null default ''
+);
+
+create table if not exists booth_inventory_items (
+  id text primary key,
+  booth_id text not null references booths(id) on delete cascade,
+  name text not null,
+  category text not null,
+  quantity_planned integer not null default 0,
+  quantity_packed integer not null default 0,
+  quantity_onsite integer not null default 0,
+  owner_user_id text not null references users(id),
+  status text not null,
+  notes text not null default ''
+);
+
+create table if not exists booth_meetings (
+  id text primary key,
+  booth_id text not null references booths(id) on delete cascade,
+  lead_id text references leads(id) on delete set null,
+  company text not null default '',
+  contact_name text not null default '',
+  meeting_time timestamptz not null,
+  owner_user_id text not null references users(id),
+  objective text not null default '',
+  status text not null,
+  notes text not null default '',
+  follow_up_required boolean not null default false
+);
+
+create table if not exists booth_issues (
+  id text primary key,
+  booth_id text not null references booths(id) on delete cascade,
+  title text not null,
+  category text not null,
+  severity text not null,
+  status text not null,
+  owner_user_id text not null references users(id),
+  notes text not null default '',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists attendees (
   id text primary key,
   organization_id text not null references organizations(id) on delete cascade,

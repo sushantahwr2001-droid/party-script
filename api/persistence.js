@@ -32,6 +32,10 @@ const budgetMap = { id: "id", organizationId: "organization_id", eventId: "event
 const leadMap = { id: "id", organizationId: "organization_id", fullName: "full_name", company: "company", title: "title", email: "email", phone: "phone", eventId: "event_id", ownerUserId: "owner_user_id", priority: "priority", qualificationStatus: "qualification_status", nextAction: "next_action", nextFollowUpDate: "next_follow_up_date", notes: "notes", createdAt: "created_at" };
 const boothMap = { id: "id", organizationId: "organization_id", eventId: "event_id", status: "status", setupCompletion: "setup_completion", materialReadiness: "material_readiness", staffAssigned: "staff_assigned", meetingsBooked: "meetings_booked", leadsCaptured: "leads_captured", createdAt: "created_at" };
 const checklistMap = { id: "id", boothId: "booth_id", ownerUserId: "owner_user_id", label: "label", dueDate: "due_date", status: "status" };
+const boothStaffingMap = { id: "id", boothId: "booth_id", userId: "user_id", role: "role", shiftStart: "shift_start", shiftEnd: "shift_end", onsiteResponsibility: "onsite_responsibility", backupOwnerUserId: "backup_owner_user_id", notes: "notes" };
+const boothInventoryMap = { id: "id", boothId: "booth_id", name: "name", category: "category", quantityPlanned: "quantity_planned", quantityPacked: "quantity_packed", quantityOnsite: "quantity_onsite", ownerUserId: "owner_user_id", status: "status", notes: "notes" };
+const boothMeetingMap = { id: "id", boothId: "booth_id", leadId: "lead_id", company: "company", contactName: "contact_name", meetingTime: "meeting_time", ownerUserId: "owner_user_id", objective: "objective", status: "status", notes: "notes", followUpRequired: "follow_up_required" };
+const boothIssueMap = { id: "id", boothId: "booth_id", title: "title", category: "category", severity: "severity", status: "status", ownerUserId: "owner_user_id", notes: "notes", createdAt: "created_at" };
 const attendeeMap = { id: "id", organizationId: "organization_id", eventId: "event_id", fullName: "full_name", email: "email", phone: "phone", company: "company", city: "city", ticketType: "ticket_type", registrationStatus: "registration_status", checkInStatus: "check_in_status", source: "source", tags: "tags", createdAt: "created_at" };
 const ticketMap = { id: "id", organizationId: "organization_id", eventId: "event_id", name: "name", price: "price", inventory: "inventory", soldCount: "sold_count", status: "status", createdAt: "created_at" };
 const checkinMap = { id: "id", organizationId: "organization_id", attendeeId: "attendee_id", eventId: "event_id", status: "status", checkedInAt: "checked_in_at", createdAt: "created_at" };
@@ -243,6 +247,10 @@ export async function fetchStore(organizationId) {
       leads: memoryStore.leads.filter((item) => item.organizationId === organizationId),
       booths: memoryStore.booths.filter((item) => item.organizationId === organizationId),
       boothChecklistItems: memoryStore.boothChecklistItems,
+      boothStaffing: memoryStore.boothStaffingItems,
+      boothInventoryItems: memoryStore.boothInventoryItems,
+      boothMeetings: memoryStore.boothMeetings,
+      boothIssues: memoryStore.boothIssues,
       attendees: memoryStore.attendees.filter((item) => item.organizationId === organizationId),
       tickets: memoryStore.tickets.filter((item) => item.organizationId === organizationId),
       checkins: memoryStore.checkins.filter((item) => item.organizationId === organizationId),
@@ -270,6 +278,10 @@ export async function fetchStore(organizationId) {
     leadsResult,
     boothsResult,
     checklistResult,
+    boothStaffingResult,
+    boothInventoryResult,
+    boothMeetingsResult,
+    boothIssuesResult,
       attendeesResult,
       ticketsResult,
       checkinsResult,
@@ -286,6 +298,10 @@ export async function fetchStore(organizationId) {
     client.from("leads").select("*").eq("organization_id", organizationId),
     client.from("booths").select("*").eq("organization_id", organizationId),
     client.from("booth_checklist_items").select("*"),
+    safeSelect("booth_staffing", (query) => query.select("*")),
+    safeSelect("booth_inventory_items", (query) => query.select("*")),
+    safeSelect("booth_meetings", (query) => query.select("*")),
+    safeSelect("booth_issues", (query) => query.select("*")),
     safeSelect("attendees", (query) => query.select("*").eq("organization_id", organizationId)),
     safeSelect("tickets", (query) => query.select("*").eq("organization_id", organizationId)),
     safeSelect("checkins", (query) => query.select("*").eq("organization_id", organizationId)),
@@ -293,7 +309,7 @@ export async function fetchStore(organizationId) {
     client.from("activities").select("*").eq("organization_id", organizationId)
   ]);
 
-  for (const result of [organizationsResult, usersResult, eventsResult, opportunitiesResult, tasksResult, vendorsResult, budgetsResult, leadsResult, boothsResult, checklistResult, attendeesResult, ticketsResult, checkinsResult, assetsResult, activitiesResult]) {
+  for (const result of [organizationsResult, usersResult, eventsResult, opportunitiesResult, tasksResult, vendorsResult, budgetsResult, leadsResult, boothsResult, checklistResult, boothStaffingResult, boothInventoryResult, boothMeetingsResult, boothIssuesResult, attendeesResult, ticketsResult, checkinsResult, assetsResult, activitiesResult]) {
     if (result.error) throw result.error;
   }
 
@@ -305,9 +321,13 @@ export async function fetchStore(organizationId) {
     tasks: mapCollection(tasksResult.data, taskMap),
     vendors: mapCollection(vendorsResult.data, vendorMap),
     budgets: mapCollection(budgetsResult.data, budgetMap),
-    leads: mapCollection(leadsResult.data, leadMap),
+      leads: mapCollection(leadsResult.data, leadMap),
       booths: mapCollection(boothsResult.data, boothMap),
       boothChecklistItems: mapCollection(checklistResult.data, checklistMap),
+      boothStaffing: mapCollection(boothStaffingResult.data, boothStaffingMap),
+      boothInventoryItems: mapCollection(boothInventoryResult.data, boothInventoryMap),
+      boothMeetings: mapCollection(boothMeetingsResult.data, boothMeetingMap),
+      boothIssues: mapCollection(boothIssuesResult.data, boothIssueMap),
       attendees: mapCollection(attendeesResult.data, attendeeMap).map((item) => ({ ...item, tags: Array.isArray(item.tags) ? item.tags : [] })),
       tickets: mapCollection(ticketsResult.data, ticketMap),
       checkins: mapCollection(checkinsResult.data, checkinMap),
@@ -906,6 +926,294 @@ export async function deleteBoothChecklistItemForOrg(auth, checklistId) {
 
   const client = supabase();
   const { error, count } = await client.from("booth_checklist_items").delete({ count: "exact" }).eq("id", checklistId);
+  if (error) throw error;
+  return Boolean(count);
+}
+
+export async function createBoothStaffingForOrg(auth, body) {
+  const item = {
+    id: uuid("booth_staff"),
+    boothId: body.boothId,
+    userId: body.userId || auth.userId,
+    role: body.role || "Booth Staff",
+    shiftStart: body.shiftStart || "",
+    shiftEnd: body.shiftEnd || "",
+    onsiteResponsibility: body.onsiteResponsibility || "",
+    backupOwnerUserId: body.backupOwnerUserId || auth.userId,
+    notes: body.notes || "",
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.boothStaffingItems.unshift(item);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_staffing").insert({
+    id: item.id,
+    booth_id: item.boothId,
+    user_id: item.userId,
+    role: item.role,
+    shift_start: item.shiftStart,
+    shift_end: item.shiftEnd,
+    onsite_responsibility: item.onsiteResponsibility,
+    backup_owner_user_id: item.backupOwnerUserId,
+    notes: item.notes,
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, boothStaffingMap);
+}
+
+export async function updateBoothStaffingForOrg(auth, itemId, body) {
+  if (!hasSupabase()) {
+    const item = memoryStore.boothStaffingItems.find((entry) => entry.id === itemId);
+    if (!item) return null;
+    mergeUpdate(item, body, ["userId", "role", "shiftStart", "shiftEnd", "onsiteResponsibility", "backupOwnerUserId", "notes"]);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_staffing").update({
+    ...(body.userId !== undefined ? { user_id: body.userId } : {}),
+    ...(body.role !== undefined ? { role: body.role } : {}),
+    ...(body.shiftStart !== undefined ? { shift_start: body.shiftStart } : {}),
+    ...(body.shiftEnd !== undefined ? { shift_end: body.shiftEnd } : {}),
+    ...(body.onsiteResponsibility !== undefined ? { onsite_responsibility: body.onsiteResponsibility } : {}),
+    ...(body.backupOwnerUserId !== undefined ? { backup_owner_user_id: body.backupOwnerUserId } : {}),
+    ...(body.notes !== undefined ? { notes: body.notes } : {}),
+  }).eq("id", itemId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, boothStaffingMap) : null;
+}
+
+export async function deleteBoothStaffingForOrg(auth, itemId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.boothStaffingItems.findIndex((entry) => entry.id === itemId);
+    if (index === -1) return false;
+    memoryStore.boothStaffingItems.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("booth_staffing").delete({ count: "exact" }).eq("id", itemId);
+  if (error) throw error;
+  return Boolean(count);
+}
+
+export async function createBoothInventoryItemForOrg(auth, body) {
+  const item = {
+    id: uuid("booth_inventory"),
+    boothId: body.boothId,
+    name: body.name || "Inventory item",
+    category: body.category || "General",
+    quantityPlanned: Number(body.quantityPlanned || 0),
+    quantityPacked: Number(body.quantityPacked || 0),
+    quantityOnsite: Number(body.quantityOnsite || 0),
+    ownerUserId: body.ownerUserId || auth.userId,
+    status: body.status || "Pending",
+    notes: body.notes || "",
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.boothInventoryItems.unshift(item);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_inventory_items").insert({
+    id: item.id,
+    booth_id: item.boothId,
+    name: item.name,
+    category: item.category,
+    quantity_planned: item.quantityPlanned,
+    quantity_packed: item.quantityPacked,
+    quantity_onsite: item.quantityOnsite,
+    owner_user_id: item.ownerUserId,
+    status: item.status,
+    notes: item.notes,
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, boothInventoryMap);
+}
+
+export async function updateBoothInventoryItemForOrg(auth, itemId, body) {
+  if (!hasSupabase()) {
+    const item = memoryStore.boothInventoryItems.find((entry) => entry.id === itemId);
+    if (!item) return null;
+    mergeUpdate(item, body, ["name", "category", "quantityPlanned", "quantityPacked", "quantityOnsite", "ownerUserId", "status", "notes"]);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_inventory_items").update({
+    ...(body.name !== undefined ? { name: body.name } : {}),
+    ...(body.category !== undefined ? { category: body.category } : {}),
+    ...(body.quantityPlanned !== undefined ? { quantity_planned: Number(body.quantityPlanned) } : {}),
+    ...(body.quantityPacked !== undefined ? { quantity_packed: Number(body.quantityPacked) } : {}),
+    ...(body.quantityOnsite !== undefined ? { quantity_onsite: Number(body.quantityOnsite) } : {}),
+    ...(body.ownerUserId !== undefined ? { owner_user_id: body.ownerUserId } : {}),
+    ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.notes !== undefined ? { notes: body.notes } : {}),
+  }).eq("id", itemId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, boothInventoryMap) : null;
+}
+
+export async function deleteBoothInventoryItemForOrg(auth, itemId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.boothInventoryItems.findIndex((entry) => entry.id === itemId);
+    if (index === -1) return false;
+    memoryStore.boothInventoryItems.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("booth_inventory_items").delete({ count: "exact" }).eq("id", itemId);
+  if (error) throw error;
+  return Boolean(count);
+}
+
+export async function createBoothMeetingForOrg(auth, body) {
+  const item = {
+    id: uuid("booth_meeting"),
+    boothId: body.boothId,
+    leadId: body.leadId || "",
+    company: body.company || "",
+    contactName: body.contactName || "",
+    meetingTime: body.meetingTime || new Date().toISOString(),
+    ownerUserId: body.ownerUserId || auth.userId,
+    objective: body.objective || "",
+    status: body.status || "Scheduled",
+    notes: body.notes || "",
+    followUpRequired: Boolean(body.followUpRequired),
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.boothMeetings.unshift(item);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_meetings").insert({
+    id: item.id,
+    booth_id: item.boothId,
+    lead_id: item.leadId || null,
+    company: item.company,
+    contact_name: item.contactName,
+    meeting_time: item.meetingTime,
+    owner_user_id: item.ownerUserId,
+    objective: item.objective,
+    status: item.status,
+    notes: item.notes,
+    follow_up_required: item.followUpRequired,
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, boothMeetingMap);
+}
+
+export async function updateBoothMeetingForOrg(auth, itemId, body) {
+  if (!hasSupabase()) {
+    const item = memoryStore.boothMeetings.find((entry) => entry.id === itemId);
+    if (!item) return null;
+    mergeUpdate(item, body, ["leadId", "company", "contactName", "meetingTime", "ownerUserId", "objective", "status", "notes", "followUpRequired"]);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_meetings").update({
+    ...(body.leadId !== undefined ? { lead_id: body.leadId || null } : {}),
+    ...(body.company !== undefined ? { company: body.company } : {}),
+    ...(body.contactName !== undefined ? { contact_name: body.contactName } : {}),
+    ...(body.meetingTime !== undefined ? { meeting_time: body.meetingTime } : {}),
+    ...(body.ownerUserId !== undefined ? { owner_user_id: body.ownerUserId } : {}),
+    ...(body.objective !== undefined ? { objective: body.objective } : {}),
+    ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.notes !== undefined ? { notes: body.notes } : {}),
+    ...(body.followUpRequired !== undefined ? { follow_up_required: Boolean(body.followUpRequired) } : {}),
+  }).eq("id", itemId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, boothMeetingMap) : null;
+}
+
+export async function deleteBoothMeetingForOrg(auth, itemId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.boothMeetings.findIndex((entry) => entry.id === itemId);
+    if (index === -1) return false;
+    memoryStore.boothMeetings.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("booth_meetings").delete({ count: "exact" }).eq("id", itemId);
+  if (error) throw error;
+  return Boolean(count);
+}
+
+export async function createBoothIssueForOrg(auth, body) {
+  const item = {
+    id: uuid("booth_issue"),
+    boothId: body.boothId,
+    title: body.title || "Issue",
+    category: body.category || "General",
+    severity: body.severity || "Medium",
+    status: body.status || "Open",
+    ownerUserId: body.ownerUserId || auth.userId,
+    notes: body.notes || "",
+    createdAt: new Date().toISOString(),
+  };
+
+  if (!hasSupabase()) {
+    memoryStore.boothIssues.unshift(item);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_issues").insert({
+    id: item.id,
+    booth_id: item.boothId,
+    title: item.title,
+    category: item.category,
+    severity: item.severity,
+    status: item.status,
+    owner_user_id: item.ownerUserId,
+    notes: item.notes,
+    created_at: item.createdAt,
+  }).select("*").single();
+  if (error) throw error;
+  return mapRow(data, boothIssueMap);
+}
+
+export async function updateBoothIssueForOrg(auth, itemId, body) {
+  if (!hasSupabase()) {
+    const item = memoryStore.boothIssues.find((entry) => entry.id === itemId);
+    if (!item) return null;
+    mergeUpdate(item, body, ["title", "category", "severity", "status", "ownerUserId", "notes"]);
+    return item;
+  }
+
+  const client = supabase();
+  const { data, error } = await client.from("booth_issues").update({
+    ...(body.title !== undefined ? { title: body.title } : {}),
+    ...(body.category !== undefined ? { category: body.category } : {}),
+    ...(body.severity !== undefined ? { severity: body.severity } : {}),
+    ...(body.status !== undefined ? { status: body.status } : {}),
+    ...(body.ownerUserId !== undefined ? { owner_user_id: body.ownerUserId } : {}),
+    ...(body.notes !== undefined ? { notes: body.notes } : {}),
+  }).eq("id", itemId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? mapRow(data, boothIssueMap) : null;
+}
+
+export async function deleteBoothIssueForOrg(auth, itemId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.boothIssues.findIndex((entry) => entry.id === itemId);
+    if (index === -1) return false;
+    memoryStore.boothIssues.splice(index, 1);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("booth_issues").delete({ count: "exact" }).eq("id", itemId);
   if (error) throw error;
   return Boolean(count);
 }

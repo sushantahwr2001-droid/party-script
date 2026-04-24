@@ -6,6 +6,10 @@ import {
   createAssetForOrg,
   createAttendeeForOrg,
   createBoothChecklistItemForOrg,
+  createBoothInventoryItemForOrg,
+  createBoothIssueForOrg,
+  createBoothMeetingForOrg,
+  createBoothStaffingForOrg,
   createBudgetForOrg,
   createCheckinForOrg,
   createEventForOrg,
@@ -20,6 +24,10 @@ import {
   deleteUserForOrg,
   deleteBudgetForOrg,
   deleteBoothChecklistItemForOrg,
+  deleteBoothInventoryItemForOrg,
+  deleteBoothIssueForOrg,
+  deleteBoothMeetingForOrg,
+  deleteBoothStaffingForOrg,
   deleteAttendeeForOrg,
   deleteEventForOrg,
   deleteLeadForOrg,
@@ -38,7 +46,11 @@ import {
   updateUserRoleForOrg,
   updateBudgetForOrg,
   updateBoothChecklistItemForOrg,
+  updateBoothInventoryItemForOrg,
+  updateBoothIssueForOrg,
+  updateBoothMeetingForOrg,
   updateBoothForOrg,
+  updateBoothStaffingForOrg,
   updateAttendeeForOrg,
   updateEventForOrg,
   updateLeadForOrg,
@@ -255,6 +267,26 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (req.method === "POST" && route === "booth-staffing") {
+      json(res, 201, { item: await createBoothStaffingForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "booth-inventory") {
+      json(res, 201, { item: await createBoothInventoryItemForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "booth-meetings") {
+      json(res, 201, { item: await createBoothMeetingForOrg(auth, body) });
+      return;
+    }
+
+    if (req.method === "POST" && route === "booth-issues") {
+      json(res, 201, { item: await createBoothIssueForOrg(auth, body) });
+      return;
+    }
+
     if (req.method === "POST" && route === "team/invite") {
       const existing = await findUserByEmail(String(body.email || ""));
       if (existing) {
@@ -445,6 +477,66 @@ export default async function handler(req, res) {
       if (req.method === "DELETE") {
         const ok = await deleteBoothChecklistItemForOrg(auth, checklistId);
         json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Checklist item not found." });
+        return;
+      }
+    }
+
+    const boothStaffingMatch = route.match(/^booth-staffing\/([^/]+)$/);
+    if (boothStaffingMatch) {
+      const staffingId = decodeURIComponent(boothStaffingMatch[1]);
+      if (req.method === "PUT") {
+        const item = await updateBoothStaffingForOrg(auth, staffingId, body);
+        json(res, item ? 200 : 404, item ? { item } : { message: "Staffing item not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteBoothStaffingForOrg(auth, staffingId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Staffing item not found." });
+        return;
+      }
+    }
+
+    const boothInventoryMatch = route.match(/^booth-inventory\/([^/]+)$/);
+    if (boothInventoryMatch) {
+      const inventoryId = decodeURIComponent(boothInventoryMatch[1]);
+      if (req.method === "PUT") {
+        const item = await updateBoothInventoryItemForOrg(auth, inventoryId, body);
+        json(res, item ? 200 : 404, item ? { item } : { message: "Inventory item not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteBoothInventoryItemForOrg(auth, inventoryId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Inventory item not found." });
+        return;
+      }
+    }
+
+    const boothMeetingMatch = route.match(/^booth-meetings\/([^/]+)$/);
+    if (boothMeetingMatch) {
+      const meetingId = decodeURIComponent(boothMeetingMatch[1]);
+      if (req.method === "PUT") {
+        const item = await updateBoothMeetingForOrg(auth, meetingId, body);
+        json(res, item ? 200 : 404, item ? { item } : { message: "Meeting not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteBoothMeetingForOrg(auth, meetingId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Meeting not found." });
+        return;
+      }
+    }
+
+    const boothIssueMatch = route.match(/^booth-issues\/([^/]+)$/);
+    if (boothIssueMatch) {
+      const issueId = decodeURIComponent(boothIssueMatch[1]);
+      if (req.method === "PUT") {
+        const item = await updateBoothIssueForOrg(auth, issueId, body);
+        json(res, item ? 200 : 404, item ? { item } : { message: "Issue not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteBoothIssueForOrg(auth, issueId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Issue not found." });
         return;
       }
     }

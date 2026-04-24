@@ -317,6 +317,66 @@ export const api = {
   deleteBoothChecklistItem(token: string, id: string) {
     return request<{ ok: true }>(`/booth-checklist/${id}`, { method: "DELETE" }, token);
   },
+  createBoothStaffingItem(token: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>("/booth-staffing", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateBoothStaffingItem(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>(`/booth-staffing/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteBoothStaffingItem(token: string, id: string) {
+    return request<{ ok: true }>(`/booth-staffing/${id}`, { method: "DELETE" }, token);
+  },
+  createBoothInventoryItem(token: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>("/booth-inventory", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateBoothInventoryItem(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>(`/booth-inventory/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteBoothInventoryItem(token: string, id: string) {
+    return request<{ ok: true }>(`/booth-inventory/${id}`, { method: "DELETE" }, token);
+  },
+  createBoothMeeting(token: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>("/booth-meetings", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateBoothMeeting(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>(`/booth-meetings/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteBoothMeeting(token: string, id: string) {
+    return request<{ ok: true }>(`/booth-meetings/${id}`, { method: "DELETE" }, token);
+  },
+  createBoothIssue(token: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>("/booth-issues", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  updateBoothIssue(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ item: unknown }>(`/booth-issues/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteBoothIssue(token: string, id: string) {
+    return request<{ ok: true }>(`/booth-issues/${id}`, { method: "DELETE" }, token);
+  },
   inviteTeamMember(
     token: string,
     payload: {

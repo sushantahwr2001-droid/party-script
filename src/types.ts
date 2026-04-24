@@ -176,6 +176,57 @@ export interface BoothChecklistItem {
   status: string;
 }
 
+export interface BoothStaffingRecord {
+  id: string;
+  boothId: string;
+  userId: string;
+  role: string;
+  shiftStart: string;
+  shiftEnd: string;
+  onsiteResponsibility: string;
+  backupOwnerUserId: string;
+  notes: string;
+}
+
+export interface BoothInventoryItem {
+  id: string;
+  boothId: string;
+  name: string;
+  category: string;
+  quantityPlanned: number;
+  quantityPacked: number;
+  quantityOnsite: number;
+  ownerUserId: string;
+  status: string;
+  notes: string;
+}
+
+export interface BoothMeetingRecord {
+  id: string;
+  boothId: string;
+  leadId: string;
+  company: string;
+  contactName: string;
+  meetingTime: string;
+  ownerUserId: string;
+  objective: string;
+  status: string;
+  notes: string;
+  followUpRequired: boolean;
+}
+
+export interface BoothIssueRecord {
+  id: string;
+  boothId: string;
+  title: string;
+  category: string;
+  severity: string;
+  status: string;
+  ownerUserId: string;
+  notes: string;
+  createdAt: string;
+}
+
 export interface AttendeeRecord {
   id: string;
   organizationId: string;
@@ -274,6 +325,10 @@ export interface BootstrapPayload {
   leads: LeadRecord[];
   booths: BoothRecord[];
   boothChecklistItems: BoothChecklistItem[];
+  boothStaffing: BoothStaffingRecord[];
+  boothInventoryItems: BoothInventoryItem[];
+  boothMeetings: BoothMeetingRecord[];
+  boothIssues: BoothIssueRecord[];
   attendees: AttendeeRecord[];
   tickets: TicketRecord[];
   checkins: CheckinRecord[];

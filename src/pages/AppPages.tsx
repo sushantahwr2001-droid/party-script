@@ -60,7 +60,11 @@ import type {
   AssetRecord,
   AttendeeRecord,
   BoothChecklistItem,
+  BoothInventoryItem,
+  BoothIssueRecord,
+  BoothMeetingRecord,
   BoothRecord,
+  BoothStaffingRecord,
   BudgetItem,
   CheckinRecord,
   ConsoleOutletContext,
@@ -117,6 +121,32 @@ function csvEscape(value: string | number | null | undefined) {
     return `"${raw.replace(/"/g, "\"\"")}"`;
   }
   return raw;
+}
+
+function toDateInput(value: string) {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
+
+function toDateTimeLocalInput(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function fromDateTimeLocalInput(value: string) {
+  return value ? new Date(value).toISOString() : "";
+}
+
+function formatDateTime(value: string) {
+  if (!value) return "No time set";
+  return new Date(value).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function downloadTextFile(filename: string, content: string, mimeType = "text/plain;charset=utf-8") {
@@ -1665,8 +1695,53 @@ export function BoothPage() {
   const booth = context.data.booths[0];
   const [boothForm, setBoothForm] = useState(() => (booth ? { ...booth } : null));
   const [checklistForm, setChecklistForm] = useState({ label: "", dueDate: "", status: "Pending" });
+  const [staffingForm, setStaffingForm] = useState({
+    userId: context.data.users[0]?.id ?? "",
+    role: "Booth Staff",
+    shiftStart: "",
+    shiftEnd: "",
+    onsiteResponsibility: "",
+    backupOwnerUserId: context.data.users[1]?.id ?? context.data.users[0]?.id ?? "",
+    notes: "",
+  });
+  const [inventoryForm, setInventoryForm] = useState({
+    name: "",
+    category: "General",
+    quantityPlanned: "0",
+    quantityPacked: "0",
+    quantityOnsite: "0",
+    ownerUserId: context.data.users[0]?.id ?? "",
+    status: "Pending",
+    notes: "",
+  });
+  const [meetingForm, setMeetingForm] = useState({
+    leadId: context.data.leads[0]?.id ?? "",
+    company: context.data.leads[0]?.company ?? "",
+    contactName: context.data.leads[0]?.fullName ?? "",
+    meetingTime: "",
+    ownerUserId: context.data.users[0]?.id ?? "",
+    objective: "",
+    status: "Scheduled",
+    notes: "",
+    followUpRequired: true,
+  });
+  const [issueForm, setIssueForm] = useState({
+    title: "",
+    category: "General",
+    severity: "Medium",
+    status: "Open",
+    ownerUserId: context.data.users[0]?.id ?? "",
+    notes: "",
+  });
   const checklist = context.data.boothChecklistItems.filter((item) => item.boothId === booth?.id);
+  const staffing = context.data.boothStaffing.filter((item) => item.boothId === booth?.id);
+  const inventory = context.data.boothInventoryItems.filter((item) => item.boothId === booth?.id);
+  const meetings = context.data.boothMeetings.filter((item) => item.boothId === booth?.id);
+  const issues = context.data.boothIssues.filter((item) => item.boothId === booth?.id);
   const linkedLeads = context.data.leads.filter((lead) => lead.eventId === booth?.eventId);
+  const derivedStaffAssigned = staffing.length || booth?.staffAssigned || 0;
+  const derivedMeetingsBooked = meetings.length || booth?.meetingsBooked || 0;
+  const derivedLeadsCaptured = linkedLeads.length || booth?.leadsCaptured || 0;
 
   useEffect(() => {
     setBoothForm(booth ? { ...booth } : null);
@@ -1703,6 +1778,131 @@ export function BoothPage() {
     await context.refresh();
   }
 
+  async function createStaffingItem() {
+    if (!token || !booth) return;
+    await api.createBoothStaffingItem(token, {
+      boothId: booth.id,
+      ...staffingForm,
+      shiftStart: fromDateTimeLocalInput(staffingForm.shiftStart),
+      shiftEnd: fromDateTimeLocalInput(staffingForm.shiftEnd),
+    });
+    await context.refresh();
+    setStaffingForm({
+      userId: context.data.users[0]?.id ?? "",
+      role: "Booth Staff",
+      shiftStart: "",
+      shiftEnd: "",
+      onsiteResponsibility: "",
+      backupOwnerUserId: context.data.users[1]?.id ?? context.data.users[0]?.id ?? "",
+      notes: "",
+    });
+  }
+
+  async function saveStaffingItem(item: BoothStaffingRecord) {
+    if (!token) return;
+    await api.updateBoothStaffingItem(token, item.id, { ...item });
+    await context.refresh();
+  }
+
+  async function removeStaffingItem(itemId: string) {
+    if (!token) return;
+    await api.deleteBoothStaffingItem(token, itemId);
+    await context.refresh();
+  }
+
+  async function createInventoryItem() {
+    if (!token || !booth) return;
+    await api.createBoothInventoryItem(token, {
+      boothId: booth.id,
+      ...inventoryForm,
+      quantityPlanned: Number(inventoryForm.quantityPlanned),
+      quantityPacked: Number(inventoryForm.quantityPacked),
+      quantityOnsite: Number(inventoryForm.quantityOnsite),
+    });
+    await context.refresh();
+    setInventoryForm({
+      name: "",
+      category: "General",
+      quantityPlanned: "0",
+      quantityPacked: "0",
+      quantityOnsite: "0",
+      ownerUserId: context.data.users[0]?.id ?? "",
+      status: "Pending",
+      notes: "",
+    });
+  }
+
+  async function saveInventoryItem(item: BoothInventoryItem) {
+    if (!token) return;
+    await api.updateBoothInventoryItem(token, item.id, { ...item });
+    await context.refresh();
+  }
+
+  async function removeInventoryItem(itemId: string) {
+    if (!token) return;
+    await api.deleteBoothInventoryItem(token, itemId);
+    await context.refresh();
+  }
+
+  async function createMeeting() {
+    if (!token || !booth) return;
+    await api.createBoothMeeting(token, {
+      boothId: booth.id,
+      ...meetingForm,
+      meetingTime: fromDateTimeLocalInput(meetingForm.meetingTime),
+    });
+    await context.refresh();
+    setMeetingForm({
+      leadId: context.data.leads[0]?.id ?? "",
+      company: context.data.leads[0]?.company ?? "",
+      contactName: context.data.leads[0]?.fullName ?? "",
+      meetingTime: "",
+      ownerUserId: context.data.users[0]?.id ?? "",
+      objective: "",
+      status: "Scheduled",
+      notes: "",
+      followUpRequired: true,
+    });
+  }
+
+  async function saveMeeting(item: BoothMeetingRecord) {
+    if (!token) return;
+    await api.updateBoothMeeting(token, item.id, { ...item });
+    await context.refresh();
+  }
+
+  async function removeMeeting(itemId: string) {
+    if (!token) return;
+    await api.deleteBoothMeeting(token, itemId);
+    await context.refresh();
+  }
+
+  async function createIssue() {
+    if (!token || !booth) return;
+    await api.createBoothIssue(token, { boothId: booth.id, ...issueForm });
+    await context.refresh();
+    setIssueForm({
+      title: "",
+      category: "General",
+      severity: "Medium",
+      status: "Open",
+      ownerUserId: context.data.users[0]?.id ?? "",
+      notes: "",
+    });
+  }
+
+  async function saveIssue(item: BoothIssueRecord) {
+    if (!token) return;
+    await api.updateBoothIssue(token, item.id, { ...item });
+    await context.refresh();
+  }
+
+  async function removeIssue(itemId: string) {
+    if (!token) return;
+    await api.deleteBoothIssue(token, itemId);
+    await context.refresh();
+  }
+
   return (
     <div className="space-y-6">
         <PageIntro
@@ -1715,7 +1915,7 @@ export function BoothPage() {
         <MetricTile label="Booth Status" value={booth?.status ?? "Planned"} detail="Current execution phase" tone="accent" />
         <MetricTile label="Setup Completion" value={`${booth?.setupCompletion ?? 0}%`} detail="Operational readiness" tone="warning" />
         <MetricTile label="Material Readiness" value={`${booth?.materialReadiness ?? 0}%`} detail="Fabrication, print, and logistics" tone="info" />
-        <MetricTile label="Meetings / Leads" value={`${booth?.meetingsBooked ?? 0} / ${booth?.leadsCaptured ?? 0}`} detail="Booked meetings and captured leads" tone="success" />
+        <MetricTile label="Meetings / Leads" value={`${derivedMeetingsBooked} / ${derivedLeadsCaptured}`} detail="Booked meetings and captured leads" tone="success" />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-12">
@@ -1729,9 +1929,9 @@ export function BoothPage() {
                       <div className="space-y-2"><Label>Status</Label><Input value={boothForm?.status ?? ""} onChange={(event) => setBoothForm((current) => current ? { ...current, status: event.target.value } : current)} /></div>
                       <div className="space-y-2"><Label>Setup %</Label><Input type="number" value={boothForm?.setupCompletion ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, setupCompletion: Number(event.target.value) } : current)} /></div>
                       <div className="space-y-2"><Label>Material %</Label><Input type="number" value={boothForm?.materialReadiness ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, materialReadiness: Number(event.target.value) } : current)} /></div>
-                      <div className="space-y-2"><Label>Staff Assigned</Label><Input type="number" value={boothForm?.staffAssigned ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, staffAssigned: Number(event.target.value) } : current)} /></div>
-                      <div className="space-y-2"><Label>Meetings Booked</Label><Input type="number" value={boothForm?.meetingsBooked ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, meetingsBooked: Number(event.target.value) } : current)} /></div>
-                      <div className="space-y-2"><Label>Leads Captured</Label><Input type="number" value={boothForm?.leadsCaptured ?? 0} onChange={(event) => setBoothForm((current) => current ? { ...current, leadsCaptured: Number(event.target.value) } : current)} /></div>
+                      <div className="space-y-2"><Label>Staff Assigned</Label><Input type="number" value={derivedStaffAssigned} readOnly /></div>
+                      <div className="space-y-2"><Label>Meetings Booked</Label><Input type="number" value={derivedMeetingsBooked} readOnly /></div>
+                      <div className="space-y-2"><Label>Leads Captured</Label><Input type="number" value={derivedLeadsCaptured} readOnly /></div>
                     </div>
                   </Card>
                   <InsightCard title="Logistics" detail="Shipping, transport, and on-site readiness" icon={Boxes}>
@@ -1739,15 +1939,15 @@ export function BoothPage() {
                     items={[
                       { title: "Organizer formalities", meta: "Badges, booth forms, and venue deadlines", trailing: <Badge label="Ready" tone="success" /> },
                       { title: "Power and internet", meta: "Requirements captured for on-site setup", trailing: <Badge label="Pending" tone="warning" /> },
-                      { title: "Travel and stay", meta: `${booth?.staffAssigned ?? 0} staff planned for onsite coverage`, trailing: <Badge label="Roster" tone="info" /> },
+                      { title: "Travel and stay", meta: `${derivedStaffAssigned} staff planned for onsite coverage`, trailing: <Badge label="Roster" tone="info" /> },
                     ]}
                   />
                 </InsightCard>
                 <InsightCard title="Lead Capture" detail="How the booth translates traffic into pipeline" icon={ContactRound}>
                   <MiniList
                     items={[
-                      { title: "Meetings booked", meta: `${booth?.meetingsBooked ?? 0} confirmed onsite or near-event conversations`, trailing: <Badge label="Booked" tone="accent" /> },
-                      { title: "Leads captured", meta: `${booth?.leadsCaptured ?? 0} total captured so far`, trailing: <Badge label="Tracked" tone="success" /> },
+                      { title: "Meetings booked", meta: `${derivedMeetingsBooked} confirmed onsite or near-event conversations`, trailing: <Badge label="Booked" tone="accent" /> },
+                      { title: "Leads captured", meta: `${derivedLeadsCaptured} total captured so far`, trailing: <Badge label="Tracked" tone="success" /> },
                       { title: "Follow-up ready", meta: `${linkedLeads.filter((lead) => ["Qualified", "Hot"].includes(lead.qualificationStatus)).length} priority leads in CRM`, trailing: <Badge label="CRM" tone="info" /> },
                     ]}
                   />
@@ -1780,6 +1980,38 @@ export function BoothPage() {
               ) : null}
 
             {section === "Staffing" ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-2"><Label>Team member</Label><select value={staffingForm.userId} onChange={(event) => setStaffingForm({ ...staffingForm, userId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.users.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></div>
+                  <div className="space-y-2"><Label>Role</Label><Input value={staffingForm.role} onChange={(event) => setStaffingForm({ ...staffingForm, role: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Shift start</Label><Input type="datetime-local" value={staffingForm.shiftStart} onChange={(event) => setStaffingForm({ ...staffingForm, shiftStart: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Shift end</Label><Input type="datetime-local" value={staffingForm.shiftEnd} onChange={(event) => setStaffingForm({ ...staffingForm, shiftEnd: event.target.value })} /></div>
+                  <div className="space-y-2 xl:col-span-2"><Label>Onsite responsibility</Label><Input value={staffingForm.onsiteResponsibility} onChange={(event) => setStaffingForm({ ...staffingForm, onsiteResponsibility: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Backup owner</Label><select value={staffingForm.backupOwnerUserId} onChange={(event) => setStaffingForm({ ...staffingForm, backupOwnerUserId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.users.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></div>
+                  <div className="space-y-2"><Label>Notes</Label><Input value={staffingForm.notes} onChange={(event) => setStaffingForm({ ...staffingForm, notes: event.target.value })} /></div>
+                </div>
+                <Button onClick={() => void createStaffingItem()}>Add staffing row</Button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {staffing.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4 space-y-3">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-2"><Label>Team member</Label><select value={item.userId} onChange={(event) => void saveStaffingItem({ ...item, userId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.users.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></div>
+                        <div className="space-y-2"><Label>Role</Label><Input value={item.role} onChange={(event) => void saveStaffingItem({ ...item, role: event.target.value })} /></div>
+                        <div className="space-y-2"><Label>Shift start</Label><Input type="datetime-local" value={toDateTimeLocalInput(item.shiftStart)} onChange={(event) => void saveStaffingItem({ ...item, shiftStart: fromDateTimeLocalInput(event.target.value) })} /></div>
+                        <div className="space-y-2"><Label>Shift end</Label><Input type="datetime-local" value={toDateTimeLocalInput(item.shiftEnd)} onChange={(event) => void saveStaffingItem({ ...item, shiftEnd: fromDateTimeLocalInput(event.target.value) })} /></div>
+                      </div>
+                      <div className="space-y-2"><Label>Responsibility</Label><Input value={item.onsiteResponsibility} onChange={(event) => void saveStaffingItem({ ...item, onsiteResponsibility: event.target.value })} /></div>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs text-textSecondary">Backup owner: {userName(item.backupOwnerUserId, context)}</p>
+                        <Button variant="secondary" className="h-9 px-3" onClick={() => void removeStaffingItem(item.id)}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {section === "StaffingLegacy" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {Array.from({ length: Math.max(booth?.staffAssigned ?? 0, 3) }).map((_, index) => (
                   <div key={index} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
@@ -1792,6 +2024,41 @@ export function BoothPage() {
             ) : null}
 
             {section === "Inventory" ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-2"><Label>Item</Label><Input value={inventoryForm.name} onChange={(event) => setInventoryForm({ ...inventoryForm, name: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Category</Label><Input value={inventoryForm.category} onChange={(event) => setInventoryForm({ ...inventoryForm, category: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Planned</Label><Input type="number" value={inventoryForm.quantityPlanned} onChange={(event) => setInventoryForm({ ...inventoryForm, quantityPlanned: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Packed</Label><Input type="number" value={inventoryForm.quantityPacked} onChange={(event) => setInventoryForm({ ...inventoryForm, quantityPacked: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>On-site</Label><Input type="number" value={inventoryForm.quantityOnsite} onChange={(event) => setInventoryForm({ ...inventoryForm, quantityOnsite: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Status</Label><Input value={inventoryForm.status} onChange={(event) => setInventoryForm({ ...inventoryForm, status: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Owner</Label><select value={inventoryForm.ownerUserId} onChange={(event) => setInventoryForm({ ...inventoryForm, ownerUserId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.users.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></div>
+                  <div className="space-y-2"><Label>Notes</Label><Input value={inventoryForm.notes} onChange={(event) => setInventoryForm({ ...inventoryForm, notes: event.target.value })} /></div>
+                </div>
+                <Button onClick={() => void createInventoryItem()}>Add inventory item</Button>
+                <div className="space-y-3">
+                  {inventory.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-2"><Label>Name</Label><Input value={item.name} onChange={(event) => void saveInventoryItem({ ...item, name: event.target.value })} /></div>
+                        <div className="space-y-2"><Label>Category</Label><Input value={item.category} onChange={(event) => void saveInventoryItem({ ...item, category: event.target.value })} /></div>
+                        <div className="space-y-2"><Label>Planned</Label><Input type="number" value={item.quantityPlanned} onChange={(event) => void saveInventoryItem({ ...item, quantityPlanned: Number(event.target.value) })} /></div>
+                        <div className="space-y-2"><Label>Packed</Label><Input type="number" value={item.quantityPacked} onChange={(event) => void saveInventoryItem({ ...item, quantityPacked: Number(event.target.value) })} /></div>
+                        <div className="space-y-2"><Label>On-site</Label><Input type="number" value={item.quantityOnsite} onChange={(event) => void saveInventoryItem({ ...item, quantityOnsite: Number(event.target.value) })} /></div>
+                        <div className="space-y-2"><Label>Status</Label><Input value={item.status} onChange={(event) => void saveInventoryItem({ ...item, status: event.target.value })} /></div>
+                        <div className="space-y-2 xl:col-span-2"><Label>Notes</Label><Input value={item.notes} onChange={(event) => void saveInventoryItem({ ...item, notes: event.target.value })} /></div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <p className="text-xs text-textSecondary">Owner: {userName(item.ownerUserId, context)}</p>
+                        <Button variant="secondary" className="h-9 px-3" onClick={() => void removeInventoryItem(item.id)}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {section === "InventoryLegacy" ? (
               <div className="space-y-3">
                 {["Backdrop panels", "Lead capture tablets", "Printed collateral", "Demo kits", "Giveaway boxes"].map((item, index) => (
                   <div key={item} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
@@ -1806,6 +2073,38 @@ export function BoothPage() {
             ) : null}
 
             {section === "Meetings" ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-2"><Label>Lead</Label><select value={meetingForm.leadId} onChange={(event) => { const lead = context.data.leads.find((item) => item.id === event.target.value); setMeetingForm({ ...meetingForm, leadId: event.target.value, company: lead?.company ?? "", contactName: lead?.fullName ?? "" }); }} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none"><option value="">Manual contact</option>{linkedLeads.map((lead) => <option key={lead.id} value={lead.id}>{lead.fullName}</option>)}</select></div>
+                  <div className="space-y-2"><Label>Company</Label><Input value={meetingForm.company} onChange={(event) => setMeetingForm({ ...meetingForm, company: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Contact</Label><Input value={meetingForm.contactName} onChange={(event) => setMeetingForm({ ...meetingForm, contactName: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Meeting time</Label><Input type="datetime-local" value={meetingForm.meetingTime} onChange={(event) => setMeetingForm({ ...meetingForm, meetingTime: event.target.value })} /></div>
+                  <div className="space-y-2 xl:col-span-2"><Label>Objective</Label><Input value={meetingForm.objective} onChange={(event) => setMeetingForm({ ...meetingForm, objective: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Status</Label><Input value={meetingForm.status} onChange={(event) => setMeetingForm({ ...meetingForm, status: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Notes</Label><Input value={meetingForm.notes} onChange={(event) => setMeetingForm({ ...meetingForm, notes: event.target.value })} /></div>
+                </div>
+                <Button onClick={() => void createMeeting()}>Add booth meeting</Button>
+                <div className="space-y-3">
+                  {meetings.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-2"><Label>Contact</Label><Input value={item.contactName} onChange={(event) => void saveMeeting({ ...item, contactName: event.target.value })} /></div>
+                        <div className="space-y-2"><Label>Company</Label><Input value={item.company} onChange={(event) => void saveMeeting({ ...item, company: event.target.value })} /></div>
+                        <div className="space-y-2"><Label>Time</Label><Input type="datetime-local" value={toDateTimeLocalInput(item.meetingTime)} onChange={(event) => void saveMeeting({ ...item, meetingTime: fromDateTimeLocalInput(event.target.value) })} /></div>
+                        <div className="space-y-2"><Label>Status</Label><Input value={item.status} onChange={(event) => void saveMeeting({ ...item, status: event.target.value })} /></div>
+                        <div className="space-y-2 xl:col-span-3"><Label>Objective</Label><Input value={item.objective} onChange={(event) => void saveMeeting({ ...item, objective: event.target.value })} /></div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <p className="text-xs text-textSecondary">{item.followUpRequired ? "Follow-up required" : "No follow-up required"} • owner {userName(item.ownerUserId, context)}</p>
+                        <Button variant="secondary" className="h-9 px-3" onClick={() => void removeMeeting(item.id)}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {section === "MeetingsLegacy" ? (
               <div className="space-y-3">
                 {linkedLeads.slice(0, 6).map((lead) => (
                   <div key={lead.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
@@ -1822,6 +2121,38 @@ export function BoothPage() {
             ) : null}
 
             {section === "Issues" ? (
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-2"><Label>Issue title</Label><Input value={issueForm.title} onChange={(event) => setIssueForm({ ...issueForm, title: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Category</Label><Input value={issueForm.category} onChange={(event) => setIssueForm({ ...issueForm, category: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Severity</Label><Input value={issueForm.severity} onChange={(event) => setIssueForm({ ...issueForm, severity: event.target.value })} /></div>
+                  <div className="space-y-2"><Label>Status</Label><Input value={issueForm.status} onChange={(event) => setIssueForm({ ...issueForm, status: event.target.value })} /></div>
+                </div>
+                <div className="space-y-2"><Label>Notes</Label><Textarea value={issueForm.notes} onChange={(event) => setIssueForm({ ...issueForm, notes: event.target.value })} /></div>
+                <Button onClick={() => void createIssue()}>Log issue</Button>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {issues.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
+                      <div className="grid gap-3">
+                        <div className="space-y-2"><Label>Title</Label><Input value={item.title} onChange={(event) => void saveIssue({ ...item, title: event.target.value })} /></div>
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="space-y-2"><Label>Category</Label><Input value={item.category} onChange={(event) => void saveIssue({ ...item, category: event.target.value })} /></div>
+                          <div className="space-y-2"><Label>Severity</Label><Input value={item.severity} onChange={(event) => void saveIssue({ ...item, severity: event.target.value })} /></div>
+                          <div className="space-y-2"><Label>Status</Label><Input value={item.status} onChange={(event) => void saveIssue({ ...item, status: event.target.value })} /></div>
+                        </div>
+                        <div className="space-y-2"><Label>Notes</Label><Textarea value={item.notes} onChange={(event) => void saveIssue({ ...item, notes: event.target.value })} /></div>
+                        <div className="flex items-center justify-between gap-3">
+                          <Badge label={`${item.severity} severity`} tone={item.severity.toLowerCase() === "high" ? "warning" : "info"} />
+                          <Button variant="secondary" className="h-9 px-3" onClick={() => void removeIssue(item.id)}>Remove</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {section === "IssuesLegacy" ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {["Missing materials", "Vendor delay", "Internet / power issue", "Demo setup gap"].map((issue, index) => (
                   <div key={issue} className="rounded-2xl border border-white/5 bg-white/[0.03] p-4">
@@ -1847,6 +2178,8 @@ export function BoothPage() {
               items={[
                 { title: "Linked event", meta: eventName(booth?.eventId ?? "", context), trailing: <Badge label="Connected" tone="accent" /> },
                 { title: "Checklist coverage", meta: `${checklist.length} structured items tracked`, trailing: <Badge label="Checklist" tone="info" /> },
+                { title: "Staffing roster", meta: `${staffing.length} persisted booth shifts`, trailing: <Badge label="Staffing" tone="warning" /> },
+                { title: "Inventory tracked", meta: `${inventory.length} material records`, trailing: <Badge label="Inventory" tone="info" /> },
                 { title: "Leads in CRM", meta: `${linkedLeads.length} associated event leads`, trailing: <Badge label="CRM" tone="success" /> },
               ]}
             />
@@ -1939,6 +2272,156 @@ function GenericModulePage({
 }
 
 export function CalendarPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const [selectedEventId, setSelectedEventId] = useState("all");
+  const [drawer, setDrawer] = useState<null | { kind: "task" | "meeting" | "lead"; mode: "create" | "edit"; itemId?: string }>(null);
+  const [taskForm, setTaskForm] = useState({
+    title: "",
+    eventId: context.data.events[0]?.id ?? "",
+    dueDate: toDateInput(new Date().toISOString()),
+    priority: "Medium",
+    status: "Planned",
+    notes: "",
+  });
+  const [meetingForm, setMeetingForm] = useState({
+    boothId: context.data.booths[0]?.id ?? "",
+    company: "",
+    contactName: "",
+    meetingTime: toDateTimeLocalInput(new Date().toISOString()),
+    ownerUserId: context.data.users[0]?.id ?? "",
+    objective: "",
+    status: "Scheduled",
+    notes: "",
+    followUpRequired: true,
+  });
+
+  const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + index);
+    return { key: toDateInput(date.toISOString()), label: date.toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short" }) };
+  }), []);
+
+  const filteredTasks = context.data.tasks.filter((item) => selectedEventId === "all" || item.eventId === selectedEventId);
+  const filteredLeads = context.data.leads.filter((item) => (selectedEventId === "all" || item.eventId === selectedEventId) && item.nextFollowUpDate);
+  const filteredEvents = context.data.events.filter((item) => selectedEventId === "all" || item.id === selectedEventId);
+  const boothIds = context.data.booths.filter((item) => selectedEventId === "all" || item.eventId === selectedEventId).map((item) => item.id);
+  const filteredMeetings = context.data.boothMeetings.filter((item) => boothIds.includes(item.boothId));
+
+  const itemsByDay = useMemo(() => {
+    const buckets = new Map<string, Array<{ id: string; kind: "task" | "meeting" | "lead" | "event"; title: string; meta: string }>>();
+    weekDays.forEach((day) => buckets.set(day.key, []));
+    filteredEvents.forEach((item) => buckets.get(toDateInput(item.startDate))?.push({ id: item.id, kind: "event", title: item.name, meta: `${item.city} • ${item.type}` }));
+    filteredTasks.forEach((item) => buckets.get(toDateInput(item.dueDate))?.push({ id: item.id, kind: "task", title: item.title, meta: eventName(item.eventId, context) }));
+    filteredLeads.forEach((item) => buckets.get(toDateInput(item.nextFollowUpDate))?.push({ id: item.id, kind: "lead", title: item.fullName, meta: item.nextAction }));
+    filteredMeetings.forEach((item) => buckets.get(toDateInput(item.meetingTime))?.push({ id: item.id, kind: "meeting", title: item.contactName || item.company, meta: formatDateTime(item.meetingTime) }));
+    return buckets;
+  }, [context, filteredEvents, filteredLeads, filteredMeetings, filteredTasks, weekDays]);
+
+  function openCreate(kind: "task" | "meeting", date: string) {
+    if (kind === "task") {
+      setTaskForm((current) => ({ ...current, dueDate: date, eventId: selectedEventId === "all" ? (context.data.events[0]?.id ?? "") : selectedEventId }));
+      setDrawer({ kind, mode: "create" });
+      return;
+    }
+    setMeetingForm((current) => ({ ...current, boothId: boothIds[0] ?? context.data.booths[0]?.id ?? "", meetingTime: `${date}T10:00` }));
+    setDrawer({ kind, mode: "create" });
+  }
+
+  function openEdit(id: string, kind: "task" | "meeting" | "lead" | "event") {
+    if (kind === "task") {
+      const task = context.data.tasks.find((item) => item.id === id);
+      if (!task) return;
+      setTaskForm({ title: task.title, eventId: task.eventId, dueDate: task.dueDate, priority: task.priority, status: task.status, notes: task.notes });
+      setDrawer({ kind: "task", mode: "edit", itemId: id });
+      return;
+    }
+    if (kind === "meeting") {
+      const meeting = context.data.boothMeetings.find((item) => item.id === id);
+      if (!meeting) return;
+      setMeetingForm({
+        boothId: meeting.boothId,
+        company: meeting.company,
+        contactName: meeting.contactName,
+        meetingTime: toDateTimeLocalInput(meeting.meetingTime),
+        ownerUserId: meeting.ownerUserId,
+        objective: meeting.objective,
+        status: meeting.status,
+        notes: meeting.notes,
+        followUpRequired: meeting.followUpRequired,
+      });
+      setDrawer({ kind: "meeting", mode: "edit", itemId: id });
+      return;
+    }
+    if (kind === "lead") {
+      setDrawer({ kind: "lead", mode: "edit", itemId: id });
+    }
+  }
+
+  async function handleDrop(day: string, id: string, kind: string) {
+    if (!token) return;
+    if (kind === "task") await api.updateTask(token, id, { dueDate: day });
+    if (kind === "lead") await api.updateLead(token, id, { nextFollowUpDate: day });
+    if (kind === "meeting") {
+      const meeting = context.data.boothMeetings.find((item) => item.id === id);
+      const time = meeting?.meetingTime.includes("T") ? meeting.meetingTime.split("T")[1].slice(0, 5) : "10:00";
+      await api.updateBoothMeeting(token, id, { meetingTime: fromDateTimeLocalInput(`${day}T${time}`) });
+    }
+    await context.refresh();
+  }
+
+  async function saveDrawer() {
+    if (!token || !drawer) return;
+    if (drawer.kind === "task") {
+      if (drawer.mode === "create") await api.createTask(token, taskForm);
+      if (drawer.mode === "edit" && drawer.itemId) await api.updateTask(token, drawer.itemId, taskForm);
+    }
+    if (drawer.kind === "meeting") {
+      const payload = { ...meetingForm, meetingTime: fromDateTimeLocalInput(meetingForm.meetingTime) };
+      if (drawer.mode === "create") await api.createBoothMeeting(token, payload);
+      if (drawer.mode === "edit" && drawer.itemId) await api.updateBoothMeeting(token, drawer.itemId, payload);
+    }
+    await context.refresh();
+    setDrawer(null);
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageIntro title="Calendar" description="The operational time map for events, tasks, booth meetings, and lead follow-up dates." actions={<><select value={selectedEventId} onChange={(event) => setSelectedEventId(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none"><option value="all">All events</option>{context.data.events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}</select><Button variant="secondary" onClick={() => openCreate("meeting", weekDays[0]?.key ?? toDateInput(new Date().toISOString()))}>New Booth Meeting</Button><Button onClick={() => openCreate("task", weekDays[0]?.key ?? toDateInput(new Date().toISOString()))}><Plus className="h-4 w-4" />New Task</Button></>} />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricTile label="Tasks This Week" value={`${filteredTasks.length}`} detail="Reschedulable delivery work" tone="accent" />
+        <MetricTile label="Follow-ups" value={`${filteredLeads.length}`} detail="Lead actions needing movement" tone="info" />
+        <MetricTile label="Booth Meetings" value={`${filteredMeetings.length}`} detail="Linked to booth execution" tone="success" />
+        <MetricTile label="Events in View" value={`${filteredEvents.length}`} detail="Calendar context anchors" tone="warning" />
+      </div>
+      <Card className="p-5">
+        <SectionTitle title="Week Board" detail="Drag tasks, lead follow-ups, and booth meetings across days to reschedule them" />
+        <div className="mt-5 grid gap-4 xl:grid-cols-7">
+          {weekDays.map((day) => (
+            <div key={day.key} className="min-h-[280px] rounded-2xl border border-white/5 bg-white/[0.03] p-3" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const payload = event.dataTransfer.getData("text/plain"); if (!payload) return; const parsed = JSON.parse(payload) as { id: string; kind: string }; void handleDrop(day.key, parsed.id, parsed.kind); }}>
+              <div className="flex items-center justify-between gap-2">
+                <div><p className="text-sm font-semibold text-text">{day.label}</p><p className="mt-1 text-xs text-textMuted">{day.key}</p></div>
+                <Button variant="ghost" className="h-8 px-2" onClick={() => openCreate("task", day.key)}><Plus className="h-4 w-4" /></Button>
+              </div>
+              <div className="mt-4 space-y-3">
+                {(itemsByDay.get(day.key) ?? []).map((item) => (
+                  <button key={`${item.kind}-${item.id}`} type="button" draggable={item.kind !== "event"} onDragStart={(event) => event.dataTransfer.setData("text/plain", JSON.stringify({ id: item.id, kind: item.kind }))} onClick={() => openEdit(item.id, item.kind)} className="w-full rounded-xl border border-white/5 bg-app/40 p-3 text-left transition hover:border-white/15 hover:bg-hover">
+                    <div className="flex items-center justify-between gap-2"><p className="text-sm font-semibold text-text">{item.title}</p><Badge label={item.kind} tone={item.kind === "meeting" ? "accent" : item.kind === "lead" ? "info" : item.kind === "task" ? "warning" : "success"} /></div>
+                    <p className="mt-2 text-xs text-textSecondary">{item.meta}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      {drawer ? <Card className="p-5"><SectionTitle title={drawer.kind === "task" ? `${drawer.mode === "create" ? "Create" : "Edit"} Task` : drawer.kind === "meeting" ? `${drawer.mode === "create" ? "Create" : "Edit"} Booth Meeting` : "Lead Follow-up"} detail="Linked create and edit flow without leaving the schedule" />{drawer.kind === "task" ? <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3"><div className="space-y-2 xl:col-span-3"><Label>Title</Label><Input value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} /></div><div className="space-y-2"><Label>Event</Label><select value={taskForm.eventId} onChange={(event) => setTaskForm({ ...taskForm, eventId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}</select></div><div className="space-y-2"><Label>Due date</Label><Input type="date" value={taskForm.dueDate} onChange={(event) => setTaskForm({ ...taskForm, dueDate: event.target.value })} /></div><div className="space-y-2"><Label>Status</Label><Input value={taskForm.status} onChange={(event) => setTaskForm({ ...taskForm, status: event.target.value })} /></div><div className="space-y-2"><Label>Priority</Label><Input value={taskForm.priority} onChange={(event) => setTaskForm({ ...taskForm, priority: event.target.value })} /></div><div className="space-y-2 xl:col-span-2"><Label>Notes</Label><Textarea value={taskForm.notes} onChange={(event) => setTaskForm({ ...taskForm, notes: event.target.value })} /></div></div> : null}{drawer.kind === "meeting" ? <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3"><div className="space-y-2"><Label>Booth</Label><select value={meetingForm.boothId} onChange={(event) => setMeetingForm({ ...meetingForm, boothId: event.target.value })} className="h-10 rounded-xl border border-white/10 bg-app px-3 text-sm text-text outline-none">{context.data.booths.map((booth) => <option key={booth.id} value={booth.id}>{eventName(booth.eventId, context)}</option>)}</select></div><div className="space-y-2"><Label>Contact</Label><Input value={meetingForm.contactName} onChange={(event) => setMeetingForm({ ...meetingForm, contactName: event.target.value })} /></div><div className="space-y-2"><Label>Company</Label><Input value={meetingForm.company} onChange={(event) => setMeetingForm({ ...meetingForm, company: event.target.value })} /></div><div className="space-y-2"><Label>Meeting time</Label><Input type="datetime-local" value={meetingForm.meetingTime} onChange={(event) => setMeetingForm({ ...meetingForm, meetingTime: event.target.value })} /></div><div className="space-y-2"><Label>Status</Label><Input value={meetingForm.status} onChange={(event) => setMeetingForm({ ...meetingForm, status: event.target.value })} /></div><div className="space-y-2 xl:col-span-2"><Label>Objective</Label><Input value={meetingForm.objective} onChange={(event) => setMeetingForm({ ...meetingForm, objective: event.target.value })} /></div></div> : null}{drawer.kind === "lead" ? <div className="mt-5"><p className="text-sm text-textSecondary">Lead follow-up items can be rescheduled by dragging them to a new day. Open the lead detail page for deeper CRM edits.</p></div> : null}<div className="mt-5 flex gap-3"><Button variant="secondary" onClick={() => setDrawer(null)}>Close</Button>{drawer.kind !== "lead" ? <Button onClick={() => void saveDrawer()}>Save</Button> : null}</div></Card> : null}
+    </div>
+  );
+}
+
+function CalendarPageLegacy() {
   const context = useConsoleData();
   const timeline = [
     ...context.data.events.map((event) => ({ id: event.id, kind: "Event", title: event.name, date: event.startDate, meta: `${event.city} • ${event.type}` })),
