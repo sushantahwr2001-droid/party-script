@@ -159,18 +159,24 @@ export async function createUser({ name, email, passwordHash, organizationId, ro
   return mapRow(data, userMap);
 }
 
-export async function updateUserPassword(userId, passwordHash) {
+export async function updateUserPassword(userId, passwordHash, name) {
   if (!hasSupabase()) {
     const user = memoryStore.users.find((item) => item.id === userId);
     if (!user) return null;
     user.passwordHash = passwordHash;
+    if (typeof name === "string" && name.trim()) {
+      user.name = name.trim();
+    }
     return user;
   }
 
   const client = supabase();
   const { data, error } = await client
     .from("users")
-    .update({ password_hash: passwordHash })
+    .update({
+      password_hash: passwordHash,
+      ...(typeof name === "string" && name.trim() ? { name: name.trim() } : {}),
+    })
     .eq("id", userId)
     .select("*")
     .maybeSingle();
@@ -1075,6 +1081,51 @@ export async function mergeAttendeesForOrg(auth, sourceAttendeeId, targetAttende
   if (deleteError) throw deleteError;
 
   return updatedTarget ? { ...mapRow(updatedTarget, attendeeMap), tags: Array.isArray(updatedTarget.tags) ? updatedTarget.tags : [] } : null;
+}
+
+export async function updateAttendeeForOrg(auth, attendeeId, body) {
+  if (!hasSupabase()) {
+    const attendee = memoryStore.attendees.find((item) => item.id === attendeeId && item.organizationId === auth.organizationId);
+    if (!attendee) return null;
+    mergeUpdate(attendee, body, ["eventId", "fullName", "email", "phone", "company", "city", "ticketType", "registrationStatus", "checkInStatus", "source", "tags"]);
+    if (body.email !== undefined) {
+      attendee.email = normalizeEmail(body.email);
+    }
+    return attendee;
+  }
+
+  const client = supabase();
+  const payload = {
+    ...(body.eventId !== undefined ? { event_id: body.eventId } : {}),
+    ...(body.fullName !== undefined ? { full_name: body.fullName } : {}),
+    ...(body.email !== undefined ? { email: normalizeEmail(body.email) } : {}),
+    ...(body.phone !== undefined ? { phone: body.phone } : {}),
+    ...(body.company !== undefined ? { company: body.company } : {}),
+    ...(body.city !== undefined ? { city: body.city } : {}),
+    ...(body.ticketType !== undefined ? { ticket_type: body.ticketType } : {}),
+    ...(body.registrationStatus !== undefined ? { registration_status: body.registrationStatus } : {}),
+    ...(body.checkInStatus !== undefined ? { check_in_status: body.checkInStatus } : {}),
+    ...(body.source !== undefined ? { source: body.source } : {}),
+    ...(body.tags !== undefined ? { tags: Array.isArray(body.tags) ? body.tags : [] } : {}),
+  };
+  const { data, error } = await client.from("attendees").update(payload).eq("id", attendeeId).eq("organization_id", auth.organizationId).select("*").maybeSingle();
+  if (error) throw error;
+  return data ? { ...mapRow(data, attendeeMap), tags: Array.isArray(data.tags) ? data.tags : [] } : null;
+}
+
+export async function deleteAttendeeForOrg(auth, attendeeId) {
+  if (!hasSupabase()) {
+    const index = memoryStore.attendees.findIndex((item) => item.id === attendeeId && item.organizationId === auth.organizationId);
+    if (index === -1) return false;
+    memoryStore.attendees.splice(index, 1);
+    memoryStore.checkins = memoryStore.checkins.filter((item) => item.attendeeId !== attendeeId);
+    return true;
+  }
+
+  const client = supabase();
+  const { error, count } = await client.from("attendees").delete({ count: "exact" }).eq("id", attendeeId).eq("organization_id", auth.organizationId);
+  if (error) throw error;
+  return Boolean(count);
 }
 
 export async function createCheckinForOrg(auth, body) {

@@ -1,4 +1,4 @@
-import type { AuthResponse, BootstrapPayload, ForgotPasswordResponse, SetupStatusResponse } from "../types";
+import type { AuthResponse, BootstrapPayload, ForgotPasswordResponse, InviteAcceptanceResponse, SetupStatusResponse } from "../types";
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
@@ -45,6 +45,12 @@ export const api = {
     return request<{ ok: true }>("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ token, password })
+    });
+  },
+  acceptInvite(token: string, name: string, password: string) {
+    return request<InviteAcceptanceResponse>("/auth/accept-invite", {
+      method: "POST",
+      body: JSON.stringify({ token, name, password })
     });
   },
   setupStatus() {
@@ -247,6 +253,15 @@ export const api = {
       body: JSON.stringify(payload)
     }, token);
   },
+  updateAttendee(token: string, id: string, payload: Record<string, unknown>) {
+    return request<{ attendee: unknown }>(`/attendees/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    }, token);
+  },
+  deleteAttendee(token: string, id: string) {
+    return request<{ ok: true }>(`/attendees/${id}`, { method: "DELETE" }, token);
+  },
   createTicket(
     token: string,
     payload: {
@@ -311,7 +326,7 @@ export const api = {
       password?: string;
     },
   ) {
-    return request<{ user: unknown; temporaryPassword: string }>("/team/invite", {
+    return request<{ user: unknown; inviteUrl: string }>("/team/invite", {
       method: "POST",
       body: JSON.stringify(payload)
     }, token);

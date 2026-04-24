@@ -299,6 +299,11 @@ export interface ForgotPasswordResponse {
   resetUrl?: string;
 }
 
+export interface InviteAcceptanceResponse {
+  token: string;
+  user: UserSummary;
+}
+
 export interface AuthContextValue {
   token: string | null;
   user: UserSummary | null;
@@ -307,6 +312,7 @@ export interface AuthContextValue {
   register: (name: string, email: string, password: string, organizationName?: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
   resetPassword: (token: string, password: string) => Promise<void>;
+  acceptInvite: (token: string, name: string, password: string) => Promise<void>;
   logout: () => void;
 }
 

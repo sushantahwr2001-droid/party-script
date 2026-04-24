@@ -55,13 +55,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api.resetPassword(resetToken, password);
   }
 
+  async function acceptInvite(inviteToken: string, name: string, password: string) {
+    const response = await api.acceptInvite(inviteToken, name, password);
+    localStorage.setItem(STORAGE_KEY, response.token);
+    setToken(response.token);
+    setUser(response.user);
+  }
+
   function logout() {
     localStorage.removeItem(STORAGE_KEY);
     setToken(null);
     setUser(null);
   }
 
-  return <AuthContext.Provider value={{ token, user, loading, login, register, forgotPassword, resetPassword, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ token, user, loading, login, register, forgotPassword, resetPassword, acceptInvite, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

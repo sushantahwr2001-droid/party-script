@@ -20,6 +20,7 @@ import {
   deleteUserForOrg,
   deleteBudgetForOrg,
   deleteBoothChecklistItemForOrg,
+  deleteAttendeeForOrg,
   deleteEventForOrg,
   deleteLeadForOrg,
   deleteOpportunityForOrg,
@@ -38,6 +39,7 @@ import {
   updateBudgetForOrg,
   updateBoothChecklistItemForOrg,
   updateBoothForOrg,
+  updateAttendeeForOrg,
   updateEventForOrg,
   updateLeadForOrg,
   updateOpportunityForOrg,
@@ -154,6 +156,39 @@ export default async function handler(req, res) {
       }
     }
 
+    if (req.method === "POST" && route === "auth/accept-invite") {
+      try {
+        const payload = jwt.verify(String(body.token || ""), JWT_SECRET);
+        if (!payload || payload.purpose !== "workspace-invite" || !payload.userId || !payload.organizationId || !payload.email) {
+          json(res, 400, { message: "Invalid invite token." });
+          return;
+        }
+
+        const user = await findUserById(payload.userId);
+        if (!user || user.organizationId !== payload.organizationId || user.email !== payload.email) {
+          json(res, 404, { message: "Invite recipient not found." });
+          return;
+        }
+
+        const updated = await updateUserPassword(
+          user.id,
+          await bcrypt.hash(String(body.password || ""), 10),
+          String(body.name || user.name || "New Teammate"),
+        );
+
+        if (!updated) {
+          json(res, 404, { message: "Invite recipient not found." });
+          return;
+        }
+
+        json(res, 200, { token: signUser(updated), user: sanitizeUser(updated) });
+        return;
+      } catch {
+        json(res, 400, { message: "Invite token is invalid or expired." });
+        return;
+      }
+    }
+
     const auth = verifyAuth(req);
     if (!auth) {
       json(res, 401, { message: "Authentication required." });
@@ -226,15 +261,25 @@ export default async function handler(req, res) {
         json(res, 409, { message: "A team member with that email already exists." });
         return;
       }
-      const password = String(body.password || "partyscript123");
       const user = await createUser({
         name: String(body.name || "New Teammate"),
         email: String(body.email || ""),
-        passwordHash: await bcrypt.hash(password, 10),
+        passwordHash: await bcrypt.hash(`invite-${Date.now()}`, 10),
         organizationId: auth.organizationId,
         role: String(body.role || "Operator"),
       });
-      json(res, 201, { user: sanitizeUser(user), temporaryPassword: password });
+      const inviteToken = jwt.sign(
+        {
+          purpose: "workspace-invite",
+          userId: user.id,
+          organizationId: user.organizationId,
+          email: user.email,
+        },
+        JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+      const origin = req.headers.origin || `https://${req.headers.host}`;
+      json(res, 201, { user: sanitizeUser(user), inviteUrl: `${origin}/invite/${encodeURIComponent(inviteToken)}` });
       return;
     }
 
@@ -400,6 +445,21 @@ export default async function handler(req, res) {
       if (req.method === "DELETE") {
         const ok = await deleteBoothChecklistItemForOrg(auth, checklistId);
         json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Checklist item not found." });
+        return;
+      }
+    }
+
+    const attendeeMatch = route.match(/^attendees\/([^/]+)$/);
+    if (attendeeMatch) {
+      const attendeeId = decodeURIComponent(attendeeMatch[1]);
+      if (req.method === "PUT") {
+        const attendee = await updateAttendeeForOrg(auth, attendeeId, body);
+        json(res, attendee ? 200 : 404, attendee ? { attendee } : { message: "Attendee not found." });
+        return;
+      }
+      if (req.method === "DELETE") {
+        const ok = await deleteAttendeeForOrg(auth, attendeeId);
+        json(res, ok ? 200 : 404, ok ? { ok: true } : { message: "Attendee not found." });
         return;
       }
     }

@@ -2157,7 +2157,16 @@ export function AttendeesPage() {
         <div className="mt-5">
           <SimpleTable
             columns={[
-                { key: "fullName", label: "Name", render: (row: AttendeeRecord) => <div><div className="font-semibold text-text">{row.fullName}</div><div className="mt-1 text-xs text-textMuted">{row.company}</div></div> },
+                {
+                  key: "fullName",
+                  label: "Name",
+                  render: (row: AttendeeRecord) => (
+                    <div>
+                      <Link to={`/app/attendees/${row.id}`} className="font-semibold text-text transition hover:text-[#C9BDFF]">{row.fullName}</Link>
+                      <div className="mt-1 text-xs text-textMuted">{row.company}</div>
+                    </div>
+                  ),
+                },
                 { key: "event", label: "Event", render: (row: AttendeeRecord) => eventName(row.eventId, context) },
                 { key: "ticketType", label: "Ticket" },
                 { key: "registrationStatus", label: "Registration", render: (row: AttendeeRecord) => <Badge label={row.registrationStatus} tone={statusTone(row.registrationStatus)} /> },
@@ -2335,6 +2344,7 @@ export function CheckinsPage() {
   const { token } = useAuth();
   const [selectedEventId, setSelectedEventId] = useState(context.data.events[0]?.id ?? "");
   const [query, setQuery] = useState("");
+  const [manualCode, setManualCode] = useState("");
   const [lastScanMessage, setLastScanMessage] = useState<string | null>(null);
   const attendees = context.data.attendees.filter((attendee) =>
     !selectedEventId || attendee.eventId === selectedEventId,
@@ -2355,6 +2365,28 @@ export function CheckinsPage() {
     await context.refresh();
     const status = String((response as { checkin?: { status?: string } }).checkin?.status || "success");
     setLastScanMessage(`Latest result: ${status.toUpperCase()}`);
+  }
+
+  async function checkInFromCode() {
+    const normalized = manualCode.trim().toLowerCase();
+    if (!normalized) {
+      setLastScanMessage("Latest result: INVALID");
+      return;
+    }
+
+    const attendee = attendees.find((item) =>
+      item.id.toLowerCase() === normalized ||
+      item.email.toLowerCase() === normalized ||
+      item.phone.toLowerCase() === normalized,
+    );
+
+    if (!attendee) {
+      setLastScanMessage("Latest result: INVALID");
+      return;
+    }
+
+    await checkIn(attendee.id, attendee.eventId);
+    setManualCode("");
   }
 
   return (
@@ -2379,6 +2411,10 @@ export function CheckinsPage() {
                 ))}
               </select>
               <Input placeholder="Search attendee..." value={query} onChange={(event) => setQuery(event.target.value)} />
+              <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                <Input placeholder="Manual code, email, phone, or attendee ID" value={manualCode} onChange={(event) => setManualCode(event.target.value)} />
+                <Button onClick={() => void checkInFromCode()} className="md:min-w-[160px]"><ScanLine className="h-4 w-4" />Manual Check-in</Button>
+              </div>
               {lastScanMessage ? <div className="rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-textSecondary">{lastScanMessage}</div> : null}
               <div className="space-y-3">
                 {(query ? candidates : attendees).slice(0, 8).map((attendee) => (
@@ -2821,7 +2857,7 @@ export function TeamPage() {
     if (!token) return;
     const response = await api.inviteTeamMember(token, inviteForm);
     await context.refresh();
-    setInviteNotice(`Invited ${inviteForm.email}. Temporary password: ${(response as { temporaryPassword: string }).temporaryPassword}`);
+    setInviteNotice(`Invited ${inviteForm.email}. Share this invite link: ${(response as { inviteUrl: string }).inviteUrl}`);
     setInviteForm({ name: "", email: "", role: "Operator" });
   }
 
@@ -2842,7 +2878,7 @@ export function TeamPage() {
       <PageIntro title="Team" description="Invite teammates, manage roles, and keep operator ownership visible across the workspace." actions={<Button onClick={() => void inviteMember()}><UserPlus className="h-4 w-4" />Invite teammate</Button>} />
       <div className="grid gap-6 xl:grid-cols-12">
         <Card className="xl:col-span-4 p-5">
-          <SectionTitle title="Invite Teammate" detail="Bootstrap-friendly team setup with a temporary password flow" />
+          <SectionTitle title="Invite Teammate" detail="Generate a secure acceptance link instead of sharing a password" />
           <div className="mt-5 space-y-4">
             <div className="space-y-2"><Label>Name</Label><Input value={inviteForm.name} onChange={(event) => setInviteForm({ ...inviteForm, name: event.target.value })} /></div>
             <div className="space-y-2"><Label>Email</Label><Input value={inviteForm.email} onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })} /></div>
@@ -2873,6 +2909,91 @@ export function TeamPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export function AttendeeDetailPage() {
+  const context = useConsoleData();
+  const { token } = useAuth();
+  const { attendeeId } = useParams();
+  const navigate = useNavigate();
+  const attendee = context.data.attendees.find((item) => item.id === attendeeId);
+  const [form, setForm] = useState(() => (attendee ? { ...attendee, tagsInput: attendee.tags.join(", ") } : null));
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (attendee) {
+      setForm({ ...attendee, tagsInput: attendee.tags.join(", ") });
+    }
+  }, [attendee]);
+
+  if (!attendee || !form) {
+    return <EmptyState title="Attendee not found" description="This attendee is no longer available." action={<Link to="/app/attendees"><Button>Back to Attendees</Button></Link>} />;
+  }
+
+  const currentAttendee = attendee;
+  const currentForm = form;
+
+  async function save() {
+    if (!token) return;
+    await api.updateAttendee(token, currentAttendee.id, {
+      ...currentForm,
+      tags: currentForm.tagsInput.split(",").map((item: string) => item.trim()).filter(Boolean),
+    });
+    await context.refresh();
+    setNotice("Attendee saved.");
+  }
+
+  async function remove() {
+    if (!token) return;
+    await api.deleteAttendee(token, currentAttendee.id);
+    await context.refresh();
+    navigate("/app/attendees");
+  }
+
+  async function resendConfirmation() {
+    setNotice(`Confirmation re-queued for ${currentForm.email}.`);
+  }
+
+  async function toggleVipSegment() {
+    if (!token) return;
+    const currentTags = currentForm.tagsInput.split(",").map((item: string) => item.trim()).filter(Boolean);
+    const hasVip = currentTags.some((tag) => tag.toLowerCase() === "vip");
+    const nextTags = hasVip ? currentTags.filter((tag) => tag.toLowerCase() !== "vip") : [...currentTags, "VIP"];
+    await api.updateAttendee(token, currentAttendee.id, { tags: nextTags });
+    await context.refresh();
+    setNotice(hasVip ? "VIP segment removed." : "VIP segment added.");
+  }
+
+  return (
+    <EntityDetailShell
+      title={form.fullName}
+      description={`${eventName(form.eventId, context)} • ${form.ticketType}`}
+      actions={
+        <>
+          <Button variant="secondary" onClick={() => void remove()}>Delete</Button>
+          <Button onClick={() => void save()}>Save</Button>
+        </>
+      }
+    >
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2"><Label>Full Name</Label><Input value={form.fullName} onChange={(event) => setForm({ ...form, fullName: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Email</Label><Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Company</Label><Input value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></div>
+        <div className="space-y-2"><Label>City</Label><Input value={form.city} onChange={(event) => setForm({ ...form, city: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Ticket Type</Label><Input value={form.ticketType} onChange={(event) => setForm({ ...form, ticketType: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Registration Status</Label><Input value={form.registrationStatus} onChange={(event) => setForm({ ...form, registrationStatus: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Check-in Status</Label><Input value={form.checkInStatus} onChange={(event) => setForm({ ...form, checkInStatus: event.target.value })} /></div>
+        <div className="space-y-2"><Label>Source</Label><Input value={form.source} onChange={(event) => setForm({ ...form, source: event.target.value })} /></div>
+        <div className="space-y-2 md:col-span-2"><Label>Segments / Tags</Label><Input value={form.tagsInput} onChange={(event) => setForm({ ...form, tagsInput: event.target.value })} placeholder="VIP, Founder, Sponsor" /></div>
+      </div>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Button variant="secondary" onClick={() => void resendConfirmation()}>Resend Confirmation</Button>
+        <Button variant="secondary" onClick={() => void toggleVipSegment()}>Toggle VIP Segment</Button>
+      </div>
+      {notice ? <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-sm text-textSecondary">{notice}</div> : null}
+    </EntityDetailShell>
   );
 }
 

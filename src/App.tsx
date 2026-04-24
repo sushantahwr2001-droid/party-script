@@ -5,6 +5,7 @@ import { Button, Card } from "./components/ui";
 import { AppShell } from "./layout/AppShell";
 import {
   AssetsPage,
+  AttendeeDetailPage,
   AttendeesPage,
   BoothPage,
   BudgetPage,
@@ -30,6 +31,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SignupPage } from "./pages/SignupPage";
+import { InviteAcceptPage } from "./pages/InviteAcceptPage";
 
 function RouteErrorPage() {
   const error = useRouteError();
@@ -76,6 +78,7 @@ const router = createBrowserRouter([
   { path: "/signup", element: <SignupPage />, errorElement: <RouteErrorPage /> },
   { path: "/forgot-password", element: <ForgotPasswordPage />, errorElement: <RouteErrorPage /> },
   { path: "/reset-password", element: <ResetPasswordPage />, errorElement: <RouteErrorPage /> },
+  { path: "/invite/:token", element: <InviteAcceptPage />, errorElement: <RouteErrorPage /> },
   {
     path: "/app",
     element: <ProtectedApp />,
@@ -91,6 +94,7 @@ const router = createBrowserRouter([
       { path: "tasks", element: <TasksPage /> },
       { path: "tasks/:taskId", element: <TaskDetailPage /> },
       { path: "attendees", element: <AttendeesPage /> },
+      { path: "attendees/:attendeeId", element: <AttendeeDetailPage /> },
       { path: "tickets", element: <TicketsPage /> },
       { path: "checkins", element: <CheckinsPage /> },
       { path: "vendors", element: <VendorsPage /> },
