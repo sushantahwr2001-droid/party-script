@@ -248,7 +248,7 @@ export async function fetchStore(organizationId) {
   const client = supabase();
   const safeSelect = async (table, queryBuilder) => {
     const result = await queryBuilder(client.from(table));
-    if (result.error && result.error.code === "42P01") {
+    if (result.error && ["42P01", "PGRST205"].includes(result.error.code)) {
       return { data: [], error: null };
     }
     return result;
